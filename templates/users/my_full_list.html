@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mening Ro'yxatim | Drama.uz{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glass-nav {
+        background: rgba(10, 10, 10, 0.8);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .status-tab {
+        transition: all 0.3s ease;
+        border-bottom: 2px solid transparent;
+    }
+    
+    .status-tab.active {
+        color: #00cc4c;
+        border-bottom-color: #00cc4c;
+        text-shadow: 0 0 10px rgba(0, 204, 76, 0.5);
+    }
+
+    .movie-card-glow:hover {
+        box-shadow: 0 0 20px rgba(0, 204, 76, 0.15);
+        border-color: rgba(0, 204, 76, 0.3) !important;
+    }
+
+    /* Bo'limlar uchun maxsus ranglar */
+    .border-watching { border-left: 4px solid #3b82f6; }   /* Ko'k */
+    .border-completed { border-left: 4px solid #00cc4c; }  /* Yashil */
+    .border-planned { border-left: 4px solid #a855f7; }    /* Siyohrang */
+    .border-onhold { border-left: 4px solid #eab308; }     /* Sariq */
+    .border-dropped { border-left: 4px solid #ef4444; }    /* Qizil */
+
+    /* Scroll silliqligi */
+    html { scroll-behavior: smooth; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-[#050505] text-white pb-20">
+    
+    <div class="pt-12 pb-6 px-4 md:px-8 max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'users:profile' user.username %}" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-[#1a1a1a] border border-white/5 text-gray-400 hover:text-white transition-all">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-black italic uppercase tracking-tighter">MY LIBRARY</h1>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-widest">Jami: {{ watching.count|add:completed.count|add:plan_to_watch.count|add:on_hold.count|add:dropped.count }} ta drama</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
+                    <p class="text-[10px] text-gray-500 font-bold">LVL</p>
+                    <p class="text-sm font-black text-[#00cc4c]">{{ user.profile.level }}</p>
+                </div>
+                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
+                    <p class="text-[10px] text-gray-500 font-bold">XP</p>
+                    <p class="text-sm font-black text-white">{{ user.profile.xp }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky top-0 z-40 glass-nav">
+        <div class="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar">
+            <div class="flex items-center gap-8 py-4 min-w-max">
+                <a href="#watching" class="status-tab active text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Ko'ryapman ({{ watching.count }})
+                </a>
+                <a href="#completed" class="status-tab text-xs font-black uppercase tracking-widest flex items-center gap-2 text-gray-500 hover:text-white">
+                    <span class="w-2 h-2 rounded-full bg-[#00cc4c]"></span> Tugatilgan ({{ completed.count }})
+                </a>
+                <a href="#planned" class="status-tab text-xs font-black uppercase tracking-widest flex items-center gap-2 text-gray-500 hover:text-white">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span> Rejada ({{ plan_to_watch.count }})
+                </a>
+                <a href="#onhold" class="status-tab text-xs font-black uppercase tracking-widest flex items-center gap-2 text-gray-500 hover:text-white">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span> To'xtatilgan ({{ on_hold.count }})
+                </a>
+                <a href="#dropped" class="status-tab text-xs font-black uppercase tracking-widest flex items-center gap-2 text-gray-500 hover:text-white">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span> Tashlangan ({{ dropped.count }})
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 mt-12 space-y-20">
+
+        <section id="watching" class="scroll-mt-32 space-y-8">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">Hozirda ko'rilmoqda</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {% for item in watching %}
+                    {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-watching" %}
+                {% empty %}
+                    <p class="col-span-full text-gray-600 italic py-10">Ushbu bo'limda hali hech narsa yo'q...</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="completed" class="scroll-mt-32 space-y-8">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-[#00cc4c] rounded-full shadow-[0_0_10px_#00cc4c]"></div>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">Ko'rib tugallangan</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {% for item in completed %}
+                    {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-completed" %}
+                {% empty %}
+                    <p class="col-span-full text-gray-600 italic py-10">Ushbu bo'limda hali hech narsa yo'q...</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="planned" class="scroll-mt-32 space-y-8">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-purple-500 rounded-full shadow-[0_0_10px_#a855f7]"></div>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">Ko'rish rejamda bor</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {% for item in plan_to_watch %}
+                    {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-planned" %}
+                {% empty %}
+                    <p class="col-span-full text-gray-600 italic py-10">Ushbu bo'limda hali hech narsa yo'q...</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="onhold" class="scroll-mt-32 space-y-8">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-yellow-500 rounded-full"></div>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">Vaqtincha to'xtatilgan</h2>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {% for item in on_hold %}
+                    {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-onhold" %}
+                {% empty %}
+                    <p class="col-span-full text-gray-600 italic py-10 text-sm">Hech narsa topilmadi.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<script>
+    // Tablarni aktiv qilish logikasi
+    const tabs = document.querySelectorAll('.status-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => {
+                t.classList.remove('active', 'text-white');
+                t.classList.add('text-gray-500');
+            });
+            tab.classList.add('active', 'text-white');
+            tab.classList.remove('text-gray-500');
+        });
+    });
+</script>
+{% endblock %}

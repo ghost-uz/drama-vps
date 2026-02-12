@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ actor.name }} - Aktyor haqida ma'lumot - Drama.uz{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero qismi uchun maxsus gradient */
+    .actor-hero {
+        background: linear-gradient(to bottom, rgba(17, 17, 17, 0.7), #111111), 
+                    url('{{ actor.image.url }}');
+        background-size: cover;
+        /* Rasm markazda yaxshi ko'rinishi uchun */
+        background-position: center center; 
+    }
+    
+    .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+   <div class="actor-hero h-[400px] md:h-[450px] w-full relative flex items-end pt-32 md:pt-0">
+        <div class="max-w-7xl mx-auto px-4 md:px-8 w-full pb-10">
+            <div class="flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-10">
+                <div class="w-40 h-40 md:w-56 md:h-56 rounded-full border-4 border-[#00cc4c] overflow-hidden shadow-2xl shrink-0 transform hover:scale-105 transition duration-500">
+                    <img src="{{ actor.image.url }}" alt="{{ actor.name }}" class="w-full h-full object-cover">
+                </div>
+
+                <div class="text-center md:text-left">
+                    <h1 class="text-4xl md:text-6xl font-black tracking-tighter text-white">{{ actor.name }}</h1>
+                    <p class="text-gray-400 text-lg md:text-xl mt-2 font-medium">{{ actor.original_name }}</p>
+                    
+                    <div class="flex flex-wrap justify-center md:justify-start gap-4 mt-6">
+                        <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-calendar-alt iq-green"></i>
+                            <span class="text-sm">{{ actor.birth_date|date:"d.m.Y" }} ({{ actor.age }} yosh)</span>
+                        </div>
+                        <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt iq-green"></i>
+                            <span class="text-sm">{{ actor.birth_place|default:"Ma'lumot yo'q" }}</span>
+                        </div>
+                        <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-venus-mars iq-green"></i>
+                            <span class="text-sm uppercase">{{ actor.get_gender_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+        
+        <div class="lg:col-span-1">
+            <h3 class="text-2xl font-black mb-6 border-l-4 border-[#00cc4c] pl-4 uppercase tracking-widest">Biografiya</h3>
+            <div class="glass-card p-6 rounded-2xl">
+                <p class="text-gray-300 leading-relaxed text-sm md:text-base">
+                    {% if actor.description %}
+                        {{ actor.description|linebreaks }}
+                    {% else %}
+                        Ushbu ijodkor haqida hozircha to'liq biografiya yuklanmagan.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <h3 class="text-2xl font-black mb-6 border-l-4 border-[#00cc4c] pl-4 uppercase tracking-widest">
+                Filmografiya ({{ actor.acted_movies.count }})
+            </h3>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-6">
+                {% for movie in actor.acted_movies.all %}
+                <a href="{{ movie.get_absolute_url }}" class="group">
+                    <div class="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg border border-gray-800">
+                        <img src="{{ movie.poster.url }}" alt="{{ movie.title }}" 
+                             class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                        
+                        {% if movie.is_vip %}
+                        <div class="absolute top-3 right-3 bg-yellow-500 text-black text-[10px] font-black px-2 py-0.5 rounded shadow-lg">VIP</div>
+                        {% endif %}
+
+                        <div class="absolute bottom-4 left-4 right-4">
+                            <h4 class="text-sm font-bold text-white line-clamp-1 group-hover:iq-green transition">{{ movie.title }}</h4>
+                            <div class="flex items-center justify-between mt-1">
+                                <span class="text-[10px] text-gray-400">{{ movie.year }}</span>
+                                <span class="text-[10px] iq-green"><i class="fas fa-star text-[8px]"></i> {{ movie.mdl_rank }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <p class="text-gray-500 italic col-span-full">Hozircha aktyor ishtirokidagi kinolar bazaga qo'shilmagan.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

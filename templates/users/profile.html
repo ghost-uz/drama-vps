@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ person.username }} Profili | Drama.uz{% endblock %}
+
+{% block extra_css %}
+<style>
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 15px rgba(0, 204, 76, 0.2); }
+        50% { box-shadow: 0 0 30px rgba(0, 204, 76, 0.5); }
+    }
+    
+    /* Progress Ring - Dinamik qiymat */
+    .avatar-ring {
+        background: conic-gradient(#00cc4c {{ profile.progress_percent|stringformat:"f" }}%, #1f1f1f 0);
+        transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card {
+        background: rgba(15, 15, 15, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-settings {
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .btn-settings:hover {
+        transform: rotate(45deg) scale(1.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-[#050505] text-white py-12 px-4 md:px-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <div class="relative glass-card rounded-[3rem] p-8 md:p-12 overflow-hidden shadow-2xl">
+            <div class="absolute -top-24 -left-24 w-80 h-80 bg-[#00cc4c]/10 rounded-full blur-[120px]"></div>
+            
+            {% if request.user == person %}
+            <div class="absolute top-8 right-8 flex items-center gap-4 z-20">
+                <a href="{% url 'users:settings' %}" class="btn-settings w-12 h-12 flex items-center justify-center rounded-2xl bg-[#1a1a1a] border border-white/5 text-gray-400 hover:text-[#00cc4c] hover:border-[#00cc4c]/50 shadow-lg">
+                    <i class="fas fa-cog text-xl"></i>
+                </a>
+                
+                <form action="{% url 'users:logout' %}" method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg">
+                        <i class="fas fa-sign-out-alt text-xl"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="relative z-10 flex flex-col md:flex-row items-center gap-10">
+                <div class="relative">
+                    <div class="avatar-ring w-44 h-44 rounded-full p-1 flex items-center justify-center">
+                        <div class="w-full h-full rounded-full bg-[#050505] p-1.5">
+                            {% if profile.avatar %}
+                                <img src="{{ profile.avatar.url }}" class="w-full h-full rounded-full object-cover">
+                            {% else %}
+                                <img src="{% static 'images/default.jpg' %}" class="w-full h-full rounded-full object-cover">
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#00cc4c] text-black px-4 py-1 rounded-full font-black text-xs shadow-[0_0_15px_#00cc4c]">
+                        LVL {{ profile.level }}
+                    </div>
+                </div>
+
+                <div class="flex-1 text-center md:text-left space-y-4">
+                    <div>
+                        <div class="flex flex-col md:flex-row items-center gap-4 mb-2">
+                            <h1 class="text-4xl font-black tracking-tighter italic uppercase">{{ person.username }}</h1>
+                            {% if profile.is_currently_premium %}
+                            <span class="px-3 py-1 bg-yellow-500/10 rounded-lg text-[10px] font-bold text-yellow-500 border border-yellow-500/20 uppercase tracking-widest">
+                                PREMIUM MEMBER
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-400 text-sm font-medium">{{ profile.bio|default:"Drama olamiga xush kelibsiz!" }}</p>
+                    </div>
+
+                    <div class="max-w-md space-y-2">
+                        <div class="flex justify-between items-end text-[10px] font-black tracking-[0.1em]">
+                            <span class="text-[#00cc4c]">EXP: {{ profile.xp }}</span>
+                            <span class="text-gray-500 uppercase">Next Level: {{ profile.level|add:1 }}</span>
+                        </div>
+                        <div class="h-2.5 w-full bg-white/5 rounded-full overflow-hidden p-[2px] border border-white/5">
+                            <div class="h-full bg-gradient-to-r from-[#00cc4c] to-[#00ff62] rounded-full transition-all duration-1000" 
+                                 style="width: {{ profile.progress_percent }}%; animation: pulse-glow 2s infinite;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-blue-500">
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Ro'yxatda</p>
+                <h4 class="text-2xl font-black">{{ profile.movie_list.count }}</h4>
+            </div>
+            <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-[#00cc4c]">
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Tugallangan</p>
+                <h4 class="text-2xl font-black">{{ watched_count }}</h4>
+            </div>
+            <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-purple-500">
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Sharhlar</p>
+                <h4 class="text-2xl font-black">{{ person.reviews.count }}</h4>
+            </div>
+            <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-yellow-500">
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Ballar (XP)</p>
+                <h4 class="text-2xl font-black">{{ profile.xp }}</h4>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+                    <span class="w-1.5 h-6 bg-[#00cc4c] rounded-full"></span>
+                    Oxirgi harakatlar
+                </h3>
+                <a href="{% url 'users:my_full_list' %}" class="group flex items-center gap-2 text-[#00cc4c] text-[10px] font-black tracking-widest hover:gap-3 transition-all">
+                    TO'LIQ RO'YXAT <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {% for entry in watched_history %}
+                <div class="group relative bg-[#0f0f0f] rounded-3xl overflow-hidden border border-white/5 hover:border-[#00cc4c]/50 transition-all duration-500 shadow-xl">
+                    <div class="absolute top-3 left-3 z-10">
+                        <span class="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter backdrop-blur-md 
+                            {% if entry.status == 1 %} bg-blue-500/20 text-blue-400 border border-blue-500/30
+                            {% elif entry.status == 2 %} bg-green-500/20 text-green-400 border border-green-500/30
+                            {% elif entry.status == 4 %} bg-yellow-500/20 text-yellow-400 border border-yellow-500/30
+                            {% else %} bg-gray-500/20 text-gray-400 border border-gray-500/30 {% endif %}">
+                            {{ entry.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="aspect-[2/3] overflow-hidden">
+                        <img src="{{ entry.movie.poster.url }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                    </div>
+                    
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent opacity-90"></div>
+                    
+                    <div class="absolute bottom-4 left-4 right-4">
+                        <p class="text-xs font-bold truncate mb-1">{{ entry.movie.title }}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] text-[#00cc4c] font-black uppercase">★ {{ entry.movie.mdl_rank }}</span>
+                            {% if entry.score %}
+                            <span class="text-[9px] text-white/40 font-mono italic">Siz: {{ entry.score }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <a href="{{ entry.movie.get_absolute_url }}" class="absolute inset-0 z-0"></a>
+                </div>
+                {% empty %}
+                <div class="col-span-full py-16 text-center glass-card rounded-[3rem] border-dashed border-white/10">
+                    <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-plus text-gray-600"></i>
+                    </div>
+                    <p class="text-gray-500 text-sm italic">Sizning ro'yxatingiz bo'sh. Filmlarni qo'shishni boshlang!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

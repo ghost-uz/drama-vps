@@ -1,0 +1,44 @@
+<a href="{{ movie.get_absolute_url }}" class="group relative block">
+    <div class="relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-900">
+        <img src="{{ movie.poster.url }}" 
+             alt="{{ movie.title }}" 
+             class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110">
+        
+        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80"></div>
+
+        <div class="absolute top-2 right-2 flex flex-col items-end space-y-1">
+            {% if movie.is_vip %}
+            <span class="bg-gradient-to-r from-yellow-500 to-orange-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-sm italic shadow-lg">
+                VIP
+            </span>
+            {% endif %}
+            
+            {% if movie.mdl_rank > 0 %}
+            <span class="bg-[#00cc4c] text-black text-[10px] font-black px-1.5 py-0.5 rounded-sm">
+                TOP 10
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="absolute bottom-2 left-2 right-2">
+            <p class="text-white text-[11px] font-medium drop-shadow-md">
+                {% if movie.episodes.count > 0 %}
+                    {% if movie.episodes.count == movie.episodes_count %}
+                        To'liq: {{ movie.episodes_count }} qism
+                    {% else %}
+                        Yangilandi: {{ movie.episodes.count }}-qism
+                    {% endif %}
+                {% else %}
+                    Tez kunda
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <h3 class="text-sm font-semibold text-gray-200 group-hover:text-[#00cc4c] transition-colors line-clamp-1">
+            {{ movie.title }}
+        </h3>
+        <p class="text-[11px] text-gray-500 mt-0.5">{{ movie.year }} • {{ movie.country }}</p>
+    </div>
+</a>

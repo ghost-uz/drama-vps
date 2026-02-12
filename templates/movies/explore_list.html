@@ -1,0 +1,24 @@
+{% extends 'base.html' %} 
+{% block title %}Kashf qilish - DramaUz{% endblock %}
+
+{% block content %}
+<div id="loading-indicator" class="htmx-indicator fixed top-20 left-1/2 -translate-x-1/2 z-[200]">
+    <div class="bg-[#00cc4c] text-black px-6 py-2 rounded-full text-xs font-black shadow-[0_0_20px_#00cc4c]">
+        YUKLANMOQDA...
+    </div>
+</div>
+
+<div id="explore-area">
+    {% include 'movies/partials/movie_grid.html' %}
+</div>
+
+<style>
+    .htmx-indicator { 
+        opacity: 0; 
+        transition: opacity 200ms ease-in; 
+        pointer-events: none; 
+    }
+    .htmx-request .htmx-indicator { opacity: 1; }
+    .htmx-request.htmx-indicator { opacity: 1; }
+</style>
+{% endblock %}

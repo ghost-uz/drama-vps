@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="o-vZ3kVA-xPK3WB5MKEhLf8naIGlZ7O4WL7uv5gNZFk" />
+    
+    <title>{% block title %}Drama.Uz - Korea va Xitoy dramalari{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}dorama, serial, o'zbekcha, dorama uz, drama uz, koreys seriallari{% endblock %}">
+    
+    <link rel="icon" type="image/png" href="https://cdn.drama.uz/media/favicon.ico">
+
+    <link rel="preload" href="https://cdn.drama.uz/static/css/main.css" as="style">
+    <link rel="stylesheet" href="https://cdn.drama.uz/static/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX - HTTPS orqali! -->
+    <!-- YANGI (jsdelivr.net) - Sinab ko'ring -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12"></script>
+    {% block extra_css %}{% endblock %}
+    
+    {% block schema %}{% endblock %}
+<!-- base.html - head qismiga -->
+<style>
+    /* HTMX transition optimizatsiyasi */
+    .htmx-swapping {
+        opacity: 0;
+        transition: opacity 200ms ease-out;
+    }
+    .htmx-settling {
+        opacity: 1;
+    }
+</style>
+</head>
+
+<body class="bg-[#111111] text-white font-['Inter']">
+
+    <div id="preloader" class="fixed inset-0 z-[1000] bg-[#050505] flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="relative w-24 h-24 mb-6">
+            <div class="absolute inset-0 border-4 border-[#00cc4c]/20 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-t-[#00cc4c] rounded-full animate-spin shadow-[0_0_15px_#00cc4c]"></div>
+        </div>
+        <div class="text-center">
+            <h2 class="text-[#00cc4c] font-black text-xl tracking-[0.3em] uppercase animate-pulse">Yuklanyapti...</h2>
+            <div class="mt-2 w-48 h-1 bg-white/5 rounded-full overflow-hidden">
+                <div id="loading-bar" class="h-full bg-[#00cc4c] shadow-[0_0_10px_#00cc4c] transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <header class="sticky top-0 z-[100] bg-black/60 backdrop-blur-md border-b border-gray-800">
+        <div class="max-w-[1600px] mx-auto w-full flex items-center justify-between px-4 md:px-8 py-3">
+            <div class="flex items-center space-x-8"> 
+                <a href="/" class="text-3xl font-black iq-green tracking-tighter">Drama</a>
+            </div>
+
+            <div class="flex items-center space-x-4 md:space-x-6">
+                <form action="{% url 'drama:search' %}" method="GET" class="hidden md:flex relative group">
+                    <input type="text" name="q" id="live-search-input" autocomplete="off"
+                           placeholder="Kino yoki serial qidirish..." 
+                           class="search-input w-64 lg:w-80 px-5 py-2 rounded-full text-sm">
+                    <button type="submit" class="absolute right-4 top-2.5 text-gray-400 group-hover:text-green-500 transition-colors"> 
+                        <i class="fas fa-search"></i> 
+                    </button>
+                    <div id="live-search-results" class="absolute top-full left-0 right-0 bg-black/95 backdrop-blur-xl border border-gray-800 rounded-2xl mt-2 overflow-hidden hidden z-[110]"></div>
+                </form>
+
+                <button id="mobile-search-btn" class="md:hidden text-gray-300 hover:text-white transition">
+                    <i class="fas fa-search text-xl"></i>
+                </button>
+
+                <div class="flex items-center space-x-4 text-xl text-gray-300">
+                    <a href="#" class="hidden sm:inline-block hover:text-white transition" title="Tarix"> <i class="fa-regular fa-clock"></i> </a>
+                    <a href="#" class="hover:text-white transition" title="Til"> <i class="fa-solid fa-globe text-lg"></i> </a>
+                    
+                    <div class="relative group cursor-pointer">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00cc4c] to-gray-800 flex items-center justify-center border border-gray-700"> 
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'users:profile' username=user.username %}">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'users:register' %}">
+                                    <i class="fas fa-user-plus text-white text-sm"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div> 
+                
+                <a href="#" class="hidden sm:block bg-[#f4d6a1] text-[#5c3e0d] px-4 py-1.5 rounded text-xs font-bold hover:brightness-110 transition">
+                    VIP SALE
+                </a> 
+            </div>
+        </div>
+
+        <div id="mobile-search-bar" class="hidden md:hidden bg-[#1a1a1a] border-b border-gray-700 p-4 absolute w-full top-full left-0 animate-fade-in-down">
+            <form action="{% url 'drama:search' %}" method="GET" class="relative">
+                <input type="text" name="q" placeholder="Qidirish..." class="w-full bg-[#333] text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00cc4c]">
+                <button type="submit" class="absolute right-3 top-3 text-gray-400">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-black/95 border-t border-gray-800 flex justify-around items-center py-3 z-[100]">
+        <a href="/" class="flex flex-col items-center iq-green"> <i class="fas fa-home text-lg"></i> <span class="text-[10px] mt-1 font-bold">Asosiy</span> </a>
+        <a href="{% url 'drama:explore' %}" class="flex flex-col items-center text-gray-400"> <i class="fas fa-compass text-lg"></i> <span class="text-[10px] mt-1 font-bold">Explore</span> </a>
+        <a href="#" class="flex flex-col items-center text-gray-400"> <i class="fas fa-play-circle text-lg"></i> <span class="text-[10px] mt-1 font-bold">Shorts</span> </a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'users:profile' username=user.username %}" class="flex flex-col items-center text-gray-400"> <i class="fas fa-user text-lg"></i> <span class="text-[10px] mt-1 font-bold">Profil</span> </a>
+        {% else %}
+            <a href="{% url 'users:register' %}" class="flex flex-col items-center text-gray-400"> <i class="fas fa-user text-lg"></i> <span class="text-[10px] mt-1 font-bold">Profil</span> </a>
+        {% endif %}
+    </div>
+    
+    {% if request.path == "/" %}
+        {% include 'index.html' %}
+    {% endif %}
+
+    <main class="pb-20 lg:pb-10 min-h-[60vh]"> 
+        {% block content %}{% endblock content %} 
+    </main>
+
+    <footer class="border-t border-gray-900 py-10 mt-10 bg-[#0a0a0a] pb-32 lg:pb-10">
+        <div class="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <div>
+                <h4 class="font-bold mb-4 text-gray-300 uppercase text-sm tracking-widest">Yordam</h4>
+                <ul class="text-sm text-gray-500 space-y-2">
+                    <li><a href="#" class="hover:text-[#00cc4c] transition">FAQ / Qoidalar</a></li>
+                    <li><a href="https://t.me/suxroboff" class="hover:text-[#00cc4c] transition italic">Admin: @Suxroboff</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="font-bold mb-4 text-gray-300 uppercase text-sm tracking-widest">Ijtimoiy tarmoqlar</h4>
+                <ul class="text-sm text-gray-500 space-y-2">
+                    <li><a href="https://t.me/drama_fan" target="_blank" class="hover:text-[#00cc4c] transition"><i class="fab fa-telegram mr-2"></i>@Drama_Fan</a></li>
+                    <li><a href="https://instagram.com/drama_premium" target="_blank" class="hover:text-[#00cc4c] transition"><i class="fab fa-instagram mr-2"></i>@Drama_Premium</a></li>
+                </ul>
+            </div>
+
+            <div class="flex flex-col items-center md:items-end justify-center">
+                <p class="text-[10px] text-gray-600 uppercase font-black tracking-tighter">
+                    © 2026 DramaUz. Barcha huquqlar himoyalangan.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script> 
+    
+    <script>
+        // Preloader Logic
+        window.addEventListener('load', function() {
+            const preloader = document.getElementById('preloader');
+            const loadingBar = document.getElementById('loading-bar');
+            loadingBar.style.width = '100%';
+            setTimeout(() => {
+                preloader.style.opacity = '0';
+                setTimeout(() => { preloader.style.display = 'none'; }, 700);
+            }, 500);
+        });
+
+        // Mobile Search Toggle
+        const mobileSearchBtn = document.getElementById('mobile-search-btn');
+        const mobileSearchBar = document.getElementById('mobile-search-bar');
+        if(mobileSearchBtn && mobileSearchBar) {
+            mobileSearchBtn.addEventListener('click', () => {
+                mobileSearchBar.classList.toggle('hidden');
+                if (!mobileSearchBar.classList.contains('hidden')) {
+                    mobileSearchBar.querySelector('input').focus();
+                }
+            });
+        }
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('live-search-input');
+        const resultsBox = document.getElementById('live-search-results');
+        let debounceTimer;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+            if (query.length < 2) {
+                resultsBox.classList.add('hidden');
+                return;
+            }
+            debounceTimer = setTimeout(() => {
+                fetch(`/live-search/?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'ok' && data.results.length > 0) {
+                            resultsBox.innerHTML = data.results.map(movie => `
+                                <a href="${movie.url}" class="flex items-center p-3 hover:bg-white/5 transition-colors border-b border-gray-800/50 last:border-0">
+                                    <img src="${movie.poster}" class="w-10 h-14 object-cover rounded-lg shadow-md mr-3" loading="lazy">
+                                    <div class="overflow-hidden">
+                                        <div class="text-white text-sm font-semibold truncate">${movie.title}</div>
+                                        <div class="text-gray-500 text-[10px] mt-1 uppercase font-bold">${movie.year} • Drama</div>
+                                    </div>
+                                </a>
+                            `).join('');
+                            resultsBox.classList.remove('hidden');
+                        } else {
+                            resultsBox.classList.add('hidden');
+                        }
+                    });
+            }, 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+                resultsBox.classList.add('hidden');
+            }
+        });
+    });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

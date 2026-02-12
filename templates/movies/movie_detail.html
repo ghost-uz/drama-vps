@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ movie.title }} o'zbek tilida ko'rish - DramaUz{% endblock %}
+
+{% block meta_description %}{{ movie.title }} ({{ movie.year }}) - {{ movie.description|truncatechars:160 }}{% endblock %}
+
+{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}, {% endfor %} drama uz{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet" />
+<style>
+    /* VIDEO PLAYER CORE */
+    .video-container { background: #000; touch-action: manipulation; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 24px; transition: all 0.3s ease; }
+    .video-container video::-webkit-media-controls { display: none !important; }
+    
+    .player-controls { 
+        opacity: 0; visibility: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+        z-index: 2147483647 !important; position: absolute; bottom: 15px; left: 15px; right: 15px;
+        padding: 10px 20px; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
+    }
+    .video-container.controls-active .player-controls { opacity: 1; visibility: visible; transform: translateY(0); }
+    
+    /* DROPDOWN FIX (Oq-oq muammosini yechish) */
+    select#statusSelect, select#statusSelect option {
+        background-color: #0f0f0f !important;
+        color: #ffffff !important;
+    }
+    select#statusSelect option:checked { background-color: #00cc4c !important; color: #000 !important; }
+
+    /* SEEK FEEDBACK */
+    .seek-feedback { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); padding: 25px; border-radius: 50%; pointer-events: none; opacity: 0; z-index: 60; }
+    .seek-feedback.show { animation: ripple 0.6s ease-out; }
+    @keyframes ripple { 0% { opacity: 1; transform: translateY(-50%) scale(1); } 100% { opacity: 0; transform: translateY(-50%) scale(1.6); } }
+
+    /* ACTION BUTTONS */
+    .action-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); transition: 0.3s; }
+    .action-btn:hover { background: rgba(0, 204, 76, 0.1); border-color: rgba(0, 204, 76, 0.3); color: #00cc4c; }
+    .tab-active { color: #00cc4c; border-bottom: 3px solid #00cc4c; }
+    
+    .v-menu { display: none; position: absolute; bottom: calc(100% + 12px); right: 0; background: #0a0a0a; border: 1px solid #222; border-radius: 14px; min-width: 170px; z-index: 2147483647; box-shadow: 0 10px 40px rgba(0,0,0,0.9); }
+    .v-menu.show { display: block; animation: menuIn 0.25s ease-out; }
+    @keyframes menuIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="max-w-[1400px] mx-auto mt-4 md:mt-8 px-4 text-white">
+    <div class="flex flex-col lg:flex-row gap-10">
+        
+        <div class="w-full lg:w-[72%] space-y-8">
+            
+            <section class="space-y-4">
+                <div class="video-container shadow-2xl border border-white/5 relative" id="customPlayer">
+                    {% if is_restricted %}
+                        <div class="aspect-video bg-[#050505] flex flex-col items-center justify-center p-8 text-center rounded-3xl border border-yellow-500/20">
+                            <i class="fas fa-crown text-yellow-500 text-7xl mb-6"></i>
+                            <h3 class="text-2xl font-black mb-4 tracking-tighter uppercase">VIP Bo'lim</h3>
+                            <p class="text-gray-500 text-sm mb-8">Ushbu qismni tomosha qilish uchun premium obuna talab etiladi.</p>
+                            <a href="/subscription" class="bg-[#00cc4c] text-black px-14 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">OBUNANI RASMIYLASHTIRISH</a>
+                        </div>
+                    {% else %}
+                        <div class="relative aspect-video flex items-center justify-center bg-black overflow-hidden w-full h-full rounded-3xl">
+                            <div id="seekLeft" class="seek-feedback left-10"><span class="material-icons text-6xl">fast_rewind</span></div>
+                            <div id="seekRight" class="seek-feedback right-10"><span class="material-icons text-6xl">fast_forward</span></div>
+
+                            <div class="video-wrapper w-full h-full">
+                                <video id="mainVideo" class="cursor-pointer w-full h-full" poster="{{ movie.poster.url }}" playsinline>
+                                    <source src="{{ video_720 }}" type="video/mp4">
+                                </video>
+                            </div>
+
+                            <div id="videoLoader" class="absolute inset-0 flex items-center justify-center bg-black/70 hidden z-[100]">
+                                <div class="w-12 h-12 border-4 border-[#00cc4c] border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+
+                            <div class="player-controls absolute">
+                                <div class="progress-container h-1.5 bg-white/10 w-full mb-4 rounded-full cursor-pointer overflow-hidden" id="progressArea">
+                                    <div id="progressBar" class="h-full bg-[#00cc4c] rounded-full w-0 transition-all duration-100"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-5">
+                                        <button id="playPauseBtn" class="hover:text-[#00cc4c] transition-colors"><span class="material-icons text-3xl" id="playIcon">play_arrow</span></button>
+                                        <div class="time-display text-xs font-mono font-bold tracking-tighter text-gray-300"><span id="currentTime">00:00</span> / <span id="duration">00:00</span></div>
+                                        <div class="hidden md:flex items-center gap-2 group/vol">
+                                            <button id="muteBtn" class="hover:text-[#00cc4c]"><span class="material-icons">volume_up</span></button>
+                                            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" class="w-0 group-hover/vol:w-20 transition-all accent-[#00cc4c]">
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-5">
+                                        <div class="relative">
+                                            <button id="qualityLabelBtn" onclick="toggleMenu('qualityMenu', event)" class="text-[10px] font-black border-2 border-[#00cc4c]/40 px-3 py-1 rounded-lg text-[#00cc4c] uppercase">HD</button>
+                                            <div id="qualityMenu" class="v-menu">
+                                                {% if video_1080 != video_720 %}<div onclick="changeQuality('{{ video_1080 }}', '1080p', this, event)" class="q-item hover:bg-white/5 transition"><span>1080p FHD</span> <i class="material-icons text-sm hidden">check</i></div>{% endif %}
+                                                <div onclick="changeQuality('{{ video_720 }}', '720p', this, event)" class="q-item q-active hover:bg-white/5 transition"><span>720p HD</span> <i class="material-icons text-sm">check</i></div>
+                                            </div>
+                                        </div>
+                                        <div class="relative">
+                                            <button onclick="toggleMenu('settingsMenu', event)" class="hover:text-[#00cc4c] transition-colors"><span class="material-icons">settings</span></button>
+                                            <div id="settingsMenu" class="v-menu p-5 space-y-5">
+                                                <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                                                    <button onclick="adjustZoom(-5, event)" class="text-white hover:text-red-500"><i class="fas fa-minus"></i></button>
+                                                    <span id="zoomLabel" class="text-xs font-black">Zoom: 100%</span>
+                                                    <button onclick="adjustZoom(5, event)" class="text-white hover:text-[#00cc4c]"><i class="fas fa-plus"></i></button>
+                                                </div>
+                                                <div onclick="changeSpeedCycle(event)" class="bg-white/5 p-3 rounded-xl text-center cursor-pointer hover:bg-white/10 border border-white/5">
+                                                    <span class="text-[10px] uppercase font-black text-gray-400">Tezlik: </span><span id="speedDisplay" class="text-[#00cc4c] font-black ml-1">1.0x</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button id="fullScreen" class="hover:text-[#00cc4c] transition-colors"><span class="material-icons">fullscreen</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="flex flex-wrap items-center gap-4 py-2">
+                <div class="flex-1 min-w-[150px] bg-[#00cc4c]/10 border border-[#00cc4c]/20 text-[#00cc4c] font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3">
+                    <i class="fas fa-play-circle text-sm"></i>
+                    <span class="text-xs uppercase tracking-tighter">{{ active_episode.episode_number }}-QISM</span>
+                </div>
+
+                {% if next_episode %}
+                <a href="?episode={{ next_episode.episode_number }}" class="flex-1 min-w-[180px] bg-[#00cc4c] hover:bg-[#00ff62] text-black font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#00cc4c]/10">
+                    <span class="text-xs uppercase italic">Keyingi qism</span> <i class="fas fa-step-forward text-xs"></i>
+                </a>
+                {% endif %}
+
+                <div class="flex-[1.5] min-w-[220px]">
+                    {% if user.is_authenticated %}
+                        <button onclick="toggleListModal()" class="w-full py-4 action-btn rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3">
+                            <i class="fas {% if user_movie_status %}fa-check-double text-[#00cc4c]{% else %}fa-list-ul{% endif %}"></i>
+                            {% if user_movie_status %}{{ user_movie_status.get_status_display }}{% else %}Ro'yxatga Qo'shish{% endif %}
+                        </button>
+                    {% else %}
+                        <a href="{% url 'users:login' %}" class="w-full py-4 action-btn rounded-2xl font-black text-xs uppercase text-center block">Tizimga kiring</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <section class="space-y-5 border-b border-white/5 pb-10">
+                <h1 class="text-4xl md:text-6xl font-black tracking-tighter italic uppercase leading-none">{{ movie.title }}</h1>
+                <div class="flex flex-wrap gap-5 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                    <span class="text-[#00cc4c] bg-[#00cc4c]/10 px-3 py-1 rounded-full border border-[#00cc4c]/20">★ {{ movie.mdl_rank }}</span>
+                    <span class="bg-white/5 px-3 py-1 rounded-full border border-white/10">{{ movie.age_limit }}+</span>
+                    <span>{{ movie.year }}</span>
+                    <span class="text-blue-400">{{ movie.country }}</span>
+                </div>
+                <p class="text-gray-400 text-sm leading-relaxed border-l-4 border-[#00cc4c]/40 pl-6 italic max-w-4xl">{{ movie.description }}</p>
+            </section>
+
+            <section class="pt-6">
+                <div class="flex gap-10 border-b border-white/5 text-xs font-black uppercase tracking-[0.2em] mb-8">
+                    <button onclick="switchTab('episodes')" id="tab-ep-btn" class="pb-5 tab-active">Qismlar</button>
+                    <button onclick="switchTab('comments')" id="tab-com-btn" class="pb-5 text-gray-500">Fikrlar ({{ movie.reviews.count }})</button>
+                </div>
+
+                <div id="episodes-content" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-3">
+                    {% for ep in episodes %}
+                    <a href="?episode={{ ep.episode_number }}" class="h-14 flex items-center justify-center rounded-2xl font-black text-xs transition-all
+                        {% if active_episode.id == ep.id %} bg-[#00cc4c] text-black shadow-[0_0_20px_rgba(0,204,76,0.3)] {% else %} bg-white/5 text-gray-400 hover:bg-white/10 border border-white/5 {% endif %}">
+                        {{ ep.episode_number }}
+                    </a>
+                    {% endfor %}
+                </div>
+
+<div id="comments-content" class="hidden space-y-8">
+    {% if user.is_authenticated %}
+        <form id="commentForm"
+      hx-post="{% url 'drama:add_review' movie.id %}" 
+      hx-target="#comment-list" 
+      hx-swap="afterbegin" 
+      hx-on::after-request="this.reset(); resetCommentTarget();"
+      class="bg-white/3 p-8 rounded-[2.5rem] border border-white/5 mb-10">
+    {% csrf_token %}
+    <input type="hidden" name="parent" id="contactparent" value="">
+    
+    <div id="replying-to" class="hidden mb-4 flex items-center justify-between bg-[#00cc4c]/10 p-3 rounded-xl border border-[#00cc4c]/20">
+        <span class="text-[10px] font-bold text-[#00cc4c] uppercase tracking-widest">
+            <i class="fas fa-reply mr-2"></i> <span id="reply-name"></span> ga javob yozilmoqda...
+        </span>
+        <button type="button" onclick="resetCommentTarget()" class="text-white/40 hover:text-white"><i class="fas fa-times"></i></button>
+    </div>
+
+    <textarea name="text" id="commentText" required
+              class="w-full bg-black/50 border border-white/10 rounded-3xl p-5 text-sm text-white focus:border-[#00cc4c] outline-none transition-all" 
+              rows="3" placeholder="O'z fikringizni yozib qoldiring..."></textarea>
+    
+    <button type="submit" class="mt-5 bg-[#00cc4c] text-black font-black px-12 py-3 rounded-2xl text-xs uppercase hover:scale-105 transition-all">
+        Yuborish
+    </button>
+</form>
+<script>
+    function prepareReply(name, id) {
+        // 1. Hidden inputni to'ldirish
+        document.getElementById("contactparent").value = id;
+        
+        // 2. UI-da kimga javob berilayotganini ko'rsatish
+        document.getElementById("reply-name").innerText = name;
+        document.getElementById("replying-to").classList.remove('hidden');
+        
+        // 3. HTMX targetini o'zgartirish (Izohning tagiga tushishi uchun)
+        const form = document.getElementById("commentForm");
+        form.setAttribute("hx-target", `#replies-${id}`);
+        form.setAttribute("hx-swap", "beforeend");
+        
+        // HTMX-ni qayta yuklash (yangi targetni tanishi uchun)
+        htmx.process(form);
+
+        // 4. Fokus va skroll
+        document.getElementById("commentText").placeholder = `Admin javobi...`;
+        document.getElementById("commentForm").scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById("commentText").focus();
+    }
+
+    function resetCommentTarget() {
+        document.getElementById("contactparent").value = "";
+        document.getElementById("replying-to").classList.add('hidden');
+        
+        const form = document.getElementById("commentForm");
+        form.setAttribute("hx-target", "#comment-list");
+        form.setAttribute("hx-swap", "afterbegin");
+        document.getElementById("commentText").placeholder = "O'z fikringizni yozib qoldiring...";
+        
+        htmx.process(form);
+    }
+</script>
+    {% endif %}
+
+    <div id="comment-list" class="space-y-6">
+        {% for review in movie.reviews.all %}
+            {% if not review.parent %}
+                {% include 'movies/partials/comment_item.html' with review=review %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>    
+
+            </section>
+        </div>
+
+        <aside class="w-full lg:w-[28%] space-y-8">
+            <div class="bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] p-8 border border-white/5">
+                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-[#00cc4c] mb-8 flex items-center gap-3">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#00cc4c]"></span> TOP DRAMALAR
+                </h3>
+                <div class="space-y-6 text-gray-600 italic text-xs font-medium">Rejalashtirilmoqda...</div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<div id="listModal" class="fixed inset-0 z-[200] hidden items-center justify-center px-4">
+    <div onclick="toggleListModal()" class="absolute inset-0 bg-black/95 backdrop-blur-md"></div>
+    <div class="relative bg-[#0a0a0a] border border-white/10 w-full max-w-sm rounded-[3.5rem] p-12 shadow-2xl">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#00cc4c]/10 rounded-full blur-3xl"></div>
+        
+        <form action="{% url 'drama:add_to_list' movie.id %}" method="POST" class="relative z-10 space-y-8">
+            {% csrf_token %}
+            <div class="text-center">
+                <h3 class="text-2xl font-black uppercase italic tracking-tighter">My Library</h3>
+                <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">Holatni yangilash</p>
+            </div>
+            
+            <div class="space-y-3">
+                <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Film holati</label>
+                <select name="status" id="statusSelect" onchange="checkStatus()" class="w-full bg-white/5 border border-white/10 rounded-3xl p-5 text-sm font-black text-white outline-none cursor-pointer focus:border-[#00cc4c] transition-all">
+                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>Hozirda ko'ryapman</option>
+                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>Ko'rib tugallangan</option>
+                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>Ko'rish rejamda bor</option>
+                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>Ko'rish to'xtatilgan</option>
+                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>Menga qiziq emas</option>
+                </select>
+            </div>
+
+            <div id="extraFields" class="grid grid-cols-2 gap-5">
+                <div class="space-y-3">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Qism</label>
+                    <input type="number" name="current_episode" min="0" max="{{ movie.episodes_count }}" value="{{ user_movie_status.current_episode|default:0 }}" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-black text-white outline-none focus:border-[#00cc4c]">
+                </div>
+                <div class="space-y-3">
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Baho</label>
+                    <select name="score" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-black text-white outline-none cursor-pointer focus:border-[#00cc4c]">
+                        <option value="">--</option>
+                        {% for i in "1234567891" %}
+                            <option value="{{ forloop.counter }}.0" {% if user_movie_status.score|stringformat:".1f" == forloop.counter|stringformat:".1f" %}selected{% endif %}>{{ forloop.counter }}.0</option>
+                            <option value="{{ forloop.counter }}.5" {% if user_movie_status.score|stringformat:".1f" == forloop.counter|add:".5"|stringformat:".1f" %}selected{% endif %}>{{ forloop.counter }}.5</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full py-5 bg-[#00cc4c] text-black font-black uppercase rounded-2xl hover:scale-[1.03] transition-all shadow-xl shadow-[#00cc4c]/20 tracking-widest">Saqlash</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const video = document.getElementById('mainVideo');
+    const container = document.getElementById('customPlayer');
+    const progressBar = document.getElementById('progressBar');
+    const loader = document.getElementById('videoLoader');
+    const fullScreenBtn = document.getElementById('fullScreen');
+    const playIcon = document.getElementById('playIcon');
+    let controlsTimeout;
+
+    if (video) {
+        function togglePlay() {
+            if (video.paused) { video.play(); playIcon.innerText = 'pause'; }
+            else { video.pause(); playIcon.innerText = 'play_arrow'; }
+            showControls();
+        }
+        document.getElementById('playPauseBtn').onclick = (e) => { e.stopPropagation(); togglePlay(); };
+
+        function showControls() {
+            container.classList.add('controls-active');
+            clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => {
+                if (!video.paused && !document.querySelector('.v-menu.show')) container.classList.remove('controls-active');
+            }, 3000);
+        }
+        container.addEventListener('mousemove', showControls);
+        container.addEventListener('touchstart', showControls, {passive: true});
+
+        // FULLSCREEN & AUTO-ROTATE LOGIC (MOBILE 16:9 FIX)
+        fullScreenBtn.onclick = async () => {
+            if (!document.fullscreenElement) {
+                try {
+                    if (container.requestFullscreen) await container.requestFullscreen();
+                    // Telfonda avtomatik landscape (aylanish) qilish
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('landscape').catch(err => console.log("Orientation lock ignored."));
+                    }
+                } catch (e) { console.error(e); }
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+            }
+        };
+
+        let lastTap = 0;
+        video.addEventListener('click', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                const x = e.offsetX;
+                if (x < video.clientWidth / 2) { video.currentTime -= 10; showFeedback('seekLeft'); }
+                else { video.currentTime += 10; showFeedback('seekRight'); }
+                lastTap = 0;
+            } else { showControls(); }
+            lastTap = now;
+        });
+
+        window.toggleMenu = (id, e) => {
+            e.stopPropagation();
+            const menu = document.getElementById(id);
+            const isShown = menu.classList.contains('show');
+            document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
+            if (!isShown) menu.classList.add('show');
+        };
+
+        window.changeQuality = (newSrc, label, btn, e) => {
+            e.stopPropagation();
+            const time = video.currentTime;
+            loader.classList.remove('hidden');
+            video.src = newSrc; video.load();
+            video.onloadedmetadata = () => {
+                video.currentTime = time; video.play();
+                loader.classList.add('hidden');
+                document.getElementById('qualityLabelBtn').innerText = (label === '1080p' ? 'FHD' : 'HD');
+            };
+        };
+
+        let curZoom = 100;
+        window.adjustZoom = (amount, e) => {
+            e.stopPropagation();
+            curZoom = Math.min(Math.max(curZoom + amount, 50), 200);
+            video.style.transform = `scale(${curZoom / 100})`;
+            document.getElementById('zoomLabel').innerText = `Zoom: ${curZoom}%`;
+        };
+
+        let speeds = [1, 1.25, 1.5, 2], sIdx = 0;
+        window.changeSpeedCycle = (e) => {
+            e.stopPropagation();
+            sIdx = (sIdx + 1) % speeds.length;
+            video.playbackRate = speeds[sIdx];
+            document.getElementById('speedDisplay').innerText = speeds[sIdx] + 'x';
+        };
+
+        video.ontimeupdate = () => {
+            progressBar.style.width = (video.currentTime / video.duration) * 100 + '%';
+            document.getElementById('currentTime').innerText = formatTime(video.currentTime);
+            document.getElementById('duration').innerText = formatTime(video.duration);
+        };
+        function formatTime(t) { let m = Math.floor(t/60), s = Math.floor(t%60); return (m<10?'0'+m:m)+':'+(s<10?'0'+s:s); }
+        function showFeedback(id) { const el = document.getElementById(id); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 500); }
+        document.getElementById('progressArea').onclick = (e) => { video.currentTime = (e.offsetX / e.target.clientWidth) * video.duration; };
+        document.getElementById('volumeSlider').oninput = (e) => { video.volume = e.target.value; };
+        document.addEventListener('click', () => document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show')));
+    }
+
+    function switchTab(tab) {
+        const epBtn = document.getElementById('tab-ep-btn');
+        const comBtn = document.getElementById('tab-com-btn');
+        const epCont = document.getElementById('episodes-content');
+        const comCont = document.getElementById('comments-content');
+        if (tab === 'episodes') {
+            epCont.classList.remove('hidden'); comCont.classList.add('hidden');
+            epBtn.classList.add('tab-active'); comBtn.classList.remove('tab-active');
+            comBtn.classList.add('text-gray-500');
+        } else {
+            epCont.classList.add('hidden'); comCont.classList.remove('hidden');
+            comBtn.classList.add('tab-active'); epBtn.classList.remove('tab-active');
+            epBtn.classList.add('text-gray-500');
+        }
+    }
+
+    function prepareReply(name, id) {
+        document.getElementById("contactparent").value = id;
+        document.getElementById("commentText").value = `@${name}, `;
+        document.getElementById("commentText").focus();
+    }
+
+    function toggleListModal() { document.getElementById('listModal').classList.toggle('hidden'); document.getElementById('listModal').classList.toggle('flex'); checkStatus(); }
+    function checkStatus() {
+        const status = document.getElementById('statusSelect').value;
+        const extraFields = document.getElementById('extraFields');
+        const epInput = document.getElementsByName('current_episode')[0];
+        const maxEp = "{{ movie.episodes_count }}";
+        if (['1', '2', '4'].includes(status)) {
+            extraFields.style.display = 'grid';
+            if (status === '2') { epInput.value = maxEp; epInput.readOnly = true; epInput.style.opacity = "0.5"; }
+            else { epInput.readOnly = false; epInput.style.opacity = "1"; }
+        } else { extraFields.style.display = 'none'; }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base-users.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ comic.title }} - Saytga kirish{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-circle fa-4x text-primary"></i>
+                        <h2 class="fw-bold mt-2">Xush kelibsiz!</h2>
+                    </div>
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        Foydalanuvchi nomi yoki parol xato. Iltimos, qaytadan tekshirib ko'ring.
+                    </div>
+                {% endif %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-grid mt-4">
+                            <button class="btn btn-primary btn-lg rounded-pill" type="submit">Kirish</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-4">
+                        <small class="text-muted">Hali ro'yxatdan o'tmadingizmi? <a href="{% url 'users:register' %}" class="text-decoration-none">Yangi ochish</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

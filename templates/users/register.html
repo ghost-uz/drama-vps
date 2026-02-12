@@ -1,0 +1,30 @@
+{% extends 'base-users.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ comic.title }} - Saytda ro`yxatdan o`tish{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    <h2 class="text-center fw-bold mb-4">Ro'yxatdan o'tish</h2>
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-grid mt-4">
+                            <button class="btn btn-primary btn-lg rounded-pill" type="submit">Hozir qo'shilish</button>
+                        </div>
+                    </form>
+                    <hr class="my-4">
+                    <div class="text-center">
+                        <small class="text-muted">Profilingiz bormi? <a href="{% url 'users:login' %}" class="text-decoration-none">Kirish</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
