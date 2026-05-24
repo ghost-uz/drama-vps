@@ -21,24 +21,26 @@ def movie_poster_path(instance, filename):
     return f"movies/{name}.{ext}"
 # --- Universal Optimizatsiya Funksiyasi ---
 def optimize_image(image_field, filename_base):
+    # PIL jarayonini faqat kerak bo'lganda chaqirish uchun shart
     if not image_field or not hasattr(image_field, 'file'):
         return image_field
 
-    img = Image.open(image_field)
-    if img.mode in ("RGBA", "P"):
-        img = img.convert("RGB")
+    try:
+        img = Image.open(image_field)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
 
-    max_size = (1280, 1280)
-    img.thumbnail(max_size, Image.LANCZOS)
+        max_size = (1280, 1280)
+        img.thumbnail(max_size, Image.LANCZOS)
 
-    output = BytesIO()
-    img.save(output, format='WEBP', quality=85)
-    output.seek(0)
-
-    # filename_base sifatida endi self.slug kelyapti
-    new_filename = f"{filename_base}.webp"
-    
-    return ContentFile(output.read(), name=new_filename)
+        output = BytesIO()
+        img.save(output, format='WEBP', quality=80, optimize=True) # quality 80 yetarli
+        output.seek(0)
+        
+        return ContentFile(output.read(), name=f"{filename_base}.webp")
+    except Exception as e:
+        print(f"Rasmda xatolik: {e}")
+        return image_field
 
 # --- Abstract Model ---
 class TimeStampedModel(models.Model):
@@ -86,6 +88,28 @@ class Genre(models.Model):
         verbose_name = "Janr"
         verbose_name_plural = "Janrlar"
 
+# drama/models.py
+
+class Tag(models.Model):
+    name = models.CharField("Teg nomi", max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True)
+
+    class Meta:
+        verbose_name = "Teg"
+        verbose_name_plural = "Teglar"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse("drama:tag_detail", kwargs={"slug": self.slug})
+
+
 class Actor(models.Model):
     GENDER_CHOICES = (('male', 'Erkak'), ('female', 'Ayol'))
     name = models.CharField("Ism Familiya", max_length=150)
@@ -96,7 +120,7 @@ class Actor(models.Model):
     birth_place = models.CharField("Tug'ilgan joyi", max_length=100, blank=True)
     gender = models.CharField("Jinsi", max_length=10, choices=GENDER_CHOICES, default='male')
     slug = models.SlugField(max_length=160, unique=True, db_index=True)
-
+    total_gifts = models.PositiveIntegerField("Umumiy sovg'alar (Coin)", default=0)
     @property
     def age(self):
         if self.birth_date:
@@ -110,8 +134,17 @@ class Actor(models.Model):
             self.slug = slugify(self.name)
 
         # 2. Rasmga slug orqali nom beramiz
-        if self.image and hasattr(self.image, 'file'):
-            self.image = optimize_image(self.image, self.slug)
+        # Faqatgina yangi yaratilayotganda yoki rasm o'zgargandagina ishlasin
+        if self.pk:
+            try:
+                old_actor = Actor.objects.get(pk=self.pk)
+                if old_actor.image != self.image and self.image and hasattr(self.image, 'file'):
+                    self.image = optimize_image(self.image, self.slug)
+            except Actor.DoesNotExist:
+                pass
+        else:
+            if self.image and hasattr(self.image, 'file'):
+                self.image = optimize_image(self.image, self.slug)
             
         super().save(*args, **kwargs)
 
@@ -144,7 +177,7 @@ class Movie(TimeStampedModel):
     tagline = models.CharField("Slogan", max_length=255, blank=True)
     description = models.TextField("Tavsif")
     poster = models.ImageField("Rasmi", upload_to='movies/')
-    keywords = models.CharField("Meta Keywords", max_length=255, default='drama, kdrama', help_text="Vergul bilan ajrating")
+    tags = models.ManyToManyField(Tag, related_name="movies", blank=True)
     year = models.PositiveSmallIntegerField("Yili", default=2024)
     country = models.CharField("Davlat", max_length=50)
     duration = models.PositiveIntegerField("Davomiyligi (daqiqada)", default=60)
@@ -160,15 +193,29 @@ class Movie(TimeStampedModel):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="movies")
     slug = models.SlugField(max_length=160, unique=True)
     is_draft = models.BooleanField("Qoralama (Draft)", default=False)
-    
+    # Denormalization (Tezlik uchun)
+    total_votes = models.PositiveIntegerField(default=0)
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    class Meta:
+        indexes = [
+            models.Index(fields=['slug']),
+            models.Index(fields=['year']),
+            models.Index(fields=['created_at']),
+        ]
+        verbose_name = "Kino"
+        verbose_name_plural = "Kinolar"
+
+
     def save(self, *args, **kwargs):
-        # 1. Avval slugni yaratib olamiz (agar bo'sh bo'lsa)
         if not self.slug:
             self.slug = slugify(self.title)
-        
-        # 2. Endi rasmni optimallashtirishga aynan slugni beramiz
-        if self.poster and hasattr(self.poster, 'file'):
-            # self.title o'rniga self.slug uzatilyapti
+
+        # MUHIM: Faqat yangi rasm bo'lsa yoki eski rasm o'zgargan bo'lsa optimallashtiramiz
+        if self.pk:
+            old_poster = Movie.objects.get(pk=self.pk).poster
+            if old_poster != self.poster:
+                self.poster = optimize_image(self.poster, self.slug)
+        else:
             self.poster = optimize_image(self.poster, self.slug)
             
         super().save(*args, **kwargs)
@@ -225,3 +272,24 @@ class Review(TimeStampedModel):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="reviews")
     text = models.TextField("Izoh matni", max_length=5000)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="replies")
+
+
+class ActorGift(models.Model):
+    GIFT_CHOICES = (
+        ('rose', 'Gul 🌹'),
+        ('coffee', 'Qahva ☕'),
+        ('crown', 'Toj 👑'),
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_gifts', verbose_name="Foydalanuvchi")
+    actor = models.ForeignKey(Actor, on_delete=models.CASCADE, related_name='received_gifts', verbose_name="Aktyor")
+    gift_type = models.CharField("Sovg'a turi", max_length=20, choices=GIFT_CHOICES)
+    price = models.PositiveIntegerField("Narxi (Coin)")
+    created_at = models.DateTimeField("Yuborilgan vaqt", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Aktyorga Sovg'a"
+        verbose_name_plural = "Aktyorlarga Sovg'alar"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.actor.name} ({self.get_gift_type_display()})"

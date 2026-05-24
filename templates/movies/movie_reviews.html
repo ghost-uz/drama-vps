@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-10">
+    <div class="flex items-center gap-6 mb-10">
+        <a href="{{ movie.get_absolute_url }}" class="hover:opacity-80 transition-opacity">
+            <i class="fas fa-arrow-left mr-2"></i> Orqaga
+        </a>
+        <h1 class="text-3xl font-black">{{ movie.title }} - Fikrlar</h1>
+    </div>
+
+    <div class="space-y-8">
+        {% for review in reviews %}
+            {% include 'movies/partials/comment_item.html' with review=review %}
+        {% empty %}
+            <p>Hali hech kim fikr bildirmagan.</p>
+        {% endfor %}
+    </div>
+
+    </div>
+{% endblock %}

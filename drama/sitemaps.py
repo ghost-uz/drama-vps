@@ -24,7 +24,7 @@ class ActorSitemap(Sitemap):
         
 class CategorySitemap(Sitemap):
     changefreq = "monthly"
-    priority = 0.5
+    priority = 0.2
 
     def items(self):
         return Category.objects.all()

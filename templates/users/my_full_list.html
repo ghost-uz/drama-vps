@@ -44,27 +44,29 @@
     
     <div class="pt-12 pb-6 px-4 md:px-8 max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div class="flex items-center gap-4">
-                <a href="{% url 'users:profile' user.username %}" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-[#1a1a1a] border border-white/5 text-gray-400 hover:text-white transition-all">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-                <div>
-                    <h1 class="text-3xl font-black italic uppercase tracking-tighter">MY LIBRARY</h1>
-                    <p class="text-gray-500 text-xs font-bold uppercase tracking-widest">Jami: {{ watching.count|add:completed.count|add:plan_to_watch.count|add:on_hold.count|add:dropped.count }} ta drama</p>
-                </div>
-            </div>
-            
-            <div class="flex gap-2">
-                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
-                    <p class="text-[10px] text-gray-500 font-bold">LVL</p>
-                    <p class="text-sm font-black text-[#00cc4c]">{{ user.profile.level }}</p>
-                </div>
-                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
-                    <p class="text-[10px] text-gray-500 font-bold">XP</p>
-                    <p class="text-sm font-black text-white">{{ user.profile.xp }}</p>
-                </div>
-            </div>
+    <div class="flex items-center gap-4">
+        <a href="{% url 'users:profile' target_user.username %}" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-[#1a1a1a] border border-white/5 text-gray-400 hover:text-white transition-all">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <div>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">{{ target_user.username }} ro`yxati</h1>
+            <p class="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                Jami: {{ total_count }} ta drama
+            </p>
         </div>
+    </div>
+    
+    <div class="flex gap-2">
+        <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
+            <p class="text-[10px] text-gray-500 font-bold">LVL</p>
+            <p class="text-sm font-black text-[#00cc4c]">{{ target_user.profile.level }}</p>
+        </div>
+        <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
+            <p class="text-[10px] text-gray-500 font-bold">XP</p>
+            <p class="text-sm font-black text-white">{{ target_user.profile.xp }}</p>
+        </div>
+    </div>
+</div>
     </div>
 
     <div class="sticky top-0 z-40 glass-nav">

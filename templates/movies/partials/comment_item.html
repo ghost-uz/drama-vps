@@ -9,18 +9,37 @@
             </h5>
             <span class="text-[9px] text-gray-600 font-bold">{{ review.created_at|timesince }} avval</span>
         </div>
-        <p class="text-xs text-gray-300 leading-relaxed">{{ review.text }}</p>
+        
+        <div class="text-xs text-gray-300 leading-relaxed">
+            {% if review.text|length > 280 %}
+                <span class="comment-short-text inline">{{ review.text|truncatechars:280 }}</span>
+                <span class="comment-full-text hidden inline">{{ review.text }}</span>
+                <button type="button" onclick="toggleReviewText(this)" class="text-[#00cc4c] font-black text-[10px] uppercase tracking-widest ml-1 hover:underline">
+                    Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>
+                </button>
+            {% else %}
+                {{ review.text }}
+            {% endif %}
+        </div>
     </div>
 {% else %}
     <div class="bg-white/3 p-7 rounded-[2.5rem] border border-white/5 space-y-5" id="review-{{ review.id }}">
         <div class="flex justify-between items-start">
             <div class="flex items-center gap-4">
+                {% if review.user.profile.avatar %}
+                <div class="w-12 h-12 rounded-full overflow-hidden border border-white/10">
+                <img src="{{ review.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ review.user.username }}">
+                </div>
+                {% else %}
                 <div class="w-12 h-12 rounded-full {% if review.user.is_superuser %}bg-gradient-to-tr from-[#00cc4c] to-black border-2 border-[#00cc4c]{% else %}bg-gradient-to-tr from-[#00cc4c] to-[#00ff62]/40{% endif %} flex items-center justify-center font-black text-black border border-white/10">
                     {{ review.user.username|first|upper }}
                 </div>
+                {% endif %}
                 <div>
                     <h4 class="font-black text-sm tracking-tight flex items-center gap-2">
-                        {{ review.user.username }}
+                        <a href="https://drama.uz/users/profile/{{ review.user.username }}/" class="hover:text-[#00cc4c] transition-colors">
+                            {{ review.user.username }}
+                        </a>
                         {% if review.user.is_superuser %}
                             <span class="px-2 py-0.5 bg-[#00cc4c] text-black text-[9px] font-black uppercase rounded-md tracking-tighter flex items-center gap-1">
                                 <i class="fas fa-check-circle text-[8px]"></i> Admin
@@ -40,7 +59,17 @@
             {% endif %}
         </div>
 
-        <p class="text-gray-300 text-sm leading-relaxed ml-2">{{ review.text }}</p>
+        <div class="text-gray-300 text-sm leading-relaxed ml-2">
+            {% if review.text|length > 280 %}
+                <span class="comment-short-text inline">{{ review.text|truncatechars:280 }}</span>
+                <span class="comment-full-text hidden inline">{{ review.text }}</span>
+                <button type="button" onclick="toggleReviewText(this)" class="text-[#00cc4c] font-black text-[10px] uppercase tracking-widest ml-1 hover:underline">
+                    Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>
+                </button>
+            {% else %}
+                {{ review.text }}
+            {% endif %}
+        </div>
 
         <div id="replies-{{ review.id }}" class="space-y-4">
             {% for reply in review.replies.all %}

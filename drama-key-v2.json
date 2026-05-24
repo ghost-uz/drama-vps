@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "my-drama-uz",
+  "private_key_id": "ea8830bdb6c00f43302228af5505c279edcb18b8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC0yz6oqP1EYCOt\nJ25l31uWeHR45YQcKaSKvcN5mlu/r80D6rrBRxHi0UmAwcjJow+hIi/kZuhW2ADF\n2XDTfeUsdrKstndlCvnhv+/lZSfG4IkX3fHMmR476M94MtnoVW2UMJQP/ovfr4xq\nvaCWOHghd70lRrySGR4OVZBqz0SV3dSfth7qGXjooWVyTsuDjNwKXv1mZ/mtcgPk\nVEFgeHCMsMfnuRq7vaSX4xJqdaDd7oiv9voUheLjt5PhWxpVhMcVte2wUJX76Oy1\nqlTzagBfX+HpRy51LHeQo/DJ2qiZ53T6/Tn0vdM6YLwz7Ip6cugzMjOEYCP01pQH\nYmCPDyj7AgMBAAECggEAKiqA+as4LptRls/sgpv+a3C6kXvOPRdFRgqOLa1fmqxw\n32n+lpdxx3nSb9JCdyytt4IWs2mA5MhKHdrh4qGpMp6Ye4mu/QT7VLiERfc6uLqj\nnspn27UWhRh+UuVhRzuta/OMhNJ0Yv45fKevbXnMItofZjNCRbzP8r3oCdE/iMgo\nm5n1hea3XJW8wnvcfbJy0OGQiBoJOyMoIso9lLzbKbR40Co89n/T1MoMV2t+KPPr\nXmocaC4Clbzd/1sCROrvWzjnQaQkELY3L397yKTu93sbWKkT0mDjgapMQlHxqVut\nTPW0Xbt4nRSuQpmkYrfPi3V62TwvBhMZiXY5AiOpYQKBgQDhEiV1znJMvJo3/ylA\n4NVWrhQWcuZKh/2zyZFNPukZXEA3abFSr7kBavsluo92L0m9EKxXFeZsZRex7kb9\niRrQYkjn920uLlBS0kSzlCEuSEa94Joubawt9HamSNU7yBmSePZ4VVfT3XUHky9t\nX9yjbjryu5dihRyYb/8HoMlCMQKBgQDNo3Zp5tdWMFSqtSzlADl2qqb2IYFLGtzi\nuKjadMJGNrFn3d04s45r3Jljj0rqaTQOZIeryF4hkUZVRo1+qTBCvHc20c2nd2dl\nWmrAK6MRW+IB/Ppv1ZQvxlG8pqsVkmOSRa6A2V4WIbF7dfK1fe97syUjfv1xH5D9\nNOCznhZG6wKBgQC0CZf9jI7R42xZrrqJM1B0bfuTmYWtyOqgjnS0ncZIiwqzSNCX\nnAkZoUIVBA8OMvWBT30MjHAt9Q/nPPt8g9f3KSe4pqunbVTDa3+ZRrzkENzFtoye\n5wv8FrlyeoBXudD64dgGmf4Pc+7RiGM/0pbkBKES2gxWurQNHEmdCHj1gQKBgQCU\nGtPxKBoVcE+6dyxzbnr0laoUgUMetaU7AWZTmF5HtaKGPUvUR7Yex04OX6jENasR\nZqQ0O+ZX5Mq0JlFIVVB18EkoSWkF4UCtxbY22/bhTLz1U5+HplrJIdvCtINp0Po3\n4knxcRyLcg7i7as1vhMak4b/Dro4nFSPmWLw2r4OqwKBgAs4FPEE67sPze3QvAE6\nvy9Pl0S6E3jNYt1NBh86o9LkYCqu7WKFTOEEqJXhN0aaXQsypRtuRIfWBsfR45LP\n96+ycJbFTW1HIKxgKTnOkBgD8qsFny8c+FM4S2ggPl7+0kkkHa3APYIje5fJmQjn\nd+pU4f4mVBbjbvu/wj9c6nR5\n-----END PRIVATE KEY-----\n",
+  "client_email": "drama-uz-service-acc@my-drama-uz.iam.gserviceaccount.com",
+  "client_id": "103201646200279063693",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/drama-uz-service-acc%40my-drama-uz.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

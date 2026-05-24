@@ -27,6 +27,7 @@ urlpatterns = [
     # 3. App yo'llari (Namespace bilan)
     path('users/', include('users.urls', namespace='users')),
     path("", include('drama.urls', namespace='drama')),
+    path('funding/', include('funding.urls')),
 ]
 
 # Media fayllar uchun (Faqat DEBUG rejimida)

@@ -1,106 +1,361 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ actor.name }} - Aktyor haqida ma'lumot - Drama.uz{% endblock %}
+{% block page_title %}{{ actor.name }} - Filmografiya va Biografiya - Drama.uz{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Hero qismi uchun maxsus gradient */
-    .actor-hero {
-        background: linear-gradient(to bottom, rgba(17, 17, 17, 0.7), #111111), 
-                    url('{{ actor.image.url }}');
-        background-size: cover;
-        /* Rasm markazda yaxshi ko'rinishi uchun */
-        background-position: center center; 
+    /* iQIYI stolidagi Tab tugmalar */
+    .iq-tab {
+        padding: 6px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .iq-tab.active {
+        background-color: rgba(0, 204, 76, 0.1);
+        color: #00cc4c;
+        border: 1px solid rgba(0, 204, 76, 0.3);
+    }
+    .iq-tab:not(.active) {
+        background-color: #222;
+        color: #999;
+        border: 1px solid transparent;
+    }
+    .iq-tab:not(.active):hover {
+        background-color: #333;
+        color: #fff;
+    }
+
+    /* Sovg'a banneri uchun maxsus rang */
+    .gift-banner {
+        background: linear-gradient(to right, rgba(255, 215, 0, 0.05), transparent);
+        border: 1px solid rgba(255, 215, 0, 0.15);
+        border-left: 4px solid #ffd700;
     }
     
-    .glass-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+    /* Sovg'a tugmasi uchun kafolatlangan dizayn */
+    .gift-btn-premium {
+        background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+        color: #ffffff !important;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+    }
+    
+    .gift-btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+        background: linear-gradient(135deg, #e5c158 0%, #bc8c15 100%);
+    }
+
+    /* Ro'yxatdan o'tmaganlar uchun tugma */
+    .gift-btn-outline {
+        background: #1a1a1a;
+        color: #d4af37 !important;
+        border: 1px solid rgba(212, 175, 55, 0.5);
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    .gift-btn-outline:hover {
+        background: rgba(212, 175, 55, 0.1);
+        border-color: #d4af37;
+    }
+
+    /* Sovg'a kartalari uchun maxsus qoidalar */
+    .gift-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid rgba(255, 255, 255, 0.05);
+        background-color: #1a1a1a;
+    }
+    
+    /* RADIO TUGMA TANLANGANDAGI HOLAT (ACTIVE) */
+    input[type="radio"]:checked + .gift-card {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.05) 100%);
+        border: 2px solid #d4af37;
+        transform: scale(1.05) translateY(-4px);
+        box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.4), 
+                    inset 0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    input[type="radio"]:checked + .gift-card .gift-name {
+        color: #ffffff;
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    
+    input[type="radio"]:checked + .gift-card .gift-price {
+        background-color: #d4af37;
+        color: #000000;
+        box-shadow: 0 2px 10px rgba(212, 175, 55, 0.5);
+    }
+
+    /* Tanlanganda Pichka (Check) belgisini ko'rsatish */
+    .gift-check {
+        opacity: 0;
+        transform: scale(0.5);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    input[type="radio"]:checked + .gift-card .gift-check {
+        opacity: 1;
+        transform: scale(1);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen">
-   <div class="actor-hero h-[400px] md:h-[450px] w-full relative flex items-end pt-32 md:pt-0">
-        <div class="max-w-7xl mx-auto px-4 md:px-8 w-full pb-10">
-            <div class="flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-10">
-                <div class="w-40 h-40 md:w-56 md:h-56 rounded-full border-4 border-[#00cc4c] overflow-hidden shadow-2xl shrink-0 transform hover:scale-105 transition duration-500">
-                    <img src="{{ actor.image.url }}" alt="{{ actor.name }}" class="w-full h-full object-cover">
+<main class="w-full bg-[#0a0a0a] min-h-screen text-white pt-24 md:pt-32 pb-20">
+    <div class="max-w-[1200px] mx-auto px-4 md:px-8">
+        
+        <div class="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10 mb-10">
+            
+            <div class="shrink-0 relative group">
+                <div class="w-40 h-40 md:w-56 md:h-56 rounded-full p-[3px] bg-gradient-to-br from-[#00cc4c]/30 to-transparent shadow-2xl flex items-center justify-center">
+                    <img src="{{ actor.image.url }}" alt="{{ actor.name }}" class="w-full h-full rounded-full object-cover border-[4px] border-[#0a0a0a]">
+                </div>
+            </div>
+
+            <div class="flex-1 w-full text-center md:text-left mt-4 md:mt-0">
+                
+                <div class="flex flex-col md:flex-row justify-between items-center md:items-start gap-4 mb-3">
+                    <div>
+                        <h1 class="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">{{ actor.name }}</h1>
+                        <p class="text-sm md:text-base text-gray-400 font-medium">
+                            <span class="mr-3 text-gray-300">{{ actor.original_name }}</span>
+                            {% if actor.also_known_as %}
+                            <span class="text-gray-500 hidden md:inline-block">| {{ actor.also_known_as }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <button class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-bold transition-all text-gray-300 hover:text-white">
+                        <i class="fas fa-share-square"></i> Share
+                    </button>
                 </div>
 
-                <div class="text-center md:text-left">
-                    <h1 class="text-4xl md:text-6xl font-black tracking-tighter text-white">{{ actor.name }}</h1>
-                    <p class="text-gray-400 text-lg md:text-xl mt-2 font-medium">{{ actor.original_name }}</p>
-                    
-                    <div class="flex flex-wrap justify-center md:justify-start gap-4 mt-6">
-                        <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-calendar-alt iq-green"></i>
-                            <span class="text-sm">{{ actor.birth_date|date:"d.m.Y" }} ({{ actor.age }} yosh)</span>
-                        </div>
-                        <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-map-marker-alt iq-green"></i>
-                            <span class="text-sm">{{ actor.birth_place|default:"Ma'lumot yo'q" }}</span>
-                        </div>
-                        <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2">
-                            <i class="fas fa-venus-mars iq-green"></i>
-                            <span class="text-sm uppercase">{{ actor.get_gender_display }}</span>
-                        </div>
+                <div class="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm font-medium text-gray-400 mb-6 bg-white/5 inline-flex px-4 py-2 rounded-xl">
+                    <span class="text-[#00cc4c]"><i class="fas fa-user mr-1"></i>{{ actor.get_gender_display|default:"Female" }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                    <span class="text-white">Cast</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                    <span class="text-white">{{ actor.age }} yosh</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                    <span><i class="fas fa-birthday-cake mr-1"></i>{{ actor.birth_date|date:"Y-m-d" }}</span>
+                    {% if actor.birth_place %}
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-600 hidden md:block"></span>
+                        <span class="hidden md:block"><i class="fas fa-map-marker-alt mr-1"></i>{{ actor.birth_place }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="relative text-sm md:text-base text-gray-400 leading-relaxed max-w-4xl text-left bg-[#111] p-5 rounded-2xl border border-white/5">
+                    <p id="bioText" class="line-clamp-2 transition-all duration-300">
+                        {% if actor.description %}
+                            {{ actor.description|linebreaksbr }}
+                        {% else %}
+                            Ushbu ijodkor haqida ma'lumot tez orada to'ldiriladi. U o'zining betakror iste'dodi va jozibadorligi bilan Osiyo kinosi olamida o'z o'rniga ega.
+                        {% endif %}
+                    </p>
+                    <button onclick="toggleBio()" id="bioBtn" class="text-[#00cc4c] hover:text-white font-bold mt-2 inline-flex items-center gap-1 uppercase tracking-widest text-[11px]">
+                        Ko'proq o'qish <i class="fas fa-chevron-down text-[10px]" id="bioIcon"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="gift-banner rounded-xl p-4 md:p-5 mb-12 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
+                    <i class="fas fa-gem text-yellow-500 text-lg"></i>
+                </div>
+                <div class="text-center sm:text-left">
+                    <p class="text-sm text-gray-300">Muxlislar qo'llab-quvvatlashi:</p>
+                    <div class="flex items-baseline justify-center sm:justify-start gap-1.5">
+                        <span class="text-xl md:text-2xl font-black text-[#ffd700]">{{ actor.total_gifts }}</span>
+                        <span class="text-xs text-yellow-500/70 font-medium">Coin to'plandi</span>
                     </div>
                 </div>
             </div>
+            
+            {% if user.is_authenticated %}
+                <button onclick="toggleGiftModal()" class="w-full sm:w-auto gift-btn-premium">
+                    <i class="fas fa-gift"></i> Sovg'a yuborish
+                </button>
+            {% else %}
+                <a href="{% url 'users:login' %}" class="w-full sm:w-auto gift-btn-outline">
+                    Kirish (Sovg'a yuborish)
+                </a>
+            {% endif %}
         </div>
+
+        <div class="mb-12">
+    <h2 class="text-xl font-bold text-white mb-5">Filmography</h2>
+    
+    <div class="flex gap-2 overflow-x-auto no-scrollbar mb-8">
+        <button class="iq-tab active">All ({{ all_movies_count|default:"0" }})</button>
+        <button class="iq-tab">Drama</button>
+        <button class="iq-tab">Movie</button>
+        <button class="iq-tab">Variety show</button>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+    <div class="relative border-t border-[#333] pt-6 md:pt-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-10">
         
-        <div class="lg:col-span-1">
-            <h3 class="text-2xl font-black mb-6 border-l-4 border-[#00cc4c] pl-4 uppercase tracking-widest">Biografiya</h3>
-            <div class="glass-card p-6 rounded-2xl">
-                <p class="text-gray-300 leading-relaxed text-sm md:text-base">
-                    {% if actor.description %}
-                        {{ actor.description|linebreaks }}
-                    {% else %}
-                        Ushbu ijodkor haqida hozircha to'liq biografiya yuklanmagan.
-                    {% endif %}
-                </p>
+        {% for movie in all_movies %}
+        <div class="relative group">
+            
+            <div class="absolute -top-[35px] md:-top-[43px] left-2 flex flex-col items-start gap-2">
+                <span class="text-[11px] text-gray-500 font-medium">{{ movie.year }}</span>
+                <div class="w-px h-[6px] bg-[#333] ml-2"></div>
+            </div>
+
+            <a href="{{ movie.get_absolute_url }}" class="block aspect-[2/3] rounded-md overflow-hidden relative shadow-lg">
+                <img src="{{ movie.poster.url }}" alt="{{ movie.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                
+                {% if movie.is_vip %}
+                    <div class="absolute top-1 right-1 bg-[#ffd700] text-black text-[9px] font-bold px-1.5 py-[2px] rounded-sm">VIP</div>
+                {% else %}
+                    <div class="absolute top-1 right-1 bg-black/60 text-[#00cc4c] border border-[#00cc4c]/40 text-[9px] font-bold px-1.5 py-[2px] rounded-sm flex items-center gap-1 backdrop-blur-sm">
+                        <i class="fas fa-mobile-alt text-[8px]"></i> App
+                    </div>
+                {% endif %}
+            </a>
+
+            <div class="mt-2">
+                <h3 class="text-[13px] font-medium text-gray-200 line-clamp-1 group-hover:text-[#00cc4c] transition-colors">{{ movie.title }}</h3>
+                <p class="text-[11px] text-gray-500 mt-0.5"><i class="fas fa-star text-[#00cc4c] text-[9px]"></i> {{ movie.mdl_rank }}</p>
             </div>
         </div>
+        {% empty %}
+        <p class="text-gray-600 text-sm italic col-span-full">Ushbu aktyor ishtirokidagi doramalar tez orada yuklanadi.</p>
+        {% endfor %}
 
-        <div class="lg:col-span-2">
-            <h3 class="text-2xl font-black mb-6 border-l-4 border-[#00cc4c] pl-4 uppercase tracking-widest">
-                Filmografiya ({{ actor.acted_movies.count }})
+    </div>
+</div>
+
+    </div>
+</main>
+
+{% if user.is_authenticated %}
+<div id="giftModal" tabindex="-1" class="fixed inset-0 z-[500] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="toggleGiftModal()"></div>
+    
+    <div class="relative w-full max-w-sm max-h-[90vh] flex flex-col bg-[#111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-10 transform scale-100 transition-all">
+        
+        <div class="shrink-0 flex items-center justify-between p-4 border-b border-white/5 bg-[#1a1a1a]">
+            <h3 class="text-base font-bold text-[#ffd700] flex items-center gap-2">
+                <i class="fas fa-gift"></i> Sovg'a yuborish
             </h3>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-6">
-                {% for movie in actor.acted_movies.all %}
-                <a href="{{ movie.get_absolute_url }}" class="group">
-                    <div class="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg border border-gray-800">
-                        <img src="{{ movie.poster.url }}" alt="{{ movie.title }}" 
-                             class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
-                        
-                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
-                        
-                        {% if movie.is_vip %}
-                        <div class="absolute top-3 right-3 bg-yellow-500 text-black text-[10px] font-black px-2 py-0.5 rounded shadow-lg">VIP</div>
-                        {% endif %}
-
-                        <div class="absolute bottom-4 left-4 right-4">
-                            <h4 class="text-sm font-bold text-white line-clamp-1 group-hover:iq-green transition">{{ movie.title }}</h4>
-                            <div class="flex items-center justify-between mt-1">
-                                <span class="text-[10px] text-gray-400">{{ movie.year }}</span>
-                                <span class="text-[10px] iq-green"><i class="fas fa-star text-[8px]"></i> {{ movie.mdl_rank }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-                {% empty %}
-                <p class="text-gray-500 italic col-span-full">Hozircha aktyor ishtirokidagi kinolar bazaga qo'shilmagan.</p>
-                {% endfor %}
+            <button onclick="toggleGiftModal()" class="text-gray-500 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="p-5 overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-5 bg-black p-3 rounded-xl border border-white/5">
+                <div class="flex items-center gap-3">
+                    <img src="{{ actor.image.url }}" class="w-10 h-10 rounded-full object-cover">
+                    <p class="text-sm font-medium text-white">{{ actor.name }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">Balans</p>
+                    <p class="text-sm font-bold text-[#00cc4c]">{{ user.profile.balance|default:"0" }} <i class="fas fa-coins text-[10px]"></i></p>
+                </div>
             </div>
+
+            <form action="{% url 'drama:send_gift_to_actor' actor.id %}" method="POST" class="relative z-20 pb-2">
+                {% csrf_token %}
+                <div class="grid grid-cols-3 gap-3 mb-6 mt-2 px-1">
+                    
+                    <label class="cursor-pointer relative block">
+                        <input type="radio" name="gift" value="rose" class="sr-only" checked required>
+                        <div class="gift-card p-3 flex flex-col items-center justify-center rounded-xl relative h-full">
+                            <div class="gift-check absolute -top-2 -right-2 bg-[#d4af37] text-black w-5 h-5 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.8)] border-2 border-[#111]">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <span class="text-3xl mb-2 drop-shadow-xl">🌹</span>
+                            <span class="gift-name text-[11px] text-gray-400 font-black uppercase tracking-widest mb-1">Gul</span>
+                            <span class="gift-price text-[10px] text-[#d4af37] font-bold px-2.5 py-1 rounded-full border border-[#d4af37]/30">5 Coin</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer relative block">
+                        <input type="radio" name="gift" value="coffee" class="sr-only" required>
+                        <div class="gift-card p-3 flex flex-col items-center justify-center rounded-xl relative h-full">
+                            <div class="gift-check absolute -top-2 -right-2 bg-[#d4af37] text-black w-5 h-5 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.8)] border-2 border-[#111]">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <span class="text-3xl mb-2 drop-shadow-xl">☕</span>
+                            <span class="gift-name text-[11px] text-gray-400 font-black uppercase tracking-widest mb-1">Qahva</span>
+                            <span class="gift-price text-[10px] text-[#d4af37] font-bold px-2.5 py-1 rounded-full border border-[#d4af37]/30">5 Coin</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer relative block">
+                        <input type="radio" name="gift" value="crown" class="sr-only" required>
+                        <div class="gift-card p-3 flex flex-col items-center justify-center rounded-xl relative h-full">
+                            <div class="gift-check absolute -top-2 -right-2 bg-[#d4af37] text-black w-5 h-5 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.8)] border-2 border-[#111]">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <span class="text-3xl mb-2 drop-shadow-xl">👑</span>
+                            <span class="gift-name text-[11px] text-gray-400 font-black uppercase tracking-widest mb-1">Toj</span>
+                            <span class="gift-price text-[10px] text-[#d4af37] font-bold px-2.5 py-1 rounded-full border border-[#d4af37]/30">20 Coin</span>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full gift-btn-premium py-3.5 mt-2 cursor-pointer relative z-30 text-sm tracking-widest uppercase shadow-2xl">
+                    <i class="fas fa-paper-plane mr-2"></i> Yuborish
+                </button>
+            </form>
         </div>
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleBio() {
+        const text = document.getElementById('bioText');
+        const btn = document.getElementById('bioBtn');
+        const icon = document.getElementById('bioIcon');
+        
+        if (text.classList.contains('line-clamp-2')) {
+            text.classList.remove('line-clamp-2');
+            btn.innerHTML = 'Kamroq ko\'rish <i class="fas fa-chevron-up text-[10px]" id="bioIcon"></i>';
+        } else {
+            text.classList.add('line-clamp-2');
+            btn.innerHTML = 'Ko\'proq o\'qish <i class="fas fa-chevron-down text-[10px]" id="bioIcon"></i>';
+        }
+    }
+
+    function toggleGiftModal() {
+        const modal = document.getElementById('giftModal');
+        if (!modal) return;
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; 
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = ''; 
+        }
+    }
+</script>
 {% endblock %}

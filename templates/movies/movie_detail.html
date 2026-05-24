@@ -1,115 +1,416 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base.html' %} 
+{% load static %} 
 
-{% block title %}{{ movie.title }} o'zbek tilida ko'rish - DramaUz{% endblock %}
+{% block page_title %}{{ movie.title }} o'zbek tilida ko'rish - DramaUz{% endblock %} 
 
-{% block meta_description %}{{ movie.title }} ({{ movie.year }}) - {{ movie.description|truncatechars:160 }}{% endblock %}
+{% block meta_description %}{{ movie.title }} ({{ movie.year }}) - {{ movie.description|truncatechars:160 }}{% endblock %} 
 
-{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}, {% endfor %} drama uz{% endblock %}
+{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}, drama uz, o'zbekcha tarjima{% endblock %} 
+
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ movie.get_absolute_url }}{% endblock %}
+
+{% block og_title %}{{ movie.title }} - DramaUz{% endblock %}
+{% block og_description %}{{ movie.description|truncatechars:160 }}{% endblock %}
+
+{% block og_image %}{{ movie.poster.url }}{% endblock %}
+{% block tw_image %}{{ movie.poster.url }}{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet" />
 <style>
-    /* VIDEO PLAYER CORE */
-    .video-container { background: #000; touch-action: manipulation; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 24px; transition: all 0.3s ease; }
-    .video-container video::-webkit-media-controls { display: none !important; }
-    
-    .player-controls { 
-        opacity: 0; visibility: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-        z-index: 2147483647 !important; position: absolute; bottom: 15px; left: 15px; right: 15px;
-        padding: 10px 20px; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
+    /* ===== VIDEO PLAYER CORE ===== */
+    .video-container {
+        background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+        touch-action: manipulation;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 32px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        isolation: isolate; 
     }
-    .video-container.controls-active .player-controls { opacity: 1; visibility: visible; transform: translateY(0); }
-    
-    /* DROPDOWN FIX (Oq-oq muammosini yechish) */
-    select#statusSelect, select#statusSelect option {
+
+    .video-container:hover {
+        box-shadow: 0 30px 60px -15px rgba(0, 204, 76, 0.15);
+    }
+
+    .video-container video::-webkit-media-controls {
+        display: none !important;
+    }
+
+    /* SENIOR FIX: Video ustiga bosib turganda menyu chiqishini to'liq bloklash */
+    #mainVideo {
+        -webkit-touch-callout: none; /* iOS Safari da menyuni o'chiradi */
+        -webkit-user-select: none; /* Safari da belgilashni o'chiradi */
+        -khtml-user-select: none; /* Konqueror HTML */
+        -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+        user-select: none; /* Non-prefixed version */
+        outline: none;
+    }
+
+    /* ===== PLAYER CONTROLS ===== */
+    .player-controls {
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 50 !important; 
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        background: linear-gradient(180deg, rgba(10, 10, 10, 0.75) 0%, rgba(10, 10, 10, 0.95) 100%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .video-container.controls-active .player-controls {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* ===== STATUS SELECT STYLING ===== */
+    select#statusSelect,
+    select#statusSelect option {
         background-color: #0f0f0f !important;
         color: #ffffff !important;
     }
-    select#statusSelect option:checked { background-color: #00cc4c !important; color: #000 !important; }
 
-    /* SEEK FEEDBACK */
-    .seek-feedback { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); padding: 25px; border-radius: 50%; pointer-events: none; opacity: 0; z-index: 60; }
-    .seek-feedback.show { animation: ripple 0.6s ease-out; }
-    @keyframes ripple { 0% { opacity: 1; transform: translateY(-50%) scale(1); } 100% { opacity: 0; transform: translateY(-50%) scale(1.6); } }
+    select#statusSelect option:checked {
+        background-color: #00cc4c !important;
+        color: #000 !important;
+    }
 
-    /* ACTION BUTTONS */
-    .action-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); transition: 0.3s; }
-    .action-btn:hover { background: rgba(0, 204, 76, 0.1); border-color: rgba(0, 204, 76, 0.3); color: #00cc4c; }
-    .tab-active { color: #00cc4c; border-bottom: 3px solid #00cc4c; }
-    
-    .v-menu { display: none; position: absolute; bottom: calc(100% + 12px); right: 0; background: #0a0a0a; border: 1px solid #222; border-radius: 14px; min-width: 170px; z-index: 2147483647; box-shadow: 0 10px 40px rgba(0,0,0,0.9); }
-    .v-menu.show { display: block; animation: menuIn 0.25s ease-out; }
-    @keyframes menuIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    /* ===== SEEK FEEDBACK ===== */
+    .seek-feedback {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 204, 76, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 30px;
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 60;
+        border: 2px solid rgba(0, 204, 76, 0.3);
+    }
+
+    .seek-feedback.show {
+        animation: rippleEffect 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes rippleEffect {
+        0% { opacity: 1; transform: translateY(-50%) scale(0.8); }
+        50% { opacity: 0.8; }
+        100% { opacity: 0; transform: translateY(-50%) scale(1.4); }
+    }
+
+    /* ===== ACTION BUTTONS ===== */
+    .action-btn {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(0, 204, 76, 0.1) 0%, transparent 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .action-btn:hover::before { opacity: 1; }
+
+    .action-btn:hover {
+        background: rgba(0, 204, 76, 0.12);
+        border-color: rgba(0, 204, 76, 0.4);
+        color: #00cc4c;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0, 204, 76, 0.2);
+    }
+
+    /* ===== TAB STYLING ===== */
+    .tab-active {
+        color: #00cc4c;
+        border-bottom: 3px solid #00cc4c;
+        position: relative;
+    }
+
+    /* ===== VIDEO MENU ===== */
+    .v-menu {
+        display: none;
+        position: absolute;
+        bottom: calc(100% + 16px);
+        right: 0;
+        background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        min-width: 180px;
+        z-index: 60; 
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+        overflow: hidden;
+    }
+
+    .v-menu.show {
+        display: block;
+        animation: menuSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes menuSlideIn {
+        from { opacity: 0; transform: translateY(15px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .v-menu .q-item {
+        padding: 16px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.2s ease;
+    }
+
+    .v-menu .q-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* ===== EPISODE GRID ===== */
+    .episode-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 12px;
+    }
+
+    @media (min-width: 640px) {
+        .episode-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+    }
+
+    @media (min-width: 768px) {
+        .episode-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+    }
+
+    /* ===== GLASS EFFECT ===== */
+    .glass-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 32px;
+        transition: all 0.3s ease;
+    }
+
+    .glass-card:hover {
+        border-color: rgba(0, 204, 76, 0.3);
+        box-shadow: 0 12px 32px rgba(0, 204, 76, 0.1);
+    }
+
+    /* ===== VIP BADGE ===== */
+    .vip-badge {
+        background: linear-gradient(135deg, #ffd700 0%, #f4d6a1 100%);
+        box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+        animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.2); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+        .player-controls {
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            padding: 12px 16px;
+        }
+        .video-container { border-radius: 24px; }
+    }
+/* Iframe playerlarni to'liq ekranga moslash */
+    .iframe-container iframe {
+        width: 100% !important;
+        height: 100% !important;
+        border: none;
+    }
 </style>
+{% endblock %} 
+
+
+{% block schema_markup %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Movie",
+    "name": "{{ movie.title }}",
+    "alternativeName": "{{ movie.original_title }}",
+    "description": "{{ movie.description|truncatechars:160 }}",
+    "image": "{{ movie.poster.url }}",
+    "datePublished": "{{ movie.year }}-01-01",
+    "countryOfOrigin": {
+        "@type": "Country",
+        "name": "{{ movie.country }}"
+    },
+    "genre": [{% for genre in movie.genres.all %}"{{ genre.name }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+    
+    {% if movie.reviews.count > 0 %}
+    "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "{{ movie.mdl_rank|stringformat:'.1f' }}",
+        "bestRating": "10",
+        "worstRating": "1",
+        "ratingCount": "{{ movie.reviews.count }}"
+    },
+    {% endif %}
+    
+    "actor": [
+        {% for actor in movie.main_actors.all %}
+        {
+            "@type": "Person",
+            "name": "{{ actor.name }}",
+            "url": "{{ request.scheme }}://{{ request.get_host }}{{ actor.get_absolute_url }}"
+        }{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}
+</script>
 {% endblock %}
 
 {% block content %}
-<main class="max-w-[1400px] mx-auto mt-4 md:mt-8 px-4 text-white">
-    <div class="flex flex-col lg:flex-row gap-10">
-        
-        <div class="w-full lg:w-[72%] space-y-8">
+<main class="max-w-[1400px] mx-auto mt-6 md:mt-12 px-4 md:px-6 text-white">
+    <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
+        <div class="w-full lg:w-[70%] space-y-10">
             
-            <section class="space-y-4">
-                <div class="video-container shadow-2xl border border-white/5 relative" id="customPlayer">
+            <section class="space-y-6">
+                <div class="video-container" id="customPlayer">
+                    
                     {% if is_restricted %}
-                        <div class="aspect-video bg-[#050505] flex flex-col items-center justify-center p-8 text-center rounded-3xl border border-yellow-500/20">
-                            <i class="fas fa-crown text-yellow-500 text-7xl mb-6"></i>
-                            <h3 class="text-2xl font-black mb-4 tracking-tighter uppercase">VIP Bo'lim</h3>
-                            <p class="text-gray-500 text-sm mb-8">Ushbu qismni tomosha qilish uchun premium obuna talab etiladi.</p>
-                            <a href="/subscription" class="bg-[#00cc4c] text-black px-14 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-transform">OBUNANI RASMIYLASHTIRISH</a>
+                        {% if restriction_type == 'funding' %}
+                        <div class="aspect-video bg-[#050505] flex flex-col items-center justify-center p-8 md:p-10 text-center rounded-[32px] border border-[#00cc4c]/30 w-full">
+                            <div class="w-20 h-20 bg-[#00cc4c]/10 rounded-full flex items-center justify-center mb-5 border border-[#00cc4c]/30 shadow-[0_0_30px_rgba(0,204,76,0.2)]">
+                                <i class="fas fa-lock text-[#00cc4c] text-3xl"></i>
+                            </div>
+                            <h3 class="text-2xl md:text-3xl font-black mb-3 tracking-tight text-white uppercase">Ushbu qism yopiq</h3>
+                            <p class="text-gray-400 text-sm md:text-base mb-8 max-w-lg">
+                                Ushbu serialni ko'rish uchun "O'zbekcha Dublyaj Loyihasi" ga o'z hissangizni qo'shishingiz kerak. To'lov qilganingizdan so'ng barcha qismlar avtomatik ochiladi!
+                            </p>
+                            <a href="#crowdfunding-section" class="bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black px-10 py-4 rounded-xl font-black shadow-xl hover:scale-105 transition-transform uppercase tracking-wider">
+                                To'lov qilish <i class="fas fa-arrow-down ml-2"></i>
+                            </a>
                         </div>
+                        
+                        {% elif restriction_type == 'vip' %}
+                        <div class="aspect-video bg-gradient-to-br from-[#0a0a0a] to-[#050505] flex flex-col items-center justify-center p-10 text-center rounded-[32px] border-2 border-yellow-500/30 w-full">
+                            <div class="vip-badge w-20 h-20 rounded-full flex items-center justify-center mb-6">
+                                <i class="fas fa-crown text-[#5c3e0d] text-4xl"></i>
+                            </div>
+                            <h3 class="text-3xl md:text-4xl font-black mb-4 tracking-tighter uppercase bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                                VIP Bo'lim
+                            </h3>
+                            <p class="text-gray-400 text-sm md:text-base mb-8 max-w-md">
+                                Ushbu qismni tomosha qilish uchun premium obuna talab etiladi.
+                            </p>
+                            <a href="{% url 'users:subscription' %}" class="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-16 py-5 rounded-2xl font-black shadow-xl hover:scale-105 transition-transform uppercase tracking-wider">
+                                Obunani Rasmiylashtirish
+                            </a>
+                        </div>
+                        {% endif %}
+
                     {% else %}
-                        <div class="relative aspect-video flex items-center justify-center bg-black overflow-hidden w-full h-full rounded-3xl">
-                            <div id="seekLeft" class="seek-feedback left-10"><span class="material-icons text-6xl">fast_rewind</span></div>
-                            <div id="seekRight" class="seek-feedback right-10"><span class="material-icons text-6xl">fast_forward</span></div>
+                        <div class="relative aspect-video flex items-center justify-center bg-black overflow-hidden w-full h-full rounded-[32px]">
+                            <div id="seekLeft" class="seek-feedback left-12"><span class="material-icons text-6xl text-[#00cc4c]">fast_rewind</span></div>
+                            <div id="seekRight" class="seek-feedback right-12"><span class="material-icons text-6xl text-[#00cc4c]">fast_forward</span></div>
 
-                            <div class="video-wrapper w-full h-full">
-                                <video id="mainVideo" class="cursor-pointer w-full h-full" poster="{{ movie.poster.url }}" playsinline>
-                                    <source src="{{ video_720 }}" type="video/mp4">
-                                </video>
+                            <div class="video-wrapper w-full h-full relative flex items-center justify-center bg-black rounded-[32px] overflow-hidden">
+                                {% if "embed" in video_720 or "<iframe" in video_720 or "youtube.com" in video_720 %}
+                                    {% if "<iframe" in video_720 %}
+                                        <div class="w-full h-full iframe-container">{{ video_720|safe }}</div>
+                                    {% else %}
+                                        <iframe src="{{ video_720 }}" title="{{ movie.title }} - Video Pleyer" class="w-full h-full border-0 absolute inset-0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                                    {% endif %}
+                                    <style>.player-controls { display: none !important; } .seek-feedback { display: none !important; }</style>
+                                {% else %}
+                                    <video id="mainVideo" class="cursor-pointer w-full h-full absolute inset-0 object-contain" poster="{{ movie.poster.url }}" playsinline oncontextmenu="return false;" controlsList="nodownload">
+                                        <source src="{{ video_720 }}" type="video/mp4">
+                                    </video>
+                                {% endif %}
                             </div>
 
-                            <div id="videoLoader" class="absolute inset-0 flex items-center justify-center bg-black/70 hidden z-[100]">
-                                <div class="w-12 h-12 border-4 border-[#00cc4c] border-t-transparent rounded-full animate-spin"></div>
+                            <div id="videoLoader" class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden z-[40]">
+                                <div class="w-16 h-16 border-4 border-[#00cc4c] border-t-transparent rounded-full animate-spin shadow-[0_0_30px_#00cc4c]"></div>
                             </div>
-
-                            <div class="player-controls absolute">
-                                <div class="progress-container h-1.5 bg-white/10 w-full mb-4 rounded-full cursor-pointer overflow-hidden" id="progressArea">
-                                    <div id="progressBar" class="h-full bg-[#00cc4c] rounded-full w-0 transition-all duration-100"></div>
+                            
+                            <div class="player-controls">
+                                <div class="progress-container h-2 bg-white/10 w-full mb-5 rounded-full cursor-pointer overflow-hidden hover:h-2.5 transition-all" id="progressArea">
+                                    <div id="progressBar" class="h-full bg-gradient-to-r from-[#00cc4c] to-[#00ff62] rounded-full w-0 transition-all duration-100 shadow-[0_0_10px_#00cc4c]"></div>
                                 </div>
+
                                 <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-5">
-                                        <button id="playPauseBtn" class="hover:text-[#00cc4c] transition-colors"><span class="material-icons text-3xl" id="playIcon">play_arrow</span></button>
-                                        <div class="time-display text-xs font-mono font-bold tracking-tighter text-gray-300"><span id="currentTime">00:00</span> / <span id="duration">00:00</span></div>
-                                        <div class="hidden md:flex items-center gap-2 group/vol">
-                                            <button id="muteBtn" class="hover:text-[#00cc4c]"><span class="material-icons">volume_up</span></button>
-                                            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" class="w-0 group-hover/vol:w-20 transition-all accent-[#00cc4c]">
+                                    <div class="flex items-center gap-6">
+                                        <button id="playPauseBtn" class="hover:text-[#00cc4c] transition-all hover:scale-110">
+                                            <span class="material-icons text-4xl" id="playIcon">play_arrow</span>
+                                        </button>
+                                        <div class="time-display text-xs md:text-sm font-mono font-bold tracking-tight text-gray-300">
+                                            <span id="currentTime">00:00</span> / <span id="duration">00:00</span>
+                                        </div>
+                                        <div class="hidden md:flex items-center gap-3 group/vol">
+                                            <button id="muteBtn" class="hover:text-[#00cc4c] transition-all">
+                                                <span class="material-icons text-2xl">volume_up</span>
+                                            </button>
+                                            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" 
+                                                   class="w-0 group-hover/vol:w-24 transition-all duration-300 accent-[#00cc4c] cursor-pointer">
                                         </div>
                                     </div>
+
                                     <div class="flex items-center gap-5">
                                         <div class="relative">
-                                            <button id="qualityLabelBtn" onclick="toggleMenu('qualityMenu', event)" class="text-[10px] font-black border-2 border-[#00cc4c]/40 px-3 py-1 rounded-lg text-[#00cc4c] uppercase">HD</button>
+                                            <button id="qualityLabelBtn" onclick="toggleMenu('qualityMenu', event)" 
+                                                    class="text-xs font-black border-2 border-[#00cc4c]/50 px-4 py-2 rounded-xl text-[#00cc4c] uppercase hover:bg-[#00cc4c]/10 transition-all">
+                                                HD
+                                            </button>
                                             <div id="qualityMenu" class="v-menu">
-                                                {% if video_1080 != video_720 %}<div onclick="changeQuality('{{ video_1080 }}', '1080p', this, event)" class="q-item hover:bg-white/5 transition"><span>1080p FHD</span> <i class="material-icons text-sm hidden">check</i></div>{% endif %}
-                                                <div onclick="changeQuality('{{ video_720 }}', '720p', this, event)" class="q-item q-active hover:bg-white/5 transition"><span>720p HD</span> <i class="material-icons text-sm">check</i></div>
+                                                {% if video_1080 != video_720 %}
+                                                <div onclick="changeQuality('{{ video_1080 }}', '1080p', this, event)" class="q-item">
+                                                    <span class="font-bold">1080p FHD</span>
+                                                    <i class="material-icons text-sm hidden">check</i>
+                                                </div>
+                                                {% endif %}
+                                                <div onclick="changeQuality('{{ video_720 }}', '720p', this, event)" class="q-item q-active">
+                                                    <span class="font-bold">720p HD</span>
+                                                    <i class="material-icons text-sm text-[#00cc4c]">check</i>
+                                                </div>
                                             </div>
                                         </div>
+
                                         <div class="relative">
-                                            <button onclick="toggleMenu('settingsMenu', event)" class="hover:text-[#00cc4c] transition-colors"><span class="material-icons">settings</span></button>
-                                            <div id="settingsMenu" class="v-menu p-5 space-y-5">
-                                                <div class="flex items-center justify-between border-b border-white/10 pb-3">
-                                                    <button onclick="adjustZoom(-5, event)" class="text-white hover:text-red-500"><i class="fas fa-minus"></i></button>
-                                                    <span id="zoomLabel" class="text-xs font-black">Zoom: 100%</span>
-                                                    <button onclick="adjustZoom(5, event)" class="text-white hover:text-[#00cc4c]"><i class="fas fa-plus"></i></button>
+                                            <button onclick="toggleMenu('settingsMenu', event)" class="hover:text-[#00cc4c] transition-all hover:rotate-90">
+                                                <span class="material-icons text-2xl">settings</span>
+                                            </button>
+                                            <div id="settingsMenu" class="v-menu p-6 space-y-5">
+                                                <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                                                    <button onclick="adjustZoom(-5, event)" class="text-white hover:text-red-500 transition-all hover:scale-110 p-2"><i class="fas fa-minus"></i></button>
+                                                    <span id="zoomLabel" class="text-sm font-black">Zoom: 100%</span>
+                                                    <button onclick="adjustZoom(5, event)" class="text-white hover:text-[#00cc4c] transition-all hover:scale-110 p-2"><i class="fas fa-plus"></i></button>
                                                 </div>
-                                                <div onclick="changeSpeedCycle(event)" class="bg-white/5 p-3 rounded-xl text-center cursor-pointer hover:bg-white/10 border border-white/5">
-                                                    <span class="text-[10px] uppercase font-black text-gray-400">Tezlik: </span><span id="speedDisplay" class="text-[#00cc4c] font-black ml-1">1.0x</span>
+                                                <div onclick="changeSpeedCycle(event)" class="bg-white/5 p-4 rounded-2xl text-center cursor-pointer hover:bg-white/10 border border-white/10 transition-all">
+                                                    <span class="text-xs uppercase font-black text-gray-400">Tezlik: </span>
+                                                    <span id="speedDisplay" class="text-[#00cc4c] font-black ml-1">1.0x</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <button id="fullScreen" class="hover:text-[#00cc4c] transition-colors"><span class="material-icons">fullscreen</span></button>
+
+                                        <button id="fullScreen" class="hover:text-[#00cc4c] transition-all hover:scale-110">
+                                            <span class="material-icons text-2xl">fullscreen</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -118,325 +419,478 @@
                 </div>
             </section>
 
-            <div class="flex flex-wrap items-center gap-4 py-2">
-                <div class="flex-1 min-w-[150px] bg-[#00cc4c]/10 border border-[#00cc4c]/20 text-[#00cc4c] font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3">
-                    <i class="fas fa-play-circle text-sm"></i>
-                    <span class="text-xs uppercase tracking-tighter">{{ active_episode.episode_number }}-QISM</span>
+            {% if funding_project %}
+            <div id="crowdfunding-section" class="mt-8 mb-12 glass-card p-6 md:p-8 border-2 border-[#00cc4c]/30 relative overflow-hidden shadow-[0_0_40px_rgba(0,204,76,0.1)]">
+                <div class="absolute -right-20 -top-20 w-64 h-64 bg-[#00cc4c]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                    <div class="flex-1 w-full">
+                        <h3 class="text-xl md:text-2xl font-black uppercase italic tracking-tight text-white mb-2">
+                            <i class="fas fa-microphone-alt text-[#00cc4c] mr-2"></i> O'zbekcha Dublyaj Loyihasi
+                        </h3>
+                        
+                        {% if funding_project.status == 'funding' %}
+                            <p class="text-gray-400 text-sm mb-6">Bu serial hali o'zbek tiliga o'girilmagan. Tarjimonlar jamoasini qo'llab-quvvatlang va serialni birinchilardan bo'lib ko'ring!</p>
+                        {% elif funding_project.status == 'translating' %}
+                            <p class="text-yellow-400 font-bold text-sm mb-6"><i class="fas fa-cog fa-spin mr-1"></i> Pul yig'ildi! Ayni paytda tarjima ishlari ketmoqda...</p>
+                        {% else %}
+                            <p class="text-[#00cc4c] font-bold text-sm mb-6"><i class="fas fa-check-circle mr-1"></i> Serial to'liq tarjima qilinib, saytga allaqachon joylangan!</p>
+                        {% endif %}
+
+                        <div class="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-gray-400">
+                            <span>Yig'ildi: <span class="text-[#00cc4c]">{{ funding_project.collected_amount }}</span></span>
+                            <span>Maqsad: {{ funding_project.target_amount }} Coin</span>
+                        </div>
+                        <div class="w-full bg-black/50 rounded-full h-4 border border-white/10 overflow-hidden relative">
+                            <div class="bg-gradient-to-r from-[#00cc4c] to-[#00ff62] h-4 rounded-full shadow-[0_0_15px_#00cc4c] transition-all duration-1000" 
+                                 style="width: {{ funding_project.progress_percentage }}%">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-auto min-w-[280px] bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm">
+                        {% if user.is_authenticated %}
+                            {% if user_has_access %}
+                                <div class="text-center">
+                                    <i class="fas fa-check-circle text-5xl text-[#00cc4c] mb-3 drop-shadow-[0_0_15px_rgba(0,204,76,0.5)]"></i>
+                                    <p class="text-base font-black text-white mb-1 uppercase tracking-widest">Ruxsat olingan!</p>
+                                    <p class="text-xs text-gray-400">Siz ushbu loyihaga hissa qo'shgansiz. Endi serialni bemalol ko'rishingiz mumkin!</p>
+                                </div>
+                            {% else %}
+                                <form action="{% url 'funding:process' funding_project.id %}" method="POST" class="space-y-4">
+                                    {% csrf_token %}
+                                    {% if funding_project.status == 'funding' %}
+                                        <div>
+                                            <label class="text-[10px] text-gray-500 font-bold uppercase tracking-widest ml-1">Summani kiriting</label>
+                                            <div class="relative mt-1">
+                                                <input type="number" name="amount" min="{{ funding_project.min_fund_amount }}" value="{{ funding_project.min_fund_amount }}" required
+                                                       class="w-full bg-white/5 border border-white/15 rounded-2xl py-3 px-4 text-white font-black text-xl outline-none focus:border-[#00cc4c] transition-all">
+                                                <i class="fas fa-coins absolute right-4 top-4 text-[#ffd700]"></i>
+                                            </div>
+                                            <p class="text-[9px] text-gray-500 mt-2 ml-1">Minimal hissa: {{ funding_project.min_fund_amount }} Coin</p>
+                                        </div>
+                                        <button type="submit" class="w-full py-4 bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,204,76,0.3)]">
+                                            Hissa Qo'shish
+                                        </button>
+                                    {% elif funding_project.status == 'released' %}
+                                        <div class="text-center mb-4">
+                                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Serialni sotib olish</p>
+                                            <p class="text-4xl font-black text-[#ffd700] drop-shadow-lg">{{ funding_project.post_release_price }} <i class="fas fa-coins text-2xl"></i></p>
+                                        </div>
+                                        <button type="submit" class="w-full py-4 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+                                            Sotib Olish
+                                        </button>
+                                    {% else %}
+                                        <div class="text-center py-4">
+                                            <i class="fas fa-hourglass-half text-3xl text-gray-500 mb-3"></i>
+                                            <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">Kuting...</p>
+                                        </div>
+                                    {% endif %}
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-center py-2">
+                                <p class="text-sm font-medium text-gray-400 mb-4">Loyihaga hissa qo'shish uchun tizimga kiring.</p>
+                                <a href="{% url 'users:login' %}" class="inline-flex w-full items-center justify-center py-3.5 border-2 border-[#00cc4c] text-[#00cc4c] font-black uppercase tracking-widest rounded-xl hover:bg-[#00cc4c] hover:text-black transition-all">
+                                    <i class="fas fa-sign-in-alt mr-2"></i> Kirish
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex flex-wrap items-stretch gap-4">
+                <div class="flex-1 min-w-[140px] bg-gradient-to-r from-[#00cc4c]/15 to-[#00cc4c]/5 border border-[#00cc4c]/30 text-[#00cc4c] font-black py-5 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-lg">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span class="text-sm uppercase tracking-tight">{{ active_episode.episode_number }}-QISM</span>
                 </div>
 
                 {% if next_episode %}
-                <a href="?episode={{ next_episode.episode_number }}" class="flex-1 min-w-[180px] bg-[#00cc4c] hover:bg-[#00ff62] text-black font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#00cc4c]/10">
-                    <span class="text-xs uppercase italic">Keyingi qism</span> <i class="fas fa-step-forward text-xs"></i>
+                <a href="?episode={{ next_episode.episode_number }}" class="flex-1 min-w-[180px] bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black py-5 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl hover:scale-[1.02]">
+                    <span class="text-sm uppercase italic">Keyingi qism</span>
+                    <i class="fas fa-step-forward text-sm"></i>
                 </a>
                 {% endif %}
 
                 <div class="flex-[1.5] min-w-[220px]">
                     {% if user.is_authenticated %}
-                        <button onclick="toggleListModal()" class="w-full py-4 action-btn rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3">
-                            <i class="fas {% if user_movie_status %}fa-check-double text-[#00cc4c]{% else %}fa-list-ul{% endif %}"></i>
-                            {% if user_movie_status %}{{ user_movie_status.get_status_display }}{% else %}Ro'yxatga Qo'shish{% endif %}
-                        </button>
+                    <button onclick="toggleListModal()" class="w-full py-5 action-btn rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg">
+                        <i class="fas {% if user_movie_status %}fa-check-double text-[#00cc4c]{% else %}fa-list-ul{% endif %} text-base"></i>
+                        {% if user_movie_status %}{{ user_movie_status.get_status_display }}{% else %}Ro'yxatga Qo'shish{% endif %}
+                    </button>
                     {% else %}
-                        <a href="{% url 'users:login' %}" class="w-full py-4 action-btn rounded-2xl font-black text-xs uppercase text-center block">Tizimga kiring</a>
+                    <a href="{% url 'users:login' %}" class="w-full py-5 action-btn rounded-2xl font-black text-xs uppercase text-center flex items-center justify-center shadow-lg">
+                        To`liq foydalanish uchun tizimga kiring
+                    </a>
                     {% endif %}
                 </div>
             </div>
-
-            <section class="space-y-5 border-b border-white/5 pb-10">
-                <h1 class="text-4xl md:text-6xl font-black tracking-tighter italic uppercase leading-none">{{ movie.title }}</h1>
-                <div class="flex flex-wrap gap-5 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                    <span class="text-[#00cc4c] bg-[#00cc4c]/10 px-3 py-1 rounded-full border border-[#00cc4c]/20">★ {{ movie.mdl_rank }}</span>
-                    <span class="bg-white/5 px-3 py-1 rounded-full border border-white/10">{{ movie.age_limit }}+</span>
-                    <span>{{ movie.year }}</span>
-                    <span class="text-blue-400">{{ movie.country }}</span>
+                <p class="text-gray-400 text-base md:text-lg leading-relaxed border-l-4 border-blue-400/20 pl-6 py-2 italic max-w-4xl backdrop-blur-sm">
+                    Video player ishlamasa aloqaga chiqing: Telegram: @suxroboff
+                </p>
+<br>
+<section class="space-y-6 border-b border-white/10 pb-12 pt-6">
+                <section class="pt-8 space-y-16">
+                    <div>
+                        <div class="border-b border-white/10 pb-4 mb-8">
+                            <h3 class="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
+                              <i class="fas fa-list text-[#00cc4c] mr-3"></i> Qismlar
+                            </h3>
+                         </div>
+                        <div id="episodes-content" class="episode-grid">
+                        {% for ep in episodes %}
+                        <a href="?episode={{ ep.episode_number }}" class="h-16 md:h-20 flex items-center justify-center rounded-2xl font-black text-sm md:text-base transition-all shadow-lg {% if active_episode.id == ep.id %} bg-gradient-to-br from-[#00cc4c] to-[#00ff62] text-black scale-105 {% else %} bg-white/5 text-gray-400 hover:bg-white/10 {% endif %}">
+                            {{ ep.episode_number }}
+                        </a>
+                        {% endfor %}
+                    </div>
                 </div>
-                <p class="text-gray-400 text-sm leading-relaxed border-l-4 border-[#00cc4c]/40 pl-6 italic max-w-4xl">{{ movie.description }}</p>
             </section>
-
-            <section class="pt-6">
-                <div class="flex gap-10 border-b border-white/5 text-xs font-black uppercase tracking-[0.2em] mb-8">
-                    <button onclick="switchTab('episodes')" id="tab-ep-btn" class="pb-5 tab-active">Qismlar</button>
-                    <button onclick="switchTab('comments')" id="tab-com-btn" class="pb-5 text-gray-500">Fikrlar ({{ movie.reviews.count }})</button>
+        
+            <br>
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter italic uppercase leading-none bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    {{ movie.title }}
+                </h1>
+                <p class="text-gray-400 text-base md:text-lg leading-relaxed border-l-4 border-[#00cc4c]/50 pl-6 py-2 italic max-w-4xl backdrop-blur-sm">
+                    {{ movie.description }}
+                </p>
+                <div class="flex flex-wrap gap-4 text-xs font-black uppercase tracking-widest text-gray-500">
+                    <span class="text-[#00cc4c] bg-[#00cc4c]/10 px-4 py-2 rounded-full border border-[#00cc4c]/30 shadow-lg">★ {{ movie.mdl_rank }}</span>
+                    <span class="bg-white/5 px-4 py-2 rounded-full border border-white/10">{{ movie.age_limit }}+</span>
+                    <span class="bg-white/5 px-4 py-2 rounded-full border border-white/10">{{ movie.year }}</span>
+                    <span class="text-blue-400 bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/20">{{ movie.country }}</span>
                 </div>
-
-                <div id="episodes-content" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-3">
-                    {% for ep in episodes %}
-                    <a href="?episode={{ ep.episode_number }}" class="h-14 flex items-center justify-center rounded-2xl font-black text-xs transition-all
-                        {% if active_episode.id == ep.id %} bg-[#00cc4c] text-black shadow-[0_0_20px_rgba(0,204,76,0.3)] {% else %} bg-white/5 text-gray-400 hover:bg-white/10 border border-white/5 {% endif %}">
-                        {{ ep.episode_number }}
+                <div class="flex flex-wrap gap-3 pt-4">
+                    {% for tag in movie.tags.all %}
+                    <a href="{{ tag.get_absolute_url }}" class="inline-flex items-center px-5 py-2 rounded-full bg-[#00cc4c]/10 border border-[#00cc4c]/25 text-[#00cc4c] text-xs font-black uppercase tracking-widest hover:bg-[#00cc4c] hover:text-black transition-all">
+                        <i class="fas fa-hashtag mr-2 opacity-60"></i>{{ tag.name }}
                     </a>
                     {% endfor %}
                 </div>
+</section>
 
-<div id="comments-content" class="hidden space-y-8">
-    {% if user.is_authenticated %}
-        <form id="commentForm"
-      hx-post="{% url 'drama:add_review' movie.id %}" 
-      hx-target="#comment-list" 
-      hx-swap="afterbegin" 
-      hx-on::after-request="this.reset(); resetCommentTarget();"
-      class="bg-white/3 p-8 rounded-[2.5rem] border border-white/5 mb-10">
-    {% csrf_token %}
-    <input type="hidden" name="parent" id="contactparent" value="">
-    
-    <div id="replying-to" class="hidden mb-4 flex items-center justify-between bg-[#00cc4c]/10 p-3 rounded-xl border border-[#00cc4c]/20">
-        <span class="text-[10px] font-bold text-[#00cc4c] uppercase tracking-widest">
-            <i class="fas fa-reply mr-2"></i> <span id="reply-name"></span> ga javob yozilmoqda...
-        </span>
-        <button type="button" onclick="resetCommentTarget()" class="text-white/40 hover:text-white"><i class="fas fa-times"></i></button>
+            <div class="mt-8 pt-8 border-t border-white/10">
+                <h3 class="text-xl font-black uppercase tracking-widest text-white mb-6 flex items-center gap-3">
+                    <span class="w-1.5 h-6 bg-[#00cc4c] rounded-full"></span> Rollarda (Cast)
+                </h3>
+                <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
+                    {% for actor in movie.main_actors.all %}
+                    <a href="{{ actor.get_absolute_url }}" class="snap-start flex-shrink-0 w-24 md:w-28 text-center group block">
+                        <div class="relative w-20 h-20 md:w-24 md:h-24 mx-auto mb-3 rounded-full p-[3px] bg-gradient-to-br from-[#00cc4c]/60 to-transparent group-hover:from-[#00cc4c] group-hover:to-[#00ff62] transition-all duration-300">
+                            <img src="{{ actor.image.url }}" class="w-full h-full rounded-full object-cover border-[3px] border-[#0a0a0a] transition-all" alt="{{ actor.name }}">
+                        </div>
+                        <p class="text-xs md:text-sm font-bold text-gray-200 group-hover:text-[#00cc4c] line-clamp-1">{{ actor.name }}</p>
+                        <span class="text-[9px] md:text-[10px] bg-[#00cc4c]/10 text-[#00cc4c] px-2 py-1 rounded flex items-center justify-center gap-1 mt-1.5 uppercase font-black mx-auto w-fit">
+                            <i class="fas fa-star text-[8px]"></i> Bosh rol
+                        </span>
+                    </a>
+                    {% endfor %}
+
+                    {% for actor in movie.actors.all %}
+                    <a href="{{ actor.get_absolute_url }}" class="snap-start flex-shrink-0 w-24 md:w-28 text-center group block">
+                        <div class="relative w-20 h-20 md:w-24 md:h-24 mx-auto mb-3 rounded-full p-[3px] bg-gradient-to-br from-white/20 to-transparent group-hover:from-white/40 transition-all duration-300">
+                            <img src="{{ actor.image.url }}" class="w-full h-full rounded-full object-cover border-[3px] border-[#0a0a0a] grayscale-[20%] group-hover:grayscale-0" alt="{{ actor.name }}">
+                        </div>
+                        <p class="text-xs md:text-sm font-bold text-gray-400 group-hover:text-white line-clamp-1">{{ actor.name }}</p>
+                        <span class="text-[9px] md:text-[10px] bg-white/5 text-gray-400 px-2 py-1 rounded flex items-center justify-center gap-1 mt-1.5 uppercase font-bold mx-auto w-fit">Yordamchi</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-8">
+                <div class="border-b border-white/10 pb-4 mb-8 flex items-center justify-between">
+                    <h3 class="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
+                        <i class="fas fa-comments text-[#00cc4c] mr-3"></i> 
+                        Fikrlar ({{ movie.reviews.all|length }})
+                    </h3> 
+                </div>
+ <!-- test -->
+                    {% if user.is_authenticated %} 
+                    {% else %}
+                    <div class="text-center py-10 bg-white/5 rounded-3xl">
+                                <i class="fas fa-comment-slash text-4xl text-gray-600 mb-4"></i>
+                                <p class="text-gray-400 font-bold uppercase tracking-widest">Siz Fikr qoldira olmaysiz. Fikr qoldirish uchun saytdan ro`yhatdan o'tishingiz kerak!</p>
+                            </div>
+                    {% endif %}
+<!-- test end -->
+                <div id="comments-content" class="space-y-10">
+                    {% if user.is_authenticated %}
+                    <form id="commentForm" hx-post="{% url 'drama:add_review' movie.id %}" hx-target="#comment-list" hx-swap="afterbegin" hx-on::after-request="this.reset(); resetCommentTarget();" class="glass-card p-8 md:p-10">
+                        {% csrf_token %}
+                        <input type="hidden" name="parent" id="contactparent" value="">
+                        <div id="replying-to" class="hidden mb-5 flex items-center justify-between bg-[#00cc4c]/15 p-4 rounded-2xl border border-[#00cc4c]/30">
+                            <span class="text-xs font-bold text-[#00cc4c] uppercase tracking-wider"><i class="fas fa-reply mr-2"></i> <span id="reply-name"></span> ga javob...</span>
+                            <button type="button" onclick="resetCommentTarget()" class="text-white/40 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+                        <textarea name="text" id="commentText" required class="w-full bg-black/50 border border-white/15 rounded-3xl p-6 text-sm md:text-base text-white focus:border-[#00cc4c] outline-none transition-all resize-none" rows="4" placeholder="Fikringiz..."></textarea>
+                        <button type="submit" class="mt-6 bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black px-16 py-4 rounded-2xl text-sm uppercase shadow-xl">Yuborish</button>
+                    </form>
+                    {% endif %}
+
+                    <div id="comment-list" class="space-y-8">
+                        {% for review in movie.reviews.all|slice:":3" %}
+                            {% if not review.parent %}
+                                {% include 'movies/partials/comment_item.html' with review=review %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <aside class="w-full lg:w-[30%] space-y-8">
+            <div class="glass-card p-10 sticky top-24">
+                <h3 class="text-sm font-black uppercase tracking-widest text-[#00cc4c] mb-8 flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-[#00cc4c] animate-pulse"></span>
+                    TOP DRAMALAR
+                </h3>
+                <div class="space-y-6 text-gray-500 italic text-sm font-medium">Rejalashtirilmoqda...</div>
+            </div>
+        </aside>
     </div>
+</main>
 
-    <textarea name="text" id="commentText" required
-              class="w-full bg-black/50 border border-white/10 rounded-3xl p-5 text-sm text-white focus:border-[#00cc4c] outline-none transition-all" 
-              rows="3" placeholder="O'z fikringizni yozib qoldiring..."></textarea>
-    
-    <button type="submit" class="mt-5 bg-[#00cc4c] text-black font-black px-12 py-3 rounded-2xl text-xs uppercase hover:scale-105 transition-all">
-        Yuborish
-    </button>
-</form>
+<div id="listModal" class="fixed inset-0 z-[200] hidden items-center justify-center px-4 bg-black/95 backdrop-blur-xl">
+    <div onclick="toggleListModal()" class="absolute inset-0"></div>
+    <div class="relative glass-card w-full max-w-lg rounded-[40px] p-12 md:p-16 shadow-2xl">
+        <form action="{% url 'drama:add_to_list' movie.id %}" method="POST" class="relative z-10 space-y-8">
+            {% csrf_token %}
+            <div class="text-center border-b border-white/10 pb-6">
+                <h3 class="text-3xl font-black uppercase italic">My Library</h3>
+            </div>
+            
+            <div class="space-y-4">
+                <label class="text-xs font-black text-gray-400 uppercase ml-2">Film holati</label>
+                <select name="status" id="statusSelect" onchange="checkStatus()" class="w-full bg-white/5 border border-white/15 rounded-3xl p-6 text-base font-black text-white outline-none">
+                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>Ko'ryapman</option>
+                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>Tugallangan</option>
+                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>Rejamda bor</option>
+                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>To'xtatilgan</option>
+                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>Qiziq emas</option>
+                </select>
+            </div>
+
+            <div id="extraFields" class="grid grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <label class="text-xs font-black text-gray-400 uppercase ml-2">Qism</label>
+                    <input type="number" name="current_episode" min="0" max="{{ movie.episodes_count }}" value="{{ user_movie_status.current_episode|default:0 }}" class="w-full bg-white/5 border border-white/15 rounded-2xl p-5 text-white font-black">
+                </div>
+                <div class="space-y-4">
+                    <label class="text-xs font-black text-gray-400 uppercase ml-2">Baho</label>
+                    <select name="score" class="w-full bg-white/5 border border-white/15 rounded-2xl p-5 text-white font-black">
+                        <option value="">--</option>
+                        {% for i in "1234567890" %}
+                            <option value="{{ forloop.counter }}.0" {% if user_movie_status.score|stringformat:".1f" == forloop.counter|stringformat:".1f" %}selected{% endif %}>{{ forloop.counter }}.0</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="w-full py-6 bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black uppercase rounded-2xl shadow-2xl">Saqlash</button>
+        </form>
+    </div>
+</div>
+{% endblock %} 
+
+{% block extra_js %}
 <script>
-    function prepareReply(name, id) {
-        // 1. Hidden inputni to'ldirish
-        document.getElementById("contactparent").value = id;
+    // ==========================================
+    // PLEYER JAVASCRIPT QISMI (XATOLIK TUZATILDI)
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        const video = document.getElementById('mainVideo');
+        // JS xatosi berib o'lmasligi uchun, video bor bo'lsagina ishlatamiz!
+        if (video) {
+            const container = document.getElementById('customPlayer');
+            const progressBar = document.getElementById('progressBar');
+            const loader = document.getElementById('videoLoader');
+            const fullScreenBtn = document.getElementById('fullScreen');
+            const playIcon = document.getElementById('playIcon');
+            let controlsTimeout;
+
+            function togglePlay() {
+                if (video.paused) {
+                    video.play();
+                    playIcon.innerText = 'pause';
+                } else {
+                    video.pause();
+                    playIcon.innerText = 'play_arrow';
+                }
+                showControls();
+            }
+
+            document.getElementById('playPauseBtn').onclick = (e) => {
+                e.stopPropagation();
+                togglePlay();
+            };
+
+            function showControls() {
+                container.classList.add('controls-active');
+                clearTimeout(controlsTimeout);
+                controlsTimeout = setTimeout(() => {
+                    if (!video.paused && !document.querySelector('.v-menu.show')) {
+                        container.classList.remove('controls-active');
+                    }
+                }, 3000);
+            }
+
+            container.addEventListener('mousemove', showControls);
+            container.addEventListener('touchstart', showControls, { passive: true });
+
+            fullScreenBtn.onclick = async () => {
+                if (!document.fullscreenElement) {
+                    if (container.requestFullscreen) await container.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            };
+
+            let lastTap = 0;
+            video.addEventListener('click', (e) => {
+                const now = Date.now();
+                if (now - lastTap < 300) {
+                    const x = e.offsetX;
+                    if (x < video.clientWidth / 2) {
+                        video.currentTime -= 10;
+                    } else {
+                        video.currentTime += 10;
+                    }
+                    lastTap = 0;
+                } else {
+                    showControls();
+                }
+                lastTap = now;
+            });
+
+            window.changeQuality = (newSrc, label, btn, e) => {
+                e.stopPropagation();
+                const time = video.currentTime;
+                loader.classList.remove('hidden');
+                video.src = newSrc;
+                video.load();
+                video.onloadedmetadata = () => {
+                    video.currentTime = time;
+                    video.play();
+                    loader.classList.add('hidden');
+                    document.getElementById('qualityLabelBtn').innerText = (label === '1080p' ? 'FHD' : 'HD');
+                };
+            };
+
+            let curZoom = 100;
+            window.adjustZoom = (amount, e) => {
+                e.stopPropagation();
+                curZoom = Math.min(Math.max(curZoom + amount, 50), 200);
+                video.style.transform = `scale(${curZoom / 100})`;
+                document.getElementById('zoomLabel').innerText = `Zoom: ${curZoom}%`;
+            };
+
+            let speeds = [1, 1.25, 1.5, 2], sIdx = 0;
+            window.changeSpeedCycle = (e) => {
+                e.stopPropagation();
+                sIdx = (sIdx + 1) % speeds.length;
+                video.playbackRate = speeds[sIdx];
+                document.getElementById('speedDisplay').innerText = speeds[sIdx] + 'x';
+            };
+
+            video.ontimeupdate = () => {
+                progressBar.style.width = (video.currentTime / video.duration) * 100 + '%';
+                document.getElementById('currentTime').innerText = formatTime(video.currentTime);
+                document.getElementById('duration').innerText = formatTime(video.duration);
+            };
+
+            function formatTime(t) {
+                if (isNaN(t)) return "00:00";
+                let m = Math.floor(t / 60), s = Math.floor(t % 60);
+                return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+            }
+
+            document.getElementById('progressArea').onclick = (e) => {
+                video.currentTime = (e.offsetX / e.target.clientWidth) * video.duration;
+            };
+
+            document.getElementById('volumeSlider').oninput = (e) => {
+                video.volume = e.target.value;
+            };
+        }
+    });
+
+    window.toggleMenu = (id, e) => {
+        e.stopPropagation();
+        const menu = document.getElementById(id);
+        const isShown = menu.classList.contains('show');
+        document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
+        if (!isShown) menu.classList.add('show');
+    };
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
+    });
+
+    function toggleListModal() {
+        document.getElementById('listModal').classList.toggle('hidden');
+        document.getElementById('listModal').classList.toggle('flex');
+        checkStatus();
+    }
+
+    function checkStatus() {
+        const status = document.getElementById('statusSelect').value;
+        const extraFields = document.getElementById('extraFields');
+        const epInput = document.getElementsByName('current_episode')[0];
         
-        // 2. UI-da kimga javob berilayotganini ko'rsatish
+        if (['1', '2', '4'].includes(status)) {
+            extraFields.style.display = 'grid';
+            if (status === '2') {
+                epInput.readOnly = true;
+                epInput.style.opacity = "0.5";
+            } else {
+                epInput.readOnly = false;
+                epInput.style.opacity = "1";
+            }
+        } else {
+            extraFields.style.display = 'none';
+        }
+    }
+
+    function prepareReply(name, id) {
+        document.getElementById("contactparent").value = id;
         document.getElementById("reply-name").innerText = name;
         document.getElementById("replying-to").classList.remove('hidden');
-        
-        // 3. HTMX targetini o'zgartirish (Izohning tagiga tushishi uchun)
         const form = document.getElementById("commentForm");
         form.setAttribute("hx-target", `#replies-${id}`);
         form.setAttribute("hx-swap", "beforeend");
-        
-        // HTMX-ni qayta yuklash (yangi targetni tanishi uchun)
         htmx.process(form);
-
-        // 4. Fokus va skroll
-        document.getElementById("commentText").placeholder = `Admin javobi...`;
-        document.getElementById("commentForm").scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById("commentText").placeholder = `Javob yozish...`;
+        document.getElementById("commentForm").scrollIntoView({behavior: 'smooth', block: 'center'});
         document.getElementById("commentText").focus();
     }
 
     function resetCommentTarget() {
         document.getElementById("contactparent").value = "";
         document.getElementById("replying-to").classList.add('hidden');
-        
         const form = document.getElementById("commentForm");
         form.setAttribute("hx-target", "#comment-list");
         form.setAttribute("hx-swap", "afterbegin");
         document.getElementById("commentText").placeholder = "O'z fikringizni yozib qoldiring...";
-        
         htmx.process(form);
     }
-</script>
-    {% endif %}
 
-    <div id="comment-list" class="space-y-6">
-        {% for review in movie.reviews.all %}
-            {% if not review.parent %}
-                {% include 'movies/partials/comment_item.html' with review=review %}
-            {% endif %}
-        {% endfor %}
-    </div>
-</div>    
+    function toggleReviewText(btn) {
+        const container = btn.parentElement;
+        const shortText = container.querySelector('.comment-short-text');
+        const fullText = container.querySelector('.comment-full-text');
 
-            </section>
-        </div>
-
-        <aside class="w-full lg:w-[28%] space-y-8">
-            <div class="bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] p-8 border border-white/5">
-                <h3 class="text-xs font-black uppercase tracking-[0.3em] text-[#00cc4c] mb-8 flex items-center gap-3">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#00cc4c]"></span> TOP DRAMALAR
-                </h3>
-                <div class="space-y-6 text-gray-600 italic text-xs font-medium">Rejalashtirilmoqda...</div>
-            </div>
-        </aside>
-    </div>
-</main>
-
-<div id="listModal" class="fixed inset-0 z-[200] hidden items-center justify-center px-4">
-    <div onclick="toggleListModal()" class="absolute inset-0 bg-black/95 backdrop-blur-md"></div>
-    <div class="relative bg-[#0a0a0a] border border-white/10 w-full max-w-sm rounded-[3.5rem] p-12 shadow-2xl">
-        <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#00cc4c]/10 rounded-full blur-3xl"></div>
-        
-        <form action="{% url 'drama:add_to_list' movie.id %}" method="POST" class="relative z-10 space-y-8">
-            {% csrf_token %}
-            <div class="text-center">
-                <h3 class="text-2xl font-black uppercase italic tracking-tighter">My Library</h3>
-                <p class="text-[10px] text-gray-500 font-bold uppercase mt-1">Holatni yangilash</p>
-            </div>
-            
-            <div class="space-y-3">
-                <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Film holati</label>
-                <select name="status" id="statusSelect" onchange="checkStatus()" class="w-full bg-white/5 border border-white/10 rounded-3xl p-5 text-sm font-black text-white outline-none cursor-pointer focus:border-[#00cc4c] transition-all">
-                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>Hozirda ko'ryapman</option>
-                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>Ko'rib tugallangan</option>
-                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>Ko'rish rejamda bor</option>
-                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>Ko'rish to'xtatilgan</option>
-                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>Menga qiziq emas</option>
-                </select>
-            </div>
-
-            <div id="extraFields" class="grid grid-cols-2 gap-5">
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Qism</label>
-                    <input type="number" name="current_episode" min="0" max="{{ movie.episodes_count }}" value="{{ user_movie_status.current_episode|default:0 }}" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-black text-white outline-none focus:border-[#00cc4c]">
-                </div>
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Baho</label>
-                    <select name="score" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-sm font-black text-white outline-none cursor-pointer focus:border-[#00cc4c]">
-                        <option value="">--</option>
-                        {% for i in "1234567891" %}
-                            <option value="{{ forloop.counter }}.0" {% if user_movie_status.score|stringformat:".1f" == forloop.counter|stringformat:".1f" %}selected{% endif %}>{{ forloop.counter }}.0</option>
-                            <option value="{{ forloop.counter }}.5" {% if user_movie_status.score|stringformat:".1f" == forloop.counter|add:".5"|stringformat:".1f" %}selected{% endif %}>{{ forloop.counter }}.5</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <button type="submit" class="w-full py-5 bg-[#00cc4c] text-black font-black uppercase rounded-2xl hover:scale-[1.03] transition-all shadow-xl shadow-[#00cc4c]/20 tracking-widest">Saqlash</button>
-        </form>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    const video = document.getElementById('mainVideo');
-    const container = document.getElementById('customPlayer');
-    const progressBar = document.getElementById('progressBar');
-    const loader = document.getElementById('videoLoader');
-    const fullScreenBtn = document.getElementById('fullScreen');
-    const playIcon = document.getElementById('playIcon');
-    let controlsTimeout;
-
-    if (video) {
-        function togglePlay() {
-            if (video.paused) { video.play(); playIcon.innerText = 'pause'; }
-            else { video.pause(); playIcon.innerText = 'play_arrow'; }
-            showControls();
-        }
-        document.getElementById('playPauseBtn').onclick = (e) => { e.stopPropagation(); togglePlay(); };
-
-        function showControls() {
-            container.classList.add('controls-active');
-            clearTimeout(controlsTimeout);
-            controlsTimeout = setTimeout(() => {
-                if (!video.paused && !document.querySelector('.v-menu.show')) container.classList.remove('controls-active');
-            }, 3000);
-        }
-        container.addEventListener('mousemove', showControls);
-        container.addEventListener('touchstart', showControls, {passive: true});
-
-        // FULLSCREEN & AUTO-ROTATE LOGIC (MOBILE 16:9 FIX)
-        fullScreenBtn.onclick = async () => {
-            if (!document.fullscreenElement) {
-                try {
-                    if (container.requestFullscreen) await container.requestFullscreen();
-                    // Telfonda avtomatik landscape (aylanish) qilish
-                    if (screen.orientation && screen.orientation.lock) {
-                        await screen.orientation.lock('landscape').catch(err => console.log("Orientation lock ignored."));
-                    }
-                } catch (e) { console.error(e); }
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-            }
-        };
-
-        let lastTap = 0;
-        video.addEventListener('click', (e) => {
-            const now = Date.now();
-            if (now - lastTap < 300) {
-                const x = e.offsetX;
-                if (x < video.clientWidth / 2) { video.currentTime -= 10; showFeedback('seekLeft'); }
-                else { video.currentTime += 10; showFeedback('seekRight'); }
-                lastTap = 0;
-            } else { showControls(); }
-            lastTap = now;
-        });
-
-        window.toggleMenu = (id, e) => {
-            e.stopPropagation();
-            const menu = document.getElementById(id);
-            const isShown = menu.classList.contains('show');
-            document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
-            if (!isShown) menu.classList.add('show');
-        };
-
-        window.changeQuality = (newSrc, label, btn, e) => {
-            e.stopPropagation();
-            const time = video.currentTime;
-            loader.classList.remove('hidden');
-            video.src = newSrc; video.load();
-            video.onloadedmetadata = () => {
-                video.currentTime = time; video.play();
-                loader.classList.add('hidden');
-                document.getElementById('qualityLabelBtn').innerText = (label === '1080p' ? 'FHD' : 'HD');
-            };
-        };
-
-        let curZoom = 100;
-        window.adjustZoom = (amount, e) => {
-            e.stopPropagation();
-            curZoom = Math.min(Math.max(curZoom + amount, 50), 200);
-            video.style.transform = `scale(${curZoom / 100})`;
-            document.getElementById('zoomLabel').innerText = `Zoom: ${curZoom}%`;
-        };
-
-        let speeds = [1, 1.25, 1.5, 2], sIdx = 0;
-        window.changeSpeedCycle = (e) => {
-            e.stopPropagation();
-            sIdx = (sIdx + 1) % speeds.length;
-            video.playbackRate = speeds[sIdx];
-            document.getElementById('speedDisplay').innerText = speeds[sIdx] + 'x';
-        };
-
-        video.ontimeupdate = () => {
-            progressBar.style.width = (video.currentTime / video.duration) * 100 + '%';
-            document.getElementById('currentTime').innerText = formatTime(video.currentTime);
-            document.getElementById('duration').innerText = formatTime(video.duration);
-        };
-        function formatTime(t) { let m = Math.floor(t/60), s = Math.floor(t%60); return (m<10?'0'+m:m)+':'+(s<10?'0'+s:s); }
-        function showFeedback(id) { const el = document.getElementById(id); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 500); }
-        document.getElementById('progressArea').onclick = (e) => { video.currentTime = (e.offsetX / e.target.clientWidth) * video.duration; };
-        document.getElementById('volumeSlider').oninput = (e) => { video.volume = e.target.value; };
-        document.addEventListener('click', () => document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show')));
-    }
-
-    function switchTab(tab) {
-        const epBtn = document.getElementById('tab-ep-btn');
-        const comBtn = document.getElementById('tab-com-btn');
-        const epCont = document.getElementById('episodes-content');
-        const comCont = document.getElementById('comments-content');
-        if (tab === 'episodes') {
-            epCont.classList.remove('hidden'); comCont.classList.add('hidden');
-            epBtn.classList.add('tab-active'); comBtn.classList.remove('tab-active');
-            comBtn.classList.add('text-gray-500');
+        if (fullText.classList.contains('hidden')) {
+            shortText.classList.add('hidden');
+            fullText.classList.remove('hidden');
+            btn.innerHTML = `Qisqartirish <i class="fas fa-chevron-up ml-1"></i>`;
         } else {
-            epCont.classList.add('hidden'); comCont.classList.remove('hidden');
-            comBtn.classList.add('tab-active'); epBtn.classList.remove('tab-active');
-            epBtn.classList.add('text-gray-500');
+            fullText.classList.add('hidden');
+            shortText.classList.remove('hidden');
+            btn.innerHTML = `Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>`;
         }
-    }
-
-    function prepareReply(name, id) {
-        document.getElementById("contactparent").value = id;
-        document.getElementById("commentText").value = `@${name}, `;
-        document.getElementById("commentText").focus();
-    }
-
-    function toggleListModal() { document.getElementById('listModal').classList.toggle('hidden'); document.getElementById('listModal').classList.toggle('flex'); checkStatus(); }
-    function checkStatus() {
-        const status = document.getElementById('statusSelect').value;
-        const extraFields = document.getElementById('extraFields');
-        const epInput = document.getElementsByName('current_episode')[0];
-        const maxEp = "{{ movie.episodes_count }}";
-        if (['1', '2', '4'].includes(status)) {
-            extraFields.style.display = 'grid';
-            if (status === '2') { epInput.value = maxEp; epInput.readOnly = true; epInput.style.opacity = "0.5"; }
-            else { epInput.readOnly = false; epInput.style.opacity = "1"; }
-        } else { extraFields.style.display = 'none'; }
     }
 </script>
 {% endblock %}

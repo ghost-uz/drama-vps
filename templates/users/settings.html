@@ -6,6 +6,55 @@
 
 {% block extra_css %}
 <style>
+    
+    /* QORA FONDA XATOLIKLAR KO'RINISHI UCHUN */
+    .invalid-feedback,
+    .text-danger,
+    .help-block {
+        color: #ff4d4f !important;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        font-weight: 800;
+        display: block;
+        text-shadow: 0 0 10px rgba(255, 77, 79, 0.4);
+    }
+    
+    .has-error .form-control,
+    .is-invalid {
+        border-color: #ff4d4f !important;
+        box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.1) !important;
+    }
+    /* ... sizdagi oldingi style kodlar ... */
+
+    /* 🌟 KUN, OY, YIL QUTILARI UCHUN MAXSUS STIL 🌟 */
+    .custom-date-select {
+        width: 32%;
+        display: inline-block;
+        background-color: #0a0a0a !important;
+        border: 1px solid #1f1f1f !important;
+        color: #e5e7eb !important;
+        border-radius: 12px;
+        padding: 0.8rem 0.5rem;
+        margin-right: 1.5%;
+        text-align: center;
+        appearance: auto;
+    }
+    
+    /* Oxirgi (Uchinchi) qutining yonida bo'sh joy qolmasligi uchun */
+    .custom-date-select:last-child {
+        margin-right: 0;
+    }
+    
+    /* Mobil ekranda qutilar sal kichrayishi uchun */
+    @media (max-width: 640px) {
+        .custom-date-select {
+            width: 31%;
+            padding: 0.8rem 0.2rem;
+            font-size: 0.85rem;
+            margin-right: 2%;
+        }
+        .custom-date-select:last-child { margin-right: 0; }
+    }
     /* Neon Glow effektlari */
     .neon-border {
         box-shadow: 0 0 15px rgba(0, 204, 76, 0.1);

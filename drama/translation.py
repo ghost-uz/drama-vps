@@ -12,7 +12,7 @@ class GenreTranslationOptions(TranslationOptions):
 @register(Movie)
 class MovieTranslationOptions(TranslationOptions):
     # 'keywords' bu ro'yxatda bo'lishi shart!
-    fields = ('title', 'description', 'tagline', 'keywords')
+    fields = ('title', 'description', 'tagline', 'tags')
 
 @register(Actor)
 class ActorTranslationOptions(TranslationOptions):

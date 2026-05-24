@@ -5,7 +5,7 @@
     
     <div class="flex items-center justify-between mb-8">
         <h2 class="text-2xl md:text-3xl font-bold border-l-4 border-green-500 pl-4">
-            Barcha Dramalar
+            {% if title %}{{ title }}{% else %}Barcha Dramalar list{% endif %}
         </h2>
         <div class="flex items-center space-x-2 text-sm text-gray-400 cursor-pointer hover:text-green-500 transition">
             <a href="{% url 'drama:explore' %}" class="nav-link">
@@ -20,15 +20,13 @@
         {% block movie %}
              {% for movie in movies %}
              
-            <div class="group relative flex flex-col cursor-pointer">
-                 <a href="{{ movie.get_absolute_url }}">
+            <a href="{{ movie.get_absolute_url }}" class="group relative flex flex-col cursor-pointer">
                 <div class="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-900 shadow-lg">
                    
                     <img src="{{ movie.poster.url }}" 
-                         alt="{{ movie.title }}" 
+                         alt="{{ movie.title }} o'zbek tilida ko'rish" title="{{ movie.title }} dorama"
                          class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
                    
-                    
                     <div class="absolute top-2 right-2 bg-green-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded shadow-md">
                         HD
                     </div>
@@ -47,7 +45,7 @@
 
                 <div class="mt-3">
                     <h3 class="text-sm md:text-base font-semibold text-gray-100 group-hover:text-green-500 transition line-clamp-1">
-                        <a href="{{ movie.get_absolute_url }}">{{ movie.title }}</a>
+                        {{ movie.title }}
                     </h3>
                     <div class="flex items-center mt-1 space-x-2 text-[12px] text-gray-500">
                         <span class="text-yellow-500"><i class="fas fa-star text-[10px]"></i>{{ movie.mdl_rank }}</span>
@@ -55,8 +53,7 @@
                         <span>{{ movie.year }}</span>
                     </div>
                 </div>  
-                </a>
-                </div>
+            </a>
            
             {% empty %}
                 <div class="col-span-full py-20 text-center text-gray-500">

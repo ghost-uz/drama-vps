@@ -4,51 +4,45 @@ from django.dispatch import receiver
 from .models import Profile
 import logging
 
-# Xatolarni log qilish uchun (ixtiyoriy)
 logger = logging.getLogger(__name__)
 
-# 1 va 2 ni birlashtiramiz: User yaratilganda Profil yaratish va saqlash
+# 1. PROFILE YARATISH (O'chirmang, bu juda muhim!)
 @receiver(post_save, sender=User)
-def manage_user_profile(sender, instance, created, **kwargs):
+def create_user_profile(sender, instance, created, **kwargs):
+    """Yangi user ro'yxatdan o'tganda profil yaratadi"""
     if created:
-        # User yaratilganda profilni get_or_create bilan ochish xavfsizroq
         Profile.objects.get_or_create(user=instance)
-    # else qismidagi save() ni o'chiramiz, chunki User.save() 
-    # chaqirilganda Profile.save() ni chaqirish shart emas (OneToOneCASCADE)
 
-# Qolgan pre_save va post_delete kodlaringiz o'zgarishsiz qolishi mumkin...
-# 3. Rasm yangilanganda eski rasmni o'chirish (Xavfsizroq ko'rinishda)
+# 2. ESKI RASMNI O'CHIRISH (Men bergan qism)
 @receiver(pre_save, sender=Profile)
 def delete_old_avatar_on_change(sender, instance, **kwargs):
+    """Rasm o'zgarganda bulutdagi eskisini o'chiradi"""
     if not instance.pk:
-        return False
+        return # Yangi profil bo'lsa to'xtatish
 
     try:
-        old_profile = Profile.objects.get(pk=instance.pk)
-        old_avatar = old_profile.avatar
+        old_obj = Profile.objects.get(pk=instance.pk)
     except Profile.DoesNotExist:
-        return False
+        return
 
-    new_avatar = instance.avatar
-    
-    # Agar rasm o'zgargan bo'lsa va eski rasm mavjud bo'lsa
-    if old_avatar and old_avatar != new_avatar:
-        # Rasm default rasm emasligini tekshirish (agar static ichida bo'lsa)
-        if 'default.jpg' not in old_avatar.name: 
+    # Agar rasm maydoni o'zgargan bo'lsa va u default bo'lmasa
+    if old_obj.avatar and old_obj.avatar != instance.avatar:
+        if 'default.jpg' not in old_obj.avatar.name:
             try:
-                old_avatar.delete(save=False)
+                storage = old_obj.avatar.storage
+                if storage.exists(old_obj.avatar.name):
+                    storage.delete(old_obj.avatar.name)
             except Exception as e:
-                logger.error(f"Eski rasmni o'chirishda xatolik: {e}")
+                logger.error(f"Eski rasmni o'chirishda xato: {e}")
 
-# 4. Profil o'chirilganda rasmni o'chirish
+# 3. PROFIL O'CHIRILGANDA TOZALASH
 @receiver(post_delete, sender=Profile)
 def delete_avatar_on_profile_delete(sender, instance, **kwargs):
-    # GCS bilan ishlashda juda ehtiyot bo'lish kerak
+    """Profil o'chsa, rasm ham bulutdan yo'qoladi"""
     if instance.avatar and 'default.jpg' not in instance.avatar.name:
         try:
-            # storage.delete ishlatish xavfsizroq
             storage = instance.avatar.storage
             if storage.exists(instance.avatar.name):
                 storage.delete(instance.avatar.name)
         except Exception as e:
-            logger.error(f"Rasmni o'chirishda xatolik yuz berdi: {e}")
+            logger.error(f"Profil o'chganda rasm o'chmadi: {e}")

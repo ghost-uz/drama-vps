@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}VIP Obuna | Drama.uz{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gold-gradient {
+        background: linear-gradient(135deg, #ffd700 0%, #d4af37 50%, #aa7c11 100%);
+    }
+    .gold-text {
+        background: linear-gradient(135deg, #ffd700 0%, #f4d6a1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .glass-card-premium {
+        background: rgba(20, 15, 0, 0.6);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+    .benefit-icon {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-[#050505] text-white py-16 px-4 relative overflow-hidden">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-yellow-500/10 blur-[150px] rounded-full pointer-events-none"></div>
+
+    <div class="max-w-5xl mx-auto relative z-10">
+        
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-yellow-500/10 border border-yellow-500/30 mb-6 shadow-[0_0_50px_rgba(255,215,0,0.15)]">
+                <i class="fas fa-crown text-5xl text-yellow-500"></i>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-4 gold-text">
+                Premium VIP
+            </h1>
+            <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+                Drama.uz olamidagi eng yaxshi imkoniyatlarni o'zingiz uchun oching. Reklamalarsiz, yuqori sifatda va cheklovlarsiz tomosha qiling.
+            </p>
+        </div>
+<br><br>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            
+            <div class="space-y-6">
+                <h3 class="text-2xl font-black uppercase tracking-widest mb-8 border-b border-white/10 pb-4 inline-block">Nimalarga ega bo'lasiz?</h3>
+                
+                <div class="flex items-start gap-5">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30 benefit-icon">
+                        <i class="fas fa-ad text-yellow-500 text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-1">Mutlaqo Reklamasiz</h4>
+                        <p class="text-sm text-gray-400">Videolardagi va saytdagi barcha bezovta qiluvchi reklamalar avtomatik o'chiriladi.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-5">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30 benefit-icon">
+                        <i class="fas fa-film text-yellow-500 text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-1">Yopiq VIP Qismlar</h4>
+                        <p class="text-sm text-gray-400">Faqatgina VIP foydalanuvchilar uchun mo'ljallangan maxsus dorama va filmlarni ko'rish huquqi.</p>
+                    </div>
+                </div>
+
+
+                <!-- <div class="flex items-start gap-5">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30 benefit-icon">
+                        <i class="fas fa-tv text-yellow-500 text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-1">FHD / 4K Sifat</h4>
+                        <p class="text-sm text-gray-400">Kinolarni eng yuqori va tiniq sifatda, internetingiz tezligiga moslab ko'rish imkoniyati.</p>
+                    </div>
+                </div>-->
+
+                <div class="flex items-start gap-5">
+                    <div class="w-12 h-12 shrink-0 rounded-2xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30 benefit-icon">
+                        <i class="fas fa-user-check text-yellow-500 text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-1">Maxsus Status</h4>
+                        <p class="text-sm text-gray-400">Profilingizda va yozgan izohlaringizda yonib turuvchi maxsus "Premium" belgisi.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card-premium rounded-[3rem] p-8 md:p-12 relative text-center transform hover:scale-[1.02] transition-transform duration-500">
+                <div class="absolute top-0 left-0 w-full h-2 gold-gradient"></div>
+                
+                <h3 class="text-gray-400 font-bold uppercase tracking-widest text-sm mb-4">30 Kunlik Obuna</h3>
+                <div class="flex items-end justify-center gap-2 mb-8">
+                    <span class="text-6xl md:text-7xl font-black text-white leading-none">{{ vip_price }}</span>
+                    <span class="text-yellow-500 font-bold text-xl mb-2">Coin</span>
+                </div>
+
+                {% if user.is_authenticated %}
+                    
+                    {% if user.profile.is_currently_premium %}
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+                            <p class="text-sm text-gray-400 mb-1">Sizda VIP mavjud.</p>
+                            <p class="text-white font-bold">Amal qiladi: <span class="text-yellow-500">{{ user.profile.premium_until|date:"d M Y" }}</span></p>
+                        </div>
+                    {% else %}
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8 flex justify-between items-center">
+                            <span class="text-gray-400 font-bold text-sm">Shaxsiy balansingiz:</span>
+                            <span class="text-lg font-black {% if user.profile.balance >= vip_price %}text-[#00cc4c]{% else %}text-red-500{% endif %}">
+                                {{ user.profile.balance }} Coin
+                            </span>
+                        </div>
+                    {% endif %}
+
+                    {% if user.profile.balance >= vip_price %}
+                        <form action="{% url 'users:buy_premium' %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full py-5 gold-gradient text-black font-black text-lg uppercase tracking-widest rounded-2xl shadow-[0_10px_30px_rgba(255,215,0,0.3)] hover:shadow-[0_15px_40px_rgba(255,215,0,0.5)] transition-all">
+                                {% if user.profile.is_currently_premium %}Muddati Uzaytirish{% else %}Sotib Olish{% endif %}
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="space-y-3">
+                            <p class="text-red-400 text-xs font-bold uppercase tracking-widest"><i class="fas fa-exclamation-circle"></i> Hisobingizda Coin yetarli emas</p>
+                            <a href="{% url 'users:topup' %}" class="block w-full py-5 bg-white/10 text-white font-black text-sm uppercase tracking-widest rounded-2xl border border-white/20 hover:bg-white/20 transition-all">
+                                Hisobni To'ldirish
+                            </a>
+                        </div>
+                    {% endif %}
+
+                {% else %}
+                    <div class="space-y-4 mb-2">
+                        <p class="text-gray-400 text-sm">1 coin == 1 000 uzs</p>
+                        <p class="text-gray-400 text-sm">Xaridni amalga oshirish uchun tizimga kiring.</p>
+                        <a href="{% url 'users:login' %}" class="block w-full py-5 bg-[#00cc4c] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-[0_10px_30px_rgba(0,204,76,0.3)] transition-all">
+                            Saytga Kirish
+                        </a>
+                    </div>
+                {% endif %}
+                
+                <p class="text-[10px] text-gray-500 mt-6 uppercase tracking-widest">Xarid qilingan coinlar qaytarilmaydi.</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

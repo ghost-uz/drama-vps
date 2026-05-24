@@ -38,20 +38,37 @@
         <div class="relative glass-card rounded-[3rem] p-8 md:p-12 overflow-hidden shadow-2xl">
             <div class="absolute -top-24 -left-24 w-80 h-80 bg-[#00cc4c]/10 rounded-full blur-[120px]"></div>
             
-            {% if request.user == person %}
-            <div class="absolute top-8 right-8 flex items-center gap-4 z-20">
-                <a href="{% url 'users:settings' %}" class="btn-settings w-12 h-12 flex items-center justify-center rounded-2xl bg-[#1a1a1a] border border-white/5 text-gray-400 hover:text-[#00cc4c] hover:border-[#00cc4c]/50 shadow-lg">
-                    <i class="fas fa-cog text-xl"></i>
-                </a>
-                
-                <form action="{% url 'users:logout' %}" method="post" class="inline">
-                    {% csrf_token %}
-                    <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg">
-                        <i class="fas fa-sign-out-alt text-xl"></i>
-                    </button>
-                </form>
-            </div>
-            {% endif %}
+            <!-- test -->
+  <!-- ✅ O'z profilidagi settings/logout tugmalari -->
+{% if request.user == person %}
+    <div class="absolute top-8 right-8 flex items-center gap-4 z-20">
+        <a href="{% url 'users:settings' %}" class="btn-settings w-12 h-12 flex items-center justify-center rounded-2xl bg-[#1a1a1a] border border-white/5 text-gray-400 hover:text-[#00cc4c] hover:border-[#00cc4c]/50 shadow-lg">
+            <i class="fas fa-cog text-xl"></i>
+        </a>
+        <form action="{% url 'users:logout' %}" method="post" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg">
+                <i class="fas fa-sign-out-alt text-xl"></i>
+            </button>
+        </form>
+    </div>
+
+<!-- ✅ BOSHQA foydalanuvchi profilida Follow tugmasi -->
+{% elif request.user.is_authenticated %}
+    <div class="absolute top-8 right-8 z-20">
+        {% if request.user.profile in person.profile.followers.all %}
+            <a href="{% url 'users:unfollow' person.username %}" 
+               class="flex items-center gap-2 px-5 py-2 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all shadow-lg font-bold text-sm">
+                <i class="fas fa-user-minus"></i> Unfollow
+            </a>        
+        {% else %}
+            <a href="{% url 'users:follow' person.username %}" 
+               class="flex items-center gap-2 px-5 py-2 rounded-2xl bg-[#00cc4c] text-black hover:bg-[#00ff5e] transition-all shadow-lg font-bold text-sm">
+                <i class="fas fa-user-plus"></i> Follow
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
 
             <div class="relative z-10 flex flex-col md:flex-row items-center gap-10">
                 <div class="relative">
@@ -79,7 +96,28 @@
                             </span>
                             {% endif %}
                         </div>
-                        <p class="text-gray-400 text-sm font-medium">{{ profile.bio|default:"Drama olamiga xush kelibsiz!" }}</p>
+        
+ 
+        
+         <!-- 2 ta kalonka qo'shish -->
+{% if request.user.is_authenticated %}
+    <div class="absolute top-16 right-8 z-20 flex gap-4">
+        <!-- Follow bosganlar soni ko'rsatishi -->
+        <a href="{% url 'users:followers' person.username %}">
+        <span class="text-gray-500 text-xs font-bold uppercase">Obunachilar:</span>
+        <span class="text-[#00cc4c] text-sm font-bold">{{ person.profile.followers.count }}</span>
+        </a>
+        <!-- Unfollow qilganlar soni ko'rsatishi -->
+         {% if request.user == person %}
+        <a href="{% url 'users:following' person.username %}">
+        <span class="text-gray-500 text-xs font-bold uppercase">Obunalar:</span>
+        <span class="text-[#00cc4c] text-sm font-bold">{{ request.user.profile.following.count }}</span>
+        </a>
+        {% endif %}
+    </div>
+{% endif %}
+             <!-- test end -->           
+                        <br><br><p class="text-gray-400 text-sm font-medium">{{ profile.bio|default:"Drama olamiga xush kelibsiz!" }}</p>
                     </div>
 
                     <div class="max-w-md space-y-2">
@@ -107,7 +145,7 @@
             </div>
             <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-purple-500">
                 <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Sharhlar</p>
-                <h4 class="text-2xl font-black">{{ person.reviews.count }}</h4>
+                <h4 class="text-2xl font-black">{{ person.reviews.count|default:"0" }}</h4>
             </div>
             <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-yellow-500">
                 <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Ballar (XP)</p>
@@ -115,15 +153,71 @@
             </div>
         </div>
 
+
+        {% if request.user == person %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 mb-12">
+            
+            <div class="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/10 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-[#00cc4c]/10 rounded-full blur-3xl"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Shaxsiy Balans</p>
+                        <div class="flex items-baseline gap-2">
+                            <h2 class="text-3xl md:text-4xl font-black text-white">{{ profile.balance|default:"0" }}</h2>
+                            <span class="text-[#00cc4c] font-bold text-sm">Coin</span>
+                        </div>
+                    </div>
+                    <div class="w-14 h-14 bg-[#00cc4c]/10 rounded-full flex items-center justify-center border border-[#00cc4c]/30">
+                        <i class="fas fa-coins text-2xl text-[#00cc4c]"></i>
+                    </div>
+                </div>
+                <div class="relative z-10 mt-6 flex gap-3">
+                    <a href="{% url 'users:topup' %}" class="flex-1 bg-white/10 hover:bg-white/20 text-white text-center py-3 rounded-xl text-sm font-bold transition-colors">
+                        <i class="fas fa-plus-circle mr-1"></i> To'ldirish
+                    </a>
+                    <button class="px-5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl transition-colors" title="Tranzaksiyalar tarixi (Yaqinda)">
+                        <i class="fas fa-history"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-yellow-600/20 to-black border border-yellow-500/30 rounded-3xl p-6 relative overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.05)]">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-yellow-500/20 rounded-full blur-3xl"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Statusingiz</p>
+                        {% if profile.is_currently_premium %}
+                            <h2 class="text-2xl font-black text-[#ffd700] uppercase tracking-widest">Premium VIP</h2>
+                            <p class="text-xs text-gray-400 mt-1">Amal qiladi: <span class="text-white">{{ profile.premium_until|date:"d M Y" }}</span></p>
+                        {% else %}
+                            <h2 class="text-2xl font-black text-gray-300 uppercase tracking-widest">Oddiy User</h2>
+                            <p class="text-xs text-gray-500 mt-1">Reklamasiz ko'rish uchun VIP oling</p>
+                        {% endif %}
+                    </div>
+                    <div class="w-14 h-14 bg-yellow-500/20 rounded-full flex items-center justify-center border border-yellow-500/30">
+                        <i class="fas fa-crown text-2xl text-yellow-500"></i>
+                    </div>
+                </div>
+                <div class="relative z-10 mt-6">
+                    <button onclick="toggleVipModal()" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-300 text-black font-black uppercase tracking-widest py-3 rounded-xl hover:scale-[1.02] transition-transform text-sm shadow-lg">
+                        {% if profile.is_currently_premium %}Muddati Uzaytirish{% else %}VIP Sotib Olish{% endif %}
+                    </button>
+                </div>
+            </div>
+
+        </div>
+        {% endif %}
+
+
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <h3 class="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3">
                     <span class="w-1.5 h-6 bg-[#00cc4c] rounded-full"></span>
                     Oxirgi harakatlar
                 </h3>
-                <a href="{% url 'users:my_full_list' %}" class="group flex items-center gap-2 text-[#00cc4c] text-[10px] font-black tracking-widest hover:gap-3 transition-all">
-                    TO'LIQ RO'YXAT <i class="fas fa-arrow-right"></i>
-                </a>
+               <a href="{% url 'users:user_drama_list' username=profile.user.username %}" class="group flex items-center gap-2 ...">
+    TO'LIQ RO'YXAT <i class="fas fa-arrow-right"></i>
+</a>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -170,4 +264,80 @@
 
     </div>
 </div>
+
+{% if request.user == person %}
+<div id="vipModal" class="fixed inset-0 z-[200] hidden items-center justify-center px-4 bg-black/90 backdrop-blur-sm">
+    <div onclick="toggleVipModal()" class="absolute inset-0 cursor-pointer"></div>
+    
+    <div class="relative w-full max-w-md bg-[#0a0a0a] rounded-3xl border border-yellow-500/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] overflow-hidden z-10">
+        
+        <div class="flex items-center justify-between p-5 border-b border-white/5 bg-gradient-to-r from-yellow-500/10 to-transparent">
+            <h3 class="text-lg font-black text-yellow-500 uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-crown"></i> VIP Obuna
+            </h3>
+            <button onclick="toggleVipModal()" class="text-gray-500 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 text-center">
+            <div class="w-20 h-20 mx-auto bg-gradient-to-br from-yellow-300 to-yellow-600 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,215,0,0.3)] mb-4">
+                <i class="fas fa-gem text-4xl text-yellow-900"></i>
+            </div>
+            
+            <h4 class="text-2xl font-black text-white mb-2">30 Kunlik Premium VIP</h4>
+            <p class="text-gray-400 text-sm mb-6">Reklamalarsiz va barcha VIP doramalarni cheklovsiz tomosha qiling.</p>
+            
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 flex justify-between items-center">
+                <span class="text-gray-400 font-bold uppercase tracking-widest text-xs">Narxi:</span>
+                <div class="text-right">
+                    <span class="text-xl font-black text-[#ffd700]">15</span>
+                    <span class="text-xs text-yellow-500 font-bold">Coin</span>
+                </div>
+            </div>
+
+            <form action="{% url 'users:buy_premium' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 text-black font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_5px_20px_rgba(234,179,8,0.3)] hover:scale-[1.02] transition-transform text-sm">
+                    Tasdiqlash va Sotib Olish
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Modalni ochish va yopish funksiyasi
+    function toggleVipModal() {
+        const modal = document.getElementById('vipModal');
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Orqa fon skrollini qotirib qo'yish
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+    }
+</script>
+<script>
+    // follow Modalni ochish va yopish funksiyasi
+    function toggleVipModal() {
+        const modal = document.getElementById('vipModal');
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Orqa fon skrollini qotirib qo'yish
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+    }
+</script>
 {% endblock %}
