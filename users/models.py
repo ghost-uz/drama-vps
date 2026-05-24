@@ -168,20 +168,31 @@ class TopUpRequest(models.Model):
         if not self.points:
             self.points = self.amount_uzs // 1000
 
-        # 3-QOIDA: Admin tasdiqlasa, profilga pulni o'tkazish (Xavfsiz tranzaksiya)
+        # 3-QOIDA: Admin tasdiqlasa, profilga pulni o'tkazish
+        # FIX: select_for_update() — race condition va double-credit oldini olish
         if self.pk:
-            old_record = TopUpRequest.objects.get(pk=self.pk)
-            # Agar oldin kutilayotgan bo'lsa va hozir tasdiqlansa
-            if old_record.status == 'pending' and self.status == 'approved':
-                profile = self.user.profile
-                profile.balance += self.points
-                profile.save()
-            
-            # (Ixtiyoriy) Agar admin xato tasdiqlab qo'yib, orqaga qaytarsa, pointni ayirib tashlash
-            elif old_record.status == 'approved' and self.status in ['pending', 'rejected']:
-                profile = self.user.profile
-                if profile.balance >= self.points:
-                    profile.balance -= self.points
-                    profile.save()
+            try:
+                old_record = TopUpRequest.objects.get(pk=self.pk)
+            except TopUpRequest.DoesNotExist:
+                old_record = None
+
+            if old_record:
+                from django.db import transaction as db_transaction
+
+                # Tasdiqlash: balance qo'shish
+                if old_record.status == 'pending' and self.status == 'approved':
+                    with db_transaction.atomic():
+                        # select_for_update — parallel so'rovlar balance ni 2x qo'shib yubormasligi uchun
+                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
+                        profile.balance += self.points
+                        profile.save(update_fields=['balance'])
+
+                # Orqaga qaytarish: balance ayirish
+                elif old_record.status == 'approved' and self.status in ['pending', 'rejected']:
+                    with db_transaction.atomic():
+                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
+                        if profile.balance >= self.points:
+                            profile.balance -= self.points
+                            profile.save(update_fields=['balance'])
 
         super().save(*args, **kwargs)

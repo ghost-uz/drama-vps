@@ -201,6 +201,9 @@ class Movie(TimeStampedModel):
             models.Index(fields=['slug']),
             models.Index(fields=['year']),
             models.Index(fields=['created_at']),
+            # FIX: is_draft ko'p joylarda filter shart — indeks qo'shildi
+            models.Index(fields=['is_draft']),
+            models.Index(fields=['is_draft', '-created_at']),
         ]
         verbose_name = "Kino"
         verbose_name_plural = "Kinolar"
@@ -210,14 +213,17 @@ class Movie(TimeStampedModel):
         if not self.slug:
             self.slug = slugify(self.title)
 
-        # MUHIM: Faqat yangi rasm bo'lsa yoki eski rasm o'zgargan bo'lsa optimallashtiramiz
+        # FIX: try/except qo'shildi — concurrent o'chirish (race condition) dan himoya
         if self.pk:
-            old_poster = Movie.objects.get(pk=self.pk).poster
-            if old_poster != self.poster:
+            try:
+                old_poster = Movie.objects.get(pk=self.pk).poster
+                if old_poster != self.poster:
+                    self.poster = optimize_image(self.poster, self.slug)
+            except Movie.DoesNotExist:
                 self.poster = optimize_image(self.poster, self.slug)
         else:
             self.poster = optimize_image(self.poster, self.slug)
-            
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -232,6 +238,13 @@ class Episode(TimeStampedModel):
     episode_number = models.PositiveIntegerField("Qism raqami")
     video_embed_code = models.TextField("Video HTML kodi (Embed)")
     thumbnail = models.ImageField("Qism uchun rasm", upload_to="episodes/", blank=True, null=True)
+
+    class Meta:
+        # FIX: Bir serialda bir xil qism raqami bo'lishini oldini olish
+        unique_together = ('movie', 'episode_number')
+        ordering = ['episode_number']
+        verbose_name = "Qism"
+        verbose_name_plural = "Qismlar"
 
     def save(self, *args, **kwargs):
         if self.thumbnail and hasattr(self.thumbnail, 'file'):

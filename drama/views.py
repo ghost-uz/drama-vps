@@ -133,7 +133,9 @@ class MovieDetailView(GenreYearMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        movie = self.get_object()
+        # FIX: self.get_object() ikkinchi DB so'rovini bajaradi.
+        # DetailView.get() self.object ni set qiladi, uni ishlatamiz.
+        movie = self.object
         episodes = movie.episodes.all().order_by('episode_number')
         context['episodes'] = episodes
 
@@ -210,9 +212,6 @@ class MovieDetailView(GenreYearMixin, DetailView):
         context['similar_movies'] = similar_movies
         return context
 
-        # =======================================================
-    # 🌟 MANA SHU YERDA parse_video_links BO'LISHI SHART 🌟
-    # =======================================================
     def parse_video_links(self, source_text):
         if not source_text or "<div>" in source_text:
             return "", ""
@@ -374,15 +373,14 @@ class ActorView(GenreYearMixin, DetailView):
     context_object_name = "actor"
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        actor = self.get_object()
-        
-        # 🌟 MUHIM QISM: Aktyor qatnashgan BARCHA (ham bosh, ham yordamchi) 
-        # kinolarni birlashtirib, takrorlanishlarni (distinct) olib tashlaymiz
+        # FIX: self.get_object() o'rniga self.object (qo'shimcha DB so'rovini oldini olish)
+        actor = self.object
+
         all_movies = Movie.objects.filter(
             Q(main_actors=actor) | Q(actors=actor),
             is_draft=False
         ).distinct().order_by('-year', '-created_at')
-        
+
         context['all_movies'] = all_movies
         context['all_movies_count'] = all_movies.count()
         return context
