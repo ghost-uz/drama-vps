@@ -68,19 +68,27 @@ def profile_view(request, username):
     watched_history = UserMovieList.objects.filter(
         profile=profile
     ).select_related('movie')[:5]
-    watched_count = UserMovieList.objects.filter(profile=profile, status=2).count()
 
-    # Follow holatini tekshirish (sahifani ko'rayotgan foydalanuvchi uchun)
+    # Review modeli user FK ga related_name yo'q, shuning uchun review_set ishlatamiz
+    stats = {
+        'watched_count':   UserMovieList.objects.filter(profile=profile, status=2).count(),
+        'list_count':      profile.movie_list.count(),
+        'review_count':    person.review_set.count(),
+        'followers_count': profile.followers.count(),
+        'following_count': profile.following.count(),
+    }
+
+    # Follow holatini tekshirish — .exists() bilan, barcha followerlarni yuklamasdan
     is_following = False
     if request.user.is_authenticated and request.user != person:
         is_following = request.user.profile.following.filter(pk=profile.pk).exists()
 
     context = {
-        'person': person,
-        'profile': profile,
+        'person':          person,
+        'profile':         profile,
         'watched_history': watched_history,
-        'watched_count': watched_count,
-        'is_following': is_following,
+        'is_following':    is_following,
+        **stats,
     }
     return render(request, 'users/profile.html', context)
 
