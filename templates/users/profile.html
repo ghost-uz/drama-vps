@@ -111,7 +111,7 @@
          
         <a href="{% url 'users:following' person.username %}">
         <span class="text-gray-500 text-xs font-bold uppercase">Obunalar:</span>
-        <span class="text-[#00cc4c] text-sm font-bold">{{ request.user.profile.following.count }}</span>
+        <span class="text-[#00cc4c] text-sm font-bold">{{ person.profile.following.count }}</span>
         </a>
        
     </div>
