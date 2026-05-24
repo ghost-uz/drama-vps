@@ -100,7 +100,7 @@
  
         
          <!-- 2 ta kalonka qo'shish -->
-{% if request.user.is_authenticated %}
+
     <div class="absolute top-16 right-8 z-20 flex gap-4">
         <!-- Follow bosganlar soni ko'rsatishi -->
         <a href="{% url 'users:followers' person.username %}">
@@ -108,14 +108,14 @@
         <span class="text-[#00cc4c] text-sm font-bold">{{ person.profile.followers.count }}</span>
         </a>
         <!-- Unfollow qilganlar soni ko'rsatishi -->
-         {% if request.user == person %}
+         
         <a href="{% url 'users:following' person.username %}">
         <span class="text-gray-500 text-xs font-bold uppercase">Obunalar:</span>
         <span class="text-[#00cc4c] text-sm font-bold">{{ request.user.profile.following.count }}</span>
         </a>
-        {% endif %}
+       
     </div>
-{% endif %}
+
              <!-- test end -->           
                         <br><br><p class="text-gray-400 text-sm font-medium">{{ profile.bio|default:"Drama olamiga xush kelibsiz!" }}</p>
                     </div>
