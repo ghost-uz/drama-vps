@@ -7,6 +7,7 @@ import os
 import mimetypes
 from pathlib import Path
 from google.oauth2 import service_account
+from decouple import config
 
 # ==============================================================================
 # 1. MIME TYPES
@@ -25,9 +26,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ==============================================================================
 # 3. XAVFSIZLIK (Security)
 # ==============================================================================
-SECRET_KEY = 'django-insecure-iamd93l(gh6pyjr34k17ngy$py^4%)n-@zu^4&)busu8q*t21%'  # ← O'zingizning secret key ni qo'ying
+SECRET_KEY = config('SECRET_KEY')
 
-DEBUG = True  # Production uchun False qiling
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
     'drama.uz',
@@ -188,11 +189,11 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'drama_db',
-        'USER': 'drama_user',
-        'PASSWORD': 'suxa89822448Porsche',  # ← O'zingizning parolni qo'ying
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'NAME': config('DB_NAME', default='drama_db'),
+        'USER': config('DB_USER', default='drama_user'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST', default='127.0.0.1'),
+        'PORT': config('DB_PORT', default='5432'),
     }
 }
 

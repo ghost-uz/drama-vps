@@ -7,6 +7,7 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 import requests
 import logging
+from decouple import config
 
 from .models import Profile, UserMovieList, TopUpRequest
 from users.utils import follow, unfollow
@@ -14,11 +15,19 @@ from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm, TopUpReq
 
 logger = logging.getLogger(__name__)
 
+# .env faylidan bir marta o'qiymiz (har so'rovda emas)
+_TELEGRAM_BOT_TOKEN  = config('TELEGRAM_BOT_TOKEN',  default='')
+_TELEGRAM_ADMIN_CHAT = config('TELEGRAM_ADMIN_CHAT_ID', default='')
+
 
 def send_telegram_notification(message):
     """Telegram bot orqali adminga xabar yuboruvchi yordamchi funksiya"""
-    BOT_TOKEN = '8747095936:AAE2wZukxrdOZlSsmYG4RRqq7PEhyyR0dBE'
-    ADMIN_CHAT_ID = '1823516763'
+    BOT_TOKEN   = _TELEGRAM_BOT_TOKEN
+    ADMIN_CHAT_ID = _TELEGRAM_ADMIN_CHAT
+
+    if not BOT_TOKEN or not ADMIN_CHAT_ID:
+        logger.warning("Telegram sozlamalari .env faylida topilmadi. Xabar yuborilmadi.")
+        return
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
