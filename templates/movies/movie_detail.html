@@ -104,6 +104,19 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   CONTROLS AUTO-HIDE  (TikTok uslubi)
+   .controls-ui — topbar + bottom-info birga yashiriladi/ko'rsatiladi
+═══════════════════════════════════════════════════════════ */
+.controls-ui {
+    opacity: 1;
+    transition: opacity 0.35s ease;
+}
+.controls-ui.hidden-ui {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
    TOP BAR  (iOS safe area aware)
 ═══════════════════════════════════════════════════════════ */
 .r-topbar {
@@ -272,34 +285,7 @@ html, body {
     letter-spacing: 0.4px;
     text-transform: uppercase;
 }
-.r-ep-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.r-ep-nav-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 6px 12px;
-    border-radius: 20px;
-    text-decoration: none;
-    transition: all 0.2s;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(0,0,0,0.40);
-    backdrop-filter: blur(8px);
-    color: rgba(255,255,255,0.70);
-}
-.r-ep-nav-btn:hover { border-color: rgba(0,204,76,0.50); color: #00cc4c; }
-.r-ep-nav-btn.next {
-    background: rgba(0,204,76,0.15);
-    border-color: rgba(0,204,76,0.40);
-    color: #00cc4c;
-    margin-left: auto;
-}
+/* r-ep-nav va r-ep-nav-btn olib tashlandi — navigatsiya swipe orqali */
 
 /* ═══════════════════════════════════════════════════════════
    PROGRESS BAR  (safe area bottom dan yuqori)
@@ -828,12 +814,12 @@ html, body {
         <div class="r-flash-icon" id="rFlashIcon"><i class="fas fa-pause" id="rFlashI"></i></div>
     </div>
 
-    <!-- ── Gradient overlays ─────────────────────────── -->
-    <div class="grad-top"></div>
-    <div class="grad-bottom"></div>
+    <!-- ── Gradient overlays (controls bilan birga yashiriladi) ── -->
+    <div class="grad-top controls-ui"></div>
+    <div class="grad-bottom controls-ui"></div>
 
     <!-- ── Top Bar ───────────────────────────────────── -->
-    <div class="r-topbar">
+    <div class="r-topbar controls-ui">
         <a href="{{ movie.get_absolute_url }}" class="r-back-btn">
             <i class="fas fa-chevron-left" style="font-size:14px;"></i>
         </a>
@@ -885,8 +871,8 @@ html, body {
         </div>
     </div>
 
-    <!-- ── Bottom Info ───────────────────────────────── -->
-    <div class="r-bottom-info">
+    <!-- ── Bottom Info (controls bilan auto-hide) ──────── -->
+    <div class="r-bottom-info controls-ui">
         <div class="r-movie-title">{{ movie.title }}</div>
         <div class="r-ep-badge">
             <i class="fas fa-play-circle" style="font-size:10px;"></i>
@@ -901,19 +887,7 @@ html, body {
             <span class="r-tag">{{ genre.name }}</span>
             {% endfor %}
         </div>
-        <!-- Prev / Next navigation -->
-        <div class="r-ep-nav">
-            {% if prev_episode %}
-            <a href="?episode={{ prev_episode.episode_number }}" class="r-ep-nav-btn" id="prevEpBtn">
-                <i class="fas fa-chevron-up" style="font-size:9px;"></i> Oldingi
-            </a>
-            {% endif %}
-            {% if next_episode %}
-            <a href="?episode={{ next_episode.episode_number }}" class="r-ep-nav-btn next" id="nextEpBtn">
-                Keyingi <i class="fas fa-chevron-down" style="font-size:9px;"></i>
-            </a>
-            {% endif %}
-        </div>
+        {# r-ep-nav OLIB TASHLANDI — navigatsiya faqat swipe orqali #}
     </div>
 
     <!-- ── Progress Bar ──────────────────────────────── -->
@@ -1070,6 +1044,35 @@ const progressWr = document.getElementById('rProgressWrap');
 const flashIcon  = document.getElementById('rFlashIcon');
 const flashI     = document.getElementById('rFlashI');
 const likeCircle = document.getElementById('likeCircle');
+const controlEls = document.querySelectorAll('.controls-ui'); // topbar + bottom-info + gradients
+
+/* ─────────────────────────────────────────────────────────
+   CONTROLS AUTO-HIDE  (TikTok uslubi)
+   — tap qilganda ko'rinadi, 3 sek so'ng yashirinadi
+   — pauza paytida doim ko'rinib turadi
+───────────────────────────────────────────────────────── */
+let ctrlHideTimer = null;
+let ctrlVisible   = true;
+
+function showControls() {
+    ctrlVisible = true;
+    controlEls.forEach(el => el.classList.remove('hidden-ui'));
+    clearTimeout(ctrlHideTimer);
+    /* Video ijro etilayotgan bo'lsa 3 sek dan keyin yashir */
+    if (video && !video.paused) {
+        ctrlHideTimer = setTimeout(hideControls, 3000);
+    }
+}
+
+function hideControls() {
+    /* Menyu ochiq bo'lsa yashirmaymiz */
+    if (document.querySelector('.r-sheet.open')) return;
+    ctrlVisible = false;
+    controlEls.forEach(el => el.classList.add('hidden-ui'));
+}
+
+/* Boshlang'ich holat — sahifa yuklanishi bilan ko'rsatib, keyin yashiramiz */
+showControls();
 
 /* ─────────────────────────────────────────────────────────
    SWIPE NAVIGATION
@@ -1099,6 +1102,9 @@ app.addEventListener('touchend', (e) => {
     const dt = Date.now() - swipeStartT;
     if (Math.abs(dy) > 70 && dt < 450) {
         navigate(dy > 0 ? 'next' : 'prev');
+    } else {
+        /* Swipe emas — oddiy tap: controlsni ko'rsat */
+        showControls();
     }
 }, { passive: true });
 
@@ -1124,13 +1130,18 @@ if (video) {
     video.addEventListener('playing', () => loader.classList.remove('on'));
     video.addEventListener('canplay', () => loader.classList.remove('on'));
 
+    /* Controls: pauza — doim ko'rinsin; ijro — 3 sek da yashirilsin */
+    video.addEventListener('pause',  () => { clearTimeout(ctrlHideTimer); showControls(); });
+    video.addEventListener('play',   () => { showControls(); });
+    video.addEventListener('playing',() => { showControls(); }); /* autoplay holatida ham */
+
     /* Progress */
     video.addEventListener('timeupdate', () => {
         if (!video.duration) return;
         progress.style.width = (video.currentTime / video.duration * 100) + '%';
     });
 
-    /* Click — single tap play/pause, double tap seek */
+    /* Click — single tap (controls toggle), double tap seek */
     let lastTap = 0;
     video.addEventListener('click', (e) => {
         const now = Date.now();
@@ -1144,13 +1155,18 @@ if (video) {
         }
         lastTap = now;
         setTimeout(() => {
-            if (Date.now() - lastTap >= 260) togglePlay();
+            if (Date.now() - lastTap >= 260) {
+                /* Single tap: agar controls yashirin bo'lsa — ko'rsat; ko'rinib tursa — play/pause */
+                if (!ctrlVisible) { showControls(); }
+                else              { togglePlay(); }
+            }
         }, 280);
     });
 
     /* Keyboard */
     document.addEventListener('keydown', (e) => {
         if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+        showControls();
         if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
         if (e.key === 'ArrowLeft')  { video.currentTime -= 10; showSeek('L'); }
         if (e.key === 'ArrowRight') { video.currentTime += 10; showSeek('R'); }
@@ -1169,8 +1185,7 @@ if (video) {
     progressWr.addEventListener('mousedown', (e) => { seeking = true; seekTo(e.clientX); e.stopPropagation(); });
     document.addEventListener('mousemove',  (e) => { if (seeking) seekTo(e.clientX); });
     document.addEventListener('mouseup',    ()  => { seeking = false; });
-
-    progressWr.addEventListener('touchstart', (e) => { seekTo(e.touches[0].clientX); }, { passive: true });
+    progressWr.addEventListener('touchstart', (e) => { showControls(); seekTo(e.touches[0].clientX); }, { passive: true });
 }
 
 function togglePlay() {
@@ -1233,15 +1248,23 @@ window.openSheet = function (id) {
     document.getElementById(id).classList.add('open');
     document.getElementById('sheetBackdrop').classList.add('open');
     if (video && !video.paused) video.pause();
+    /* Sheet ochiq paytda controls auto-hide ni to'xtatamiz */
+    clearTimeout(ctrlHideTimer);
+    showControls();
 };
 window.closeSheet = function (id) {
     document.getElementById(id).classList.remove('open');
     const anyOpen = document.querySelector('.r-sheet.open');
-    if (!anyOpen) document.getElementById('sheetBackdrop').classList.remove('open');
+    if (!anyOpen) {
+        document.getElementById('sheetBackdrop').classList.remove('open');
+        /* Sheet yopilgandan keyin controls yana auto-hide boshlaydi */
+        showControls();
+    }
 };
 window.closeAllSheets = function () {
     document.querySelectorAll('.r-sheet').forEach(s => s.classList.remove('open'));
     document.getElementById('sheetBackdrop').classList.remove('open');
+    showControls();
 };
 
 /* ─────────────────────────────────────────────────────────
