@@ -423,13 +423,25 @@ html, body {
     background: #0f0f0f;
     border-radius: 22px 22px 0 0;
     z-index: 60;
+    /* transform + visibility kombinatsiyasi:
+       desktop da overflow:hidden alone ishlamaydi,
+       shuning uchun visibility qo'shamiz */
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    visibility: hidden;
+    /* Yopilganda: avval transform, keyin visibility hidden */
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+                visibility 0s linear 0.35s;
     display: flex;
     flex-direction: column;
     border-top: 1px solid rgba(255,255,255,0.07);
 }
-.r-sheet.open { transform: translateY(0); }
+.r-sheet.open {
+    transform: translateY(0);
+    visibility: visible;
+    /* Ochilganda: visibility darhol ko'rinsin, keyin transform */
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+                visibility 0s linear 0s;
+}
 
 .r-sheet-handle {
     width: 36px; height: 4px;
@@ -820,7 +832,7 @@ html, body {
 
     <!-- ── Top Bar ───────────────────────────────────── -->
     <div class="r-topbar controls-ui">
-        <a href="{{ movie.get_absolute_url }}" class="r-back-btn">
+        <a href="/" class="r-back-btn" title="Bosh sahifaga qaytish">
             <i class="fas fa-chevron-left" style="font-size:14px;"></i>
         </a>
         <div class="r-topbar-info">
