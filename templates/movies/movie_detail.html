@@ -245,6 +245,26 @@ body > main {
     letter-spacing: 0.3px;
 }
 
+/* ─── Mute/Unmute tugmasi ───────────────────────────────── */
+#muteBtn {
+    position: absolute;
+    bottom: max(110px, calc(env(safe-area-inset-bottom, 0px) + 110px));
+    left: 14px;
+    z-index: 20;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    border: 1.5px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.3s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+#muteBtn:active { transform: scale(0.9); }
+
 /* ═══════════════════════════════════════════════════════════
    BOTTOM INFO  (iOS safe area aware)
 ═══════════════════════════════════════════════════════════ */
@@ -813,6 +833,7 @@ body > main {
                        poster="{{ movie.poster.url }}"
                        playsinline
                        autoplay
+                       muted
                        oncontextmenu="return false;"
                        controlsList="nodownload noremoteplayback nofullscreen">
                     <source src="{{ video_720 }}" type="video/mp4" id="videoSource720">
@@ -899,6 +920,11 @@ body > main {
             <span class="r-act-label">Qismlar</span>
         </div>
     </div>
+
+    <!-- ── Mute/Unmute tugmasi ──────────────────────────── -->
+    <button id="muteBtn" class="controls-ui" onclick="toggleMute()" title="Ovozni yoq/o'chir" aria-label="Ovozni yoq/o'chir">
+        <i class="fas fa-volume-mute" id="muteIcon"></i>
+    </button>
 
     <!-- ── Bottom Info (controls bilan auto-hide) ──────── -->
     <div class="r-bottom-info controls-ui">
@@ -1139,7 +1165,7 @@ app.addEventListener('touchend', (e) => {
 
 /* Mouse (desktop) */
 app.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.r-topbar, .r-actions, .r-bottom-info, .r-sheet, .r-sheet-backdrop, #libraryModal, .r-progress, #rLoader')) return;
+    if (e.target.closest('.r-topbar, .r-actions, .r-bottom-info, .r-sheet, .r-sheet-backdrop, #libraryModal, .r-progress, #rLoader, #muteBtn')) return;
     mouseStartY = e.clientY;
     mouseDown   = true;
 });
@@ -1161,8 +1187,9 @@ if (video) {
 
     /* Controls: pauza — doim ko'rinsin; ijro — 3 sek da yashirilsin */
     video.addEventListener('pause',  () => { clearTimeout(ctrlHideTimer); showControls(); });
-    video.addEventListener('play',   () => { showControls(); });
-    video.addEventListener('playing',() => { showControls(); }); /* autoplay holatida ham */
+    video.addEventListener('play',        () => { showControls(); syncMuteIcon(); });
+    video.addEventListener('playing',     () => { showControls(); }); /* autoplay holatida ham */
+    video.addEventListener('volumechange',() => { syncMuteIcon(); });
 
     /* Progress */
     video.addEventListener('timeupdate', () => {
@@ -1222,6 +1249,36 @@ function togglePlay() {
     if (video.paused) { video.play();  flashPlay('play');  }
     else              { video.pause(); flashPlay('pause'); }
 }
+
+/* ─── Mute / Unmute ────────────────────────────────────── */
+const muteIcon = document.getElementById('muteIcon');
+let userUnmuted = false; // foydalanuvchi birinchi marta unmute qildimi
+
+function syncMuteIcon() {
+    if (!video) return;
+    if (video.muted) {
+        muteIcon.className = 'fas fa-volume-mute';
+    } else {
+        muteIcon.className = 'fas fa-volume-up';
+    }
+}
+
+function toggleMute() {
+    if (!video) return;
+    video.muted = !video.muted;
+    userUnmuted = !video.muted;
+    syncMuteIcon();
+}
+
+/* Birinchi foydalanuvchi harakatida avtomatik unmute */
+function tryUnmuteOnFirstInteraction() {
+    if (userUnmuted || !video || !video.muted) return;
+    video.muted = false;
+    userUnmuted = true;
+    syncMuteIcon();
+}
+app.addEventListener('touchend', tryUnmuteOnFirstInteraction, { once: true });
+app.addEventListener('mouseup',  tryUnmuteOnFirstInteraction, { once: true });
 
 function flashPlay(type) {
     flashI.className = type === 'play' ? 'fas fa-play' : 'fas fa-pause';
