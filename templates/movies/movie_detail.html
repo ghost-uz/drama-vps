@@ -1175,12 +1175,12 @@ app.addEventListener('touchstart', (e) => {
 }, { passive: true });
 
 app.addEventListener('touchend', (e) => {
+    if (!tapToPlay.classList.contains('hide')) return; /* overlay ko'rinib tursa — swipe yo'q */
     const dy = swipeStartY - e.changedTouches[0].clientY;
     const dt = Date.now() - swipeStartT;
     if (Math.abs(dy) > 70 && dt < 450) {
         navigate(dy > 0 ? 'next' : 'prev');
     } else {
-        /* Swipe emas — oddiy tap: controlsni ko'rsat */
         showControls();
     }
 }, { passive: true });
@@ -1275,10 +1275,17 @@ function togglePlay() {
 const tapToPlay = document.getElementById('tapToPlay');
 
 function startPlay() {
-    if (!video) return;
+    tapToPlay.classList.add('hide'); // har doim yashir (embed bo'lsa ham)
+    if (!video) return;              // embed: overlay yashirildi, tamom
     video.muted = false;
-    video.play();
-    tapToPlay.classList.add('hide');
+    const p = video.play();
+    if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+            /* Brauzer bloklasa — muted holda qayta urinib ko'ramiz */
+            video.muted = true;
+            video.play();
+        });
+    }
 }
 
 function flashPlay(type) {
