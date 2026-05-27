@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(Get-Command python)",
-      "PowerShell(Get-Command python3 -ErrorAction SilentlyContinue | Select-Object Source; Get-Command py -ErrorAction SilentlyContinue | Select-Object Source; $env:PATH -split ';' | Where-Object { $_ -match 'python|venv|env' })"
+      "PowerShell(Get-Command python3 -ErrorAction SilentlyContinue | Select-Object Source; Get-Command py -ErrorAction SilentlyContinue | Select-Object Source; $env:PATH -split ';' | Where-Object { $_ -match 'python|venv|env' })",
+      "Bash(python3 -c \"import django; print\\(django.__version__\\)\")"
     ]
   }
 }

@@ -1,1091 +1,1279 @@
-{% extends 'base.html' %} 
-{% load static %} 
+{% extends 'base.html' %}
+{% load static %}
 
-{% block page_title %}{{ movie.title }} o'zbek tilida ko'rish - DramaUz{% endblock %} 
-
-{% block meta_description %}{{ movie.title }} ({{ movie.year }}) - {{ movie.description|truncatechars:160 }}{% endblock %} 
-
-{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}, drama uz, o'zbekcha tarjima{% endblock %} 
-
+{% block page_title %}{{ movie.title }} {{ active_episode.episode_number }}-qism - DramaUz{% endblock %}
+{% block meta_description %}{{ movie.title }} ({{ movie.year }}) {{ active_episode.episode_number }}-qism o'zbek tilida - {{ movie.description|truncatechars:120 }}{% endblock %}
+{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}, drama uz, reels, o'zbekcha{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ movie.get_absolute_url }}{% endblock %}
-
-{% block og_title %}{{ movie.title }} - DramaUz{% endblock %}
+{% block og_title %}{{ movie.title }} {{ active_episode.episode_number }}-qism - DramaUz{% endblock %}
 {% block og_description %}{{ movie.description|truncatechars:160 }}{% endblock %}
-
 {% block og_image %}{{ movie.poster.url }}{% endblock %}
 {% block tw_image %}{{ movie.poster.url }}{% endblock %}
-
-{% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet" />
-<style>
-    /* ===== PLAYER CORE ===== */
-    .video-container {
-        position: relative;
-        background: #000;
-        border-radius: 16px;
-        overflow: hidden;
-        touch-action: manipulation;
-        isolation: isolate;
-    }
-
-    .video-container video::-webkit-media-controls { display: none !important; }
-
-    #mainVideo {
-        -webkit-touch-callout: none;
-        user-select: none;
-        outline: none;
-    }
-
-    /* ===== GRADIENT OVERLAY (controls uchun fon) ===== */
-    .player-gradient {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 40%);
-        opacity: 0;
-        transition: opacity 0.25s ease;
-        pointer-events: none;
-        z-index: 10;
-    }
-
-    .video-container.controls-active .player-gradient { opacity: 1; }
-
-    /* ===== CONTROLS ===== */
-    .player-controls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 14px 16px 16px;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.25s ease, visibility 0.25s ease;
-        z-index: 20;
-    }
-
-    .video-container.controls-active .player-controls {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    /* ===== PROGRESS BAR ===== */
-    .progress-wrap {
-        position: relative;
-        height: 3px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 2px;
-        cursor: pointer;
-        margin-bottom: 12px;
-        transition: height 0.15s ease;
-    }
-
-    .progress-wrap:hover { height: 5px; }
-
-    .progress-fill {
-        height: 100%;
-        background: #00cc4c;
-        border-radius: 2px;
-        width: 0%;
-        transition: width 0.1s linear;
-    }
-
-    /* Hover handle */
-    .progress-wrap::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 0;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #00cc4c;
-        transform: translate(-50%, -50%) scale(0);
-        transition: transform 0.15s ease;
-        pointer-events: none;
-    }
-
-    .progress-wrap:hover::after { transform: translate(-50%, -50%) scale(1); }
-
-    /* ===== CTRL BUTTONS ===== */
-    .ctrl-btn {
-        background: none;
-        border: none;
-        color: #fff;
-        cursor: pointer;
-        padding: 4px;
-        display: flex;
-        align-items: center;
-        opacity: 0.85;
-        transition: opacity 0.15s ease, color 0.15s ease;
-        line-height: 1;
-    }
-
-    .ctrl-btn:hover { opacity: 1; color: #00cc4c; }
-
-    .ctrl-btn .material-icons { font-size: 22px; }
-
-    .ctrl-btn.large .material-icons { font-size: 32px; }
-
-    /* ===== QUALITY / SETTINGS POPUPS ===== */
-    .v-menu {
-        display: none;
-        position: absolute;
-        bottom: calc(100% + 10px);
-        right: 0;
-        background: #111;
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 10px;
-        min-width: 160px;
-        z-index: 60;
-        overflow: hidden;
-    }
-
-    .v-menu.show {
-        display: block;
-        animation: menuUp 0.2s ease;
-    }
-
-    @keyframes menuUp {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .q-item {
-        padding: 11px 14px;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 13px;
-        font-weight: 600;
-        color: #ccc;
-        transition: background 0.15s ease;
-    }
-
-    .q-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
-    .q-item.q-active { color: #00cc4c; }
-
-    /* Settings menu ichki */
-    .settings-row {
-        padding: 10px 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        border-bottom: 1px solid rgba(255,255,255,0.07);
-        font-size: 12px;
-        color: #aaa;
-    }
-
-    .settings-row:last-child { border-bottom: none; }
-
-    .s-btn {
-        background: rgba(255,255,255,0.08);
-        border: none;
-        color: #fff;
-        width: 26px;
-        height: 26px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.15s ease;
-    }
-
-    .s-btn:hover { background: rgba(0,204,76,0.25); color: #00cc4c; }
-
-    .s-val {
-        font-weight: 700;
-        color: #00cc4c;
-        min-width: 40px;
-        text-align: center;
-        font-size: 12px;
-    }
-
-    /* ===== SEEK FEEDBACK ===== */
-    .seek-feedback {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        pointer-events: none;
-        opacity: 0;
-        z-index: 60;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .seek-feedback .material-icons { font-size: 48px; color: rgba(255,255,255,0.9); }
-    .seek-feedback span.sec { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 1px; }
-
-    .seek-feedback.show { animation: seekPop 0.55s ease forwards; }
-
-    @keyframes seekPop {
-        0%   { opacity: 1; transform: translateY(-50%) scale(0.85); }
-        60%  { opacity: 0.8; transform: translateY(-50%) scale(1); }
-        100% { opacity: 0; transform: translateY(-50%) scale(1.1); }
-    }
-
-    /* ===== LOADER ===== */
-    #videoLoader {
-        position: absolute;
-        inset: 0;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0,0,0,0.6);
-        z-index: 40;
-    }
-
-    #videoLoader.active { display: flex; }
-
-    .spinner {
-        width: 42px;
-        height: 42px;
-        border: 3px solid rgba(255,255,255,0.15);
-        border-top-color: #00cc4c;
-        border-radius: 50%;
-        animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ===== VOLUME SLIDER ===== */
-    #volumeSlider {
-        -webkit-appearance: none;
-        appearance: none;
-        height: 3px;
-        background: rgba(255,255,255,0.25);
-        border-radius: 2px;
-        outline: none;
-        cursor: pointer;
-        width: 70px;
-        accent-color: #00cc4c;
-    }
-
-    @media (max-width: 480px) { #volumeSlider { width: 50px; } }
-
-    /* ===== IFRAME ===== */
-    .iframe-container, .iframe-container iframe {
-        width: 100% !important;
-        height: 100% !important;
-        border: none;
-        display: block;
-    }
-
-    /* ===== EPISODE GRID ===== */
-    .episode-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
-        gap: 10px;
-    }
-
-    /* ===== GLASS CARD ===== */
-    .glass-card {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 20px;
-        transition: border-color 0.2s ease;
-    }
-
-    .glass-card:hover { border-color: rgba(0,204,76,0.25); }
-
-    /* ===== ACTION BTN ===== */
-    .action-btn {
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.04);
-        transition: all 0.2s ease;
-    }
-
-    .action-btn:hover {
-        border-color: rgba(0,204,76,0.4);
-        background: rgba(0,204,76,0.08);
-        color: #00cc4c;
-    }
-
-    /* ===== VIP BADGE ===== */
-    .vip-badge {
-        background: linear-gradient(135deg, #ffd700, #f4d6a1);
-        box-shadow: 0 4px 20px rgba(255,215,0,0.25);
-    }
-
-    /* ===== STATUS SELECT ===== */
-    select#statusSelect, select#statusSelect option {
-        background-color: #0f0f0f !important;
-        color: #fff !important;
-    }
-
-    select#statusSelect option:checked {
-        background-color: #00cc4c !important;
-        color: #000 !important;
-    }
-
-    /* ===== MISC ===== */
-    .tab-active {
-        color: #00cc4c;
-        border-bottom: 2px solid #00cc4c;
-    }
-</style>
-{% endblock %}
-
 
 {% block schema_markup %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
-    "@type": "Movie",
-    "name": "{{ movie.title }}",
-    "alternativeName": "{{ movie.original_title }}",
+    "@type": "TVEpisode",
+    "name": "{{ movie.title }} - {{ active_episode.episode_number }}-qism",
+    "partOfSeries": { "@type": "TVSeries", "name": "{{ movie.title }}" },
     "description": "{{ movie.description|truncatechars:160 }}",
     "image": "{{ movie.poster.url }}",
-    "datePublished": "{{ movie.year }}-01-01",
-    "countryOfOrigin": {
-        "@type": "Country",
-        "name": "{{ movie.country }}"
-    },
-    "genre": [{% for genre in movie.genres.all %}"{{ genre.name }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
-    
-    {% if movie.reviews.count > 0 %}
-    "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "{{ movie.mdl_rank|stringformat:'.1f' }}",
-        "bestRating": "10",
-        "worstRating": "1",
-        "ratingCount": "{{ movie.reviews.count }}"
-    },
-    {% endif %}
-    
-    "actor": [
-        {% for actor in movie.main_actors.all %}
-        {
-            "@type": "Person",
-            "name": "{{ actor.name }}",
-            "url": "{{ request.scheme }}://{{ request.get_host }}{{ actor.get_absolute_url }}"
-        }{% if not forloop.last %}, {% endif %}
-        {% endfor %}
-    ]
+    "datePublished": "{{ movie.year }}-01-01"
 }
 </script>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════════════════════
+   REELS GLOBAL OVERRIDE
+═══════════════════════════════════════════════════════════ */
+html, body {
+    overflow: hidden !important;
+    height: 100% !important;
+    background: #000 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REELS WRAPPER — full-screen, above everything
+═══════════════════════════════════════════════════════════ */
+#reelsApp {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #000;
+    overflow: hidden;
+    touch-action: pan-x;   /* swipe up/down intercept ediladi */
+}
+
+/* ─── Video katmani ─────────────────────────────────────── */
+#videoLayer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+#mainVideo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;       /* landscape video — letterbox */
+    user-select: none;
+    -webkit-touch-callout: none;
+    outline: none;
+}
+#mainVideo::-webkit-media-controls { display: none !important; }
+
+/* ─── Iframe (embed) ──────────────────────────────────── */
+.embed-wrap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+.embed-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRADIENT OVERLAY-LAR
+═══════════════════════════════════════════════════════════ */
+.grad-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 180px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.80) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+.grad-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 260px;
+    background: linear-gradient(to top, rgba(0,0,0,0.90) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════════════════════ */
+.r-topbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px 0;
+}
+.r-back-btn {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.50);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.r-back-btn:hover { background: rgba(0,204,76,0.25); }
+
+.r-topbar-info {
+    flex: 1;
+    min-width: 0;
+}
+.r-topbar-title {
+    font-size: 14px;
+    font-weight: 900;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+.r-topbar-ep {
+    font-size: 11px;
+    font-weight: 700;
+    color: #00cc4c;
+    margin-top: 1px;
+}
+.r-quality-btn {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 900;
+    border: 1px solid rgba(0,204,76,0.50);
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: #00cc4c;
+    background: rgba(0,0,0,0.40);
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+}
+.r-quality-btn:hover { background: rgba(0,204,76,0.15); border-color: #00cc4c; }
+
+/* ═══════════════════════════════════════════════════════════
+   RIGHT ACTION BUTTONS
+═══════════════════════════════════════════════════════════ */
+.r-actions {
+    position: absolute;
+    right: 12px;
+    bottom: 100px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+.r-act-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.r-act-circle {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    color: #fff;
+    transition: transform 0.15s ease, background 0.2s ease;
+}
+.r-act-circle:hover { transform: scale(1.08); background: rgba(255,255,255,0.22); }
+.r-act-circle:active { transform: scale(0.93); }
+
+.r-act-circle.is-liked {
+    background: rgba(255, 56, 56, 0.25);
+    border-color: #ff3838;
+    color: #ff5f5f;
+}
+.r-act-circle.is-saved {
+    background: rgba(0, 204, 76, 0.20);
+    border-color: #00cc4c;
+    color: #00cc4c;
+}
+.r-act-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.80);
+    letter-spacing: 0.3px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOTTOM INFO
+═══════════════════════════════════════════════════════════ */
+.r-bottom-info {
+    position: absolute;
+    bottom: 12px;
+    left: 0;
+    right: 80px;           /* action buttons uchun joy */
+    z-index: 20;
+    padding: 0 14px 10px;
+}
+.r-movie-title {
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -0.3px;
+    margin-bottom: 3px;
+}
+.r-ep-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #00cc4c;
+    margin-bottom: 7px;
+}
+.r-ep-badge span { color: rgba(255,255,255,0.45); font-weight: 600; }
+.r-description {
+    font-size: 12px;
+    color: rgba(255,255,255,0.60);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.r-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+.r-tag {
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.60);
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+.r-ep-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.r-ep-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.40);
+    backdrop-filter: blur(8px);
+    color: rgba(255,255,255,0.70);
+}
+.r-ep-nav-btn:hover { border-color: rgba(0,204,76,0.50); color: #00cc4c; }
+.r-ep-nav-btn.next {
+    background: rgba(0,204,76,0.15);
+    border-color: rgba(0,204,76,0.40);
+    color: #00cc4c;
+    margin-left: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════════════════════════ */
+.r-progress {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.15);
+    z-index: 25;
+    cursor: pointer;
+}
+.r-progress:hover { height: 4px; }
+.r-progress-fill {
+    height: 100%;
+    background: #00cc4c;
+    width: 0%;
+    transition: width 0.1s linear;
+    border-radius: 0 2px 2px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOADER / SPINNER
+═══════════════════════════════════════════════════════════ */
+.r-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.30);
+}
+.r-loader.on { display: flex; }
+.r-spinner {
+    width: 48px; height: 48px;
+    border: 3px solid rgba(255,255,255,0.15);
+    border-top-color: #00cc4c;
+    border-radius: 50%;
+    animation: rSpin 0.75s linear infinite;
+}
+@keyframes rSpin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════
+   PLAY/PAUSE FLASH
+═══════════════════════════════════════════════════════════ */
+.r-play-flash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    pointer-events: none;
+}
+.r-flash-icon {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.85);
+}
+.r-flash-icon.pop {
+    animation: flashPop 0.55s ease forwards;
+}
+@keyframes flashPop {
+    0%   { opacity: 1; transform: scale(0.85); }
+    40%  { opacity: 0.90; transform: scale(1.05); }
+    100% { opacity: 0; transform: scale(1.20); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SEEK FEEDBACK
+═══════════════════════════════════════════════════════════ */
+.r-seek-fb {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    opacity: 0;
+}
+.r-seek-fb i { font-size: 44px; color: rgba(255,255,255,0.90); }
+.r-seek-fb span { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.65); letter-spacing: 1px; }
+.r-seek-fb.pop { animation: seekFade 0.55s ease forwards; }
+@keyframes seekFade {
+    0%   { opacity: 1; transform: translateY(-50%) scale(0.85); }
+    55%  { opacity: 0.85; transform: translateY(-50%) scale(1); }
+    100% { opacity: 0; transform: translateY(-50%) scale(1.15); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SWIPE TRANSITION
+═══════════════════════════════════════════════════════════ */
+#reelsApp.slide-up   { animation: appSlideUp   0.30s ease forwards; }
+#reelsApp.slide-down { animation: appSlideDown 0.30s ease forwards; }
+@keyframes appSlideUp   { to { transform: translateY(-100%); opacity: 0; } }
+@keyframes appSlideDown { to { transform: translateY( 100%); opacity: 0; } }
+
+/* entrance */
+#reelsApp { animation: appEnter 0.35s ease; }
+@keyframes appEnter {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOTTOM SHEET PANEL
+═══════════════════════════════════════════════════════════ */
+.r-sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.60);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.30s ease;
+    backdrop-filter: blur(4px);
+}
+.r-sheet-backdrop.open { opacity: 1; pointer-events: all; }
+
+.r-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #0f0f0f;
+    border-radius: 22px 22px 0 0;
+    z-index: 60;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+.r-sheet.open { transform: translateY(0); }
+
+.r-sheet-handle {
+    width: 36px; height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.20);
+    margin: 12px auto 0;
+    flex-shrink: 0;
+}
+.r-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+}
+.r-sheet-header h3 {
+    font-size: 13px;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.r-sheet-close {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: rgba(255,255,255,0.50);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+.r-sheet-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* Comment sheet */
+#commentSheet { height: 72vh; }
+
+.r-comment-form-wrap {
+    padding: 12px 14px;
+    background: #0f0f0f;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+}
+.r-comment-form {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+.r-comment-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    line-height: 1.4;
+}
+.r-comment-input:focus { border-color: #00cc4c; }
+.r-comment-send {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: #00cc4c;
+    border: none;
+    color: #000;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    transition: transform 0.15s ease, background 0.2s;
+}
+.r-comment-send:hover { background: #00ff62; transform: scale(1.05); }
+
+.r-comments-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    overscroll-behavior: contain;
+}
+.r-comments-scroll::-webkit-scrollbar { width: 3px; }
+.r-comments-scroll::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+
+/* Episode sheet */
+#episodeSheet { height: 62vh; }
+
+.r-ep-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 20px;
+    overscroll-behavior: contain;
+}
+.r-ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 8px;
+}
+.r-ep-btn {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 900;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.r-ep-btn.inactive {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.50);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.r-ep-btn.inactive:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.r-ep-btn.active {
+    background: linear-gradient(135deg, #00cc4c, #00ff62);
+    color: #000;
+    box-shadow: 0 4px 18px rgba(0,204,76,0.35);
+    transform: scale(1.06);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESTRICTION OVERLAY
+═══════════════════════════════════════════════════════════ */
+.r-restriction {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #050505;
+    z-index: 20;
+    padding: 32px;
+    text-align: center;
+}
+.r-lock-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    font-size: 26px;
+}
+.r-restriction h3 {
+    font-size: 20px;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+}
+.r-restriction p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    max-width: 280px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIBRARY MODAL
+═══════════════════════════════════════════════════════════ */
+#libraryModal {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+}
+#libraryModal.open { display: flex; }
+
+.r-modal-box {
+    width: 100%;
+    max-width: 360px;
+    background: #111;
+    border-radius: 28px;
+    padding: 28px 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.80);
+}
+.r-modal-box h3 {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.r-select {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 14px 16px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 16px;
+    cursor: pointer;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='%2300cc4c'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+}
+.r-select option { background: #111; color: #fff; }
+
+.r-modal-save {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #00cc4c, #00ff62);
+    border: none;
+    border-radius: 16px;
+    color: #000;
+    font-weight: 900;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s;
+    font-family: inherit;
+    margin-bottom: 10px;
+}
+.r-modal-save:hover { opacity: 0.88; transform: scale(1.01); }
+
+.r-modal-cancel {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    transition: color 0.2s;
+}
+.r-modal-cancel:hover { color: rgba(255,255,255,0.65); }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 640px) {
+    .r-actions { right: 18px; bottom: 110px; gap: 22px; }
+    .r-act-circle { width: 54px; height: 54px; font-size: 22px; }
+    .r-bottom-info { right: 90px; padding: 0 18px 14px; }
+    .r-movie-title { font-size: 20px; }
+    .r-description { -webkit-line-clamp: 3; line-clamp: 3; }
+    #commentSheet { height: 65vh; }
+    #episodeSheet  { height: 55vh; }
+}
+
+@media (min-width: 1024px) {
+    #mainVideo { object-fit: cover; }   /* katta ekranda to'ldirsin */
+    .r-bottom-info { right: 110px; padding: 0 24px 20px; }
+    .r-movie-title { font-size: 22px; }
+    .r-actions { right: 24px; gap: 24px; }
+    .r-act-circle { width: 58px; height: 58px; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<main class="max-w-[1400px] mx-auto mt-6 md:mt-12 px-4 md:px-6 text-white">
-    <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
-        <div class="w-full lg:w-[70%] space-y-10">
-            
-            <section>
-                <!-- ===== VIDEO PLAYER ===== -->
-                <div class="video-container aspect-video" id="customPlayer">
+<!-- ═══════════════════════════════════════════════════════
+     REELS APPLICATION
+═══════════════════════════════════════════════════════ -->
+<div id="reelsApp">
 
-                    {% if is_restricted %}
-                        {% if restriction_type == 'funding' %}
-                        <div class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-[#050505]">
-                            <div class="w-16 h-16 rounded-full bg-[#00cc4c]/10 border border-[#00cc4c]/30 flex items-center justify-center mb-4">
-                                <i class="fas fa-lock text-[#00cc4c] text-2xl"></i>
-                            </div>
-                            <h3 class="text-xl md:text-2xl font-black uppercase tracking-tight text-white mb-2">Ushbu qism yopiq</h3>
-                            <p class="text-gray-500 text-sm mb-6 max-w-md">
-                                Ko'rish uchun "O'zbekcha Dublyaj Loyihasi" ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi.
-                            </p>
-                            <a href="#crowdfunding-section" class="bg-[#00cc4c] text-black px-8 py-3 rounded-lg font-black text-sm uppercase tracking-wide hover:bg-[#00ff62] transition-colors">
-                                To'lov qilish
-                            </a>
-                        </div>
-
-                        {% elif restriction_type == 'vip' %}
-                        <div class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-[#050505]">
-                            <div class="vip-badge w-14 h-14 rounded-full flex items-center justify-center mb-4">
-                                <i class="fas fa-crown text-[#5c3e0d] text-2xl"></i>
-                            </div>
-                            <h3 class="text-xl md:text-2xl font-black uppercase tracking-tight mb-1 bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">VIP Bo'lim</h3>
-                            <p class="text-gray-500 text-sm mb-6">Ushbu qismni ko'rish uchun premium obuna kerak.</p>
-                            <a href="{% url 'users:subscription' %}" class="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-8 py-3 rounded-lg font-black text-sm uppercase tracking-wide hover:brightness-110 transition-all">
-                                Obunani Rasmiylashtirish
-                            </a>
-                        </div>
-                        {% endif %}
-
-                    {% else %}
-                        <!-- Seek feedback -->
-                        <div id="seekLeft" class="seek-feedback" style="left: 14%;">
-                            <span class="material-icons">replay_10</span>
-                            <span class="sec">-10s</span>
-                        </div>
-                        <div id="seekRight" class="seek-feedback" style="right: 14%; left: auto;">
-                            <span class="material-icons">forward_10</span>
-                            <span class="sec">+10s</span>
-                        </div>
-
-                        <!-- Gradient overlay -->
-                        <div class="player-gradient"></div>
-
-                        <!-- Loader -->
-                        <div id="videoLoader">
-                            <div class="spinner"></div>
-                        </div>
-
-                        <!-- Video / Iframe -->
-                        {% if "<iframe" in video_720 %}
-                            <div class="absolute inset-0 iframe-container">{{ video_720|safe }}</div>
-                        {% elif "embed" in video_720 or "youtube.com" in video_720 %}
-                            <iframe src="{{ video_720 }}" title="{{ movie.title }}"
-                                    class="absolute inset-0 w-full h-full border-0"
-                                    allow="autoplay; fullscreen" allowfullscreen></iframe>
-                        {% else %}
-                            <video id="mainVideo"
-                                   class="absolute inset-0 w-full h-full object-contain cursor-pointer"
-                                   poster="{{ movie.poster.url }}"
-                                   playsinline
-                                   oncontextmenu="return false;"
-                                   controlsList="nodownload">
-                                <source src="{{ video_720 }}" type="video/mp4">
-                            </video>
-                        {% endif %}
-
-                        <!-- Controls (faqat native video uchun ko'rsatiladi) -->
-                        {% if "<iframe" not in video_720 and "embed" not in video_720 and "youtube.com" not in video_720 %}
-                        <div class="player-controls">
-                            <!-- Progress -->
-                            <div class="progress-wrap" id="progressArea">
-                                <div class="progress-fill" id="progressBar"></div>
-                            </div>
-
-                            <!-- Buttons row -->
-                            <div class="flex items-center justify-between gap-2">
-                                <!-- Left group -->
-                                <div class="flex items-center gap-3">
-                                    <button id="playPauseBtn" class="ctrl-btn large">
-                                        <span class="material-icons" id="playIcon">play_arrow</span>
-                                    </button>
-                                    <div class="flex items-center gap-2">
-                                        <button id="muteBtn" class="ctrl-btn">
-                                            <span class="material-icons" id="muteIcon">volume_up</span>
-                                        </button>
-                                        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1">
-                                    </div>
-                                    <span class="font-mono text-xs text-white/60 hidden sm:inline select-none">
-                                        <span id="currentTime">00:00</span><span class="mx-1 opacity-40">/</span><span id="duration">00:00</span>
-                                    </span>
-                                </div>
-
-                                <!-- Right group -->
-                                <div class="flex items-center gap-2">
-                                    {% if video_1080 != video_720 %}
-                                    <div class="relative">
-                                        <button id="qualityLabelBtn" onclick="toggleMenu('qualityMenu', event)"
-                                                class="ctrl-btn text-[11px] font-black border border-[#00cc4c]/40 px-2 py-1 rounded text-[#00cc4c] hover:border-[#00cc4c]">
-                                            HD
-                                        </button>
-                                        <div id="qualityMenu" class="v-menu">
-                                            <div onclick="changeQuality('{{ video_1080 }}', '1080p', event)" class="q-item">
-                                                <span>1080p FHD</span>
-                                                <span class="material-icons text-sm opacity-0" id="check1080">check</span>
-                                            </div>
-                                            <div onclick="changeQuality('{{ video_720 }}', '720p', event)" class="q-item q-active">
-                                                <span>720p HD</span>
-                                                <span class="material-icons text-sm text-[#00cc4c]" id="check720">check</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-
-                                    <div class="relative">
-                                        <button onclick="toggleMenu('settingsMenu', event)" class="ctrl-btn">
-                                            <span class="material-icons">settings</span>
-                                        </button>
-                                        <div id="settingsMenu" class="v-menu" style="min-width: 180px;">
-                                            <div class="settings-row">
-                                                <span>Zoom</span>
-                                                <div class="flex items-center gap-1">
-                                                    <button class="s-btn" onclick="adjustZoom(-5, event)">−</button>
-                                                    <span class="s-val" id="zoomLabel">100%</span>
-                                                    <button class="s-btn" onclick="adjustZoom(5, event)">+</button>
-                                                </div>
-                                            </div>
-                                            <div class="settings-row cursor-pointer hover:bg-white/5" onclick="changeSpeedCycle(event)">
-                                                <span>Tezlik</span>
-                                                <span class="s-val" id="speedDisplay">1.0×</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <button id="fullScreen" class="ctrl-btn">
-                                        <span class="material-icons" id="fsIcon">fullscreen</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    {% endif %}
+    <!-- ── Video Layer ───────────────────────────────── -->
+    <div id="videoLayer">
+        {% if is_restricted %}
+            <!-- Restriction overlays -->
+            {% if restriction_type == 'funding' %}
+            <div class="r-restriction">
+                <div class="r-lock-icon" style="background:rgba(0,204,76,0.10);border:1px solid rgba(0,204,76,0.30);">
+                    <i class="fas fa-lock" style="color:#00cc4c;"></i>
                 </div>
-            </section>
-
-            {% if funding_project %}
-            <div id="crowdfunding-section" class="mt-8 mb-12 glass-card p-6 md:p-8 border-2 border-[#00cc4c]/30 relative overflow-hidden shadow-[0_0_40px_rgba(0,204,76,0.1)]">
-                <div class="absolute -right-20 -top-20 w-64 h-64 bg-[#00cc4c]/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
-                    <div class="flex-1 w-full">
-                        <h3 class="text-xl md:text-2xl font-black uppercase italic tracking-tight text-white mb-2">
-                            <i class="fas fa-microphone-alt text-[#00cc4c] mr-2"></i> O'zbekcha Dublyaj Loyihasi
-                        </h3>
-                        
-                        {% if funding_project.status == 'funding' %}
-                            <p class="text-gray-400 text-sm mb-6">Bu serial hali o'zbek tiliga o'girilmagan. Tarjimonlar jamoasini qo'llab-quvvatlang va serialni birinchilardan bo'lib ko'ring!</p>
-                        {% elif funding_project.status == 'translating' %}
-                            <p class="text-yellow-400 font-bold text-sm mb-6"><i class="fas fa-cog fa-spin mr-1"></i> Pul yig'ildi! Ayni paytda tarjima ishlari ketmoqda...</p>
-                        {% else %}
-                            <p class="text-[#00cc4c] font-bold text-sm mb-6"><i class="fas fa-check-circle mr-1"></i> Serial to'liq tarjima qilinib, saytga allaqachon joylangan!</p>
-                        {% endif %}
-
-                        <div class="mb-2 flex justify-between text-xs font-black uppercase tracking-widest text-gray-400">
-                            <span>Yig'ildi: <span class="text-[#00cc4c]">{{ funding_project.collected_amount }}</span></span>
-                            <span>Maqsad: {{ funding_project.target_amount }} Coin</span>
-                        </div>
-                        <div class="w-full bg-black/50 rounded-full h-4 border border-white/10 overflow-hidden relative">
-                            <div class="bg-gradient-to-r from-[#00cc4c] to-[#00ff62] h-4 rounded-full shadow-[0_0_15px_#00cc4c] transition-all duration-1000" 
-                                 style="width: {{ funding_project.progress_percentage }}%">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="w-full md:w-auto min-w-[280px] bg-black/40 p-6 rounded-3xl border border-white/5 backdrop-blur-sm">
-                        {% if user.is_authenticated %}
-                            {% if user_has_access %}
-                                <div class="text-center">
-                                    <i class="fas fa-check-circle text-5xl text-[#00cc4c] mb-3 drop-shadow-[0_0_15px_rgba(0,204,76,0.5)]"></i>
-                                    <p class="text-base font-black text-white mb-1 uppercase tracking-widest">Ruxsat olingan!</p>
-                                    <p class="text-xs text-gray-400">Siz ushbu loyihaga hissa qo'shgansiz. Endi serialni bemalol ko'rishingiz mumkin!</p>
-                                </div>
-                            {% else %}
-                                <form action="{% url 'funding:process' funding_project.id %}" method="POST" class="space-y-4">
-                                    {% csrf_token %}
-                                    {% if funding_project.status == 'funding' %}
-                                        <div>
-                                            <label class="text-[10px] text-gray-500 font-bold uppercase tracking-widest ml-1">Summani kiriting</label>
-                                            <div class="relative mt-1">
-                                                <input type="number" name="amount" min="{{ funding_project.min_fund_amount }}" value="{{ funding_project.min_fund_amount }}" required
-                                                       class="w-full bg-white/5 border border-white/15 rounded-2xl py-3 px-4 text-white font-black text-xl outline-none focus:border-[#00cc4c] transition-all">
-                                                <i class="fas fa-coins absolute right-4 top-4 text-[#ffd700]"></i>
-                                            </div>
-                                            <p class="text-[9px] text-gray-500 mt-2 ml-1">Minimal hissa: {{ funding_project.min_fund_amount }} Coin</p>
-                                        </div>
-                                        <button type="submit" class="w-full py-4 bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,204,76,0.3)]">
-                                            Hissa Qo'shish
-                                        </button>
-                                    {% elif funding_project.status == 'released' %}
-                                        <div class="text-center mb-4">
-                                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Serialni sotib olish</p>
-                                            <p class="text-4xl font-black text-[#ffd700] drop-shadow-lg">{{ funding_project.post_release_price }} <i class="fas fa-coins text-2xl"></i></p>
-                                        </div>
-                                        <button type="submit" class="w-full py-4 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-black uppercase tracking-widest rounded-2xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,215,0,0.3)]">
-                                            Sotib Olish
-                                        </button>
-                                    {% else %}
-                                        <div class="text-center py-4">
-                                            <i class="fas fa-hourglass-half text-3xl text-gray-500 mb-3"></i>
-                                            <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">Kuting...</p>
-                                        </div>
-                                    {% endif %}
-                                </form>
-                            {% endif %}
-                        {% else %}
-                            <div class="text-center py-2">
-                                <p class="text-sm font-medium text-gray-400 mb-4">Loyihaga hissa qo'shish uchun tizimga kiring.</p>
-                                <a href="{% url 'users:login' %}" class="inline-flex w-full items-center justify-center py-3.5 border-2 border-[#00cc4c] text-[#00cc4c] font-black uppercase tracking-widest rounded-xl hover:bg-[#00cc4c] hover:text-black transition-all">
-                                    <i class="fas fa-sign-in-alt mr-2"></i> Kirish
-                                </a>
-                            </div>
-                        {% endif %}
-                    </div>
+                <h3>Ushbu qism yopiq</h3>
+                <p>Ko'rish uchun "O'zbekcha Dublyaj Loyihasi"ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi.</p>
+                <a href="{{ movie.get_absolute_url }}#crowdfunding-section"
+                   style="background:#00cc4c;color:#000;padding:12px 28px;border-radius:30px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none;transition:opacity 0.2s;">
+                    To'lov qilish
+                </a>
+            </div>
+            {% elif restriction_type == 'vip' %}
+            <div class="r-restriction">
+                <div class="r-lock-icon" style="background:linear-gradient(135deg,#ffd700,#f4d6a1);">
+                    <i class="fas fa-crown" style="color:#5c3e0d;"></i>
                 </div>
+                <h3 style="background:linear-gradient(135deg,#ffd700,#f4a01a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">VIP Bo'lim</h3>
+                <p>Ushbu qismni ko'rish uchun premium obuna kerak.</p>
+                <a href="{% url 'users:subscription' %}"
+                   style="background:linear-gradient(135deg,#ffd700,#f4a01a);color:#000;padding:12px 28px;border-radius:30px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none;">
+                    VIP Olish
+                </a>
             </div>
             {% endif %}
 
-            <div class="flex flex-wrap items-stretch gap-4">
-                <div class="flex-1 min-w-[140px] bg-gradient-to-r from-[#00cc4c]/15 to-[#00cc4c]/5 border border-[#00cc4c]/30 text-[#00cc4c] font-black py-5 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-lg">
-                    <i class="fas fa-play-circle text-lg"></i>
-                    <span class="text-sm uppercase tracking-tight">{{ active_episode.episode_number }}-QISM</span>
+        {% else %}
+            <!-- Actual video content -->
+            {% if "<iframe" in video_720 %}
+                <div class="embed-wrap">{{ video_720|safe }}</div>
+            {% elif "embed" in video_720 or "youtube.com" in video_720 %}
+                <div class="embed-wrap">
+                    <iframe src="{{ video_720 }}" title="{{ movie.title }}"
+                            allow="autoplay; fullscreen" allowfullscreen></iframe>
                 </div>
-
-                {% if next_episode %}
-                <a href="?episode={{ next_episode.episode_number }}" class="flex-1 min-w-[180px] bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black py-5 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl hover:scale-[1.02]">
-                    <span class="text-sm uppercase italic">Keyingi qism</span>
-                    <i class="fas fa-step-forward text-sm"></i>
-                </a>
-                {% endif %}
-
-                <div class="flex-[1.5] min-w-[220px]">
-                    {% if user.is_authenticated %}
-                    <button onclick="toggleListModal()" class="w-full py-5 action-btn rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg">
-                        <i class="fas {% if user_movie_status %}fa-check-double text-[#00cc4c]{% else %}fa-list-ul{% endif %} text-base"></i>
-                        {% if user_movie_status %}{{ user_movie_status.get_status_display }}{% else %}Ro'yxatga Qo'shish{% endif %}
-                    </button>
-                    {% else %}
-                    <a href="{% url 'users:login' %}" class="w-full py-5 action-btn rounded-2xl font-black text-xs uppercase text-center flex items-center justify-center shadow-lg">
-                        To`liq foydalanish uchun tizimga kiring
-                    </a>
+            {% else %}
+                <video id="mainVideo"
+                       poster="{{ movie.poster.url }}"
+                       playsinline
+                       autoplay
+                       oncontextmenu="return false;"
+                       controlsList="nodownload noremoteplayback nofullscreen">
+                    <source src="{{ video_720 }}" type="video/mp4" id="videoSource720">
+                    {% if video_1080 and video_1080 != video_720 %}
+                    <source src="{{ video_1080 }}" type="video/mp4" id="videoSource1080">
                     {% endif %}
-                </div>
+                </video>
+            {% endif %}
+        {% endif %}
+    </div>
+    <!-- /videoLayer -->
+
+    <!-- ── Loader ────────────────────────────────────── -->
+    <div class="r-loader" id="rLoader"><div class="r-spinner"></div></div>
+
+    <!-- ── Seek feedback ─────────────────────────────── -->
+    <div class="r-seek-fb" id="seekL" style="left:14%;">
+        <i class="fas fa-rotate-left"></i>
+        <span>-10s</span>
+    </div>
+    <div class="r-seek-fb" id="seekR" style="right:14%;">
+        <i class="fas fa-rotate-right"></i>
+        <span>+10s</span>
+    </div>
+
+    <!-- ── Play/Pause flash ───────────────────────────── -->
+    <div class="r-play-flash" id="playFlashWrap">
+        <div class="r-flash-icon" id="rFlashIcon"><i class="fas fa-pause" id="rFlashI"></i></div>
+    </div>
+
+    <!-- ── Gradient overlays ─────────────────────────── -->
+    <div class="grad-top"></div>
+    <div class="grad-bottom"></div>
+
+    <!-- ── Top Bar ───────────────────────────────────── -->
+    <div class="r-topbar">
+        <a href="{{ movie.get_absolute_url }}" class="r-back-btn">
+            <i class="fas fa-chevron-left" style="font-size:14px;"></i>
+        </a>
+        <div class="r-topbar-info">
+            <div class="r-topbar-title">{{ movie.title }}</div>
+            <div class="r-topbar-ep">
+                {{ active_episode.episode_number }}-qism
+                <span style="color:rgba(255,255,255,0.35);margin:0 4px;">·</span>
+                ★ {{ movie.mdl_rank }}
             </div>
-                <p class="text-gray-400 text-base md:text-lg leading-relaxed border-l-4 border-blue-400/20 pl-6 py-2 italic max-w-4xl backdrop-blur-sm">
-                    Video player ishlamasa aloqaga chiqing: Telegram: @suxroboff
-                </p>
-<br>
-<section class="space-y-6 border-b border-white/10 pb-12 pt-6">
-                <section class="pt-8 space-y-16">
-                    <div>
-                        <div class="border-b border-white/10 pb-4 mb-8">
-                            <h3 class="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
-                              <i class="fas fa-list text-[#00cc4c] mr-3"></i> Qismlar
-                            </h3>
-                         </div>
-                        <div id="episodes-content" class="episode-grid">
-                        {% for ep in episodes %}
-                        <a href="?episode={{ ep.episode_number }}" class="h-16 md:h-20 flex items-center justify-center rounded-2xl font-black text-sm md:text-base transition-all shadow-lg {% if active_episode.id == ep.id %} bg-gradient-to-br from-[#00cc4c] to-[#00ff62] text-black scale-105 {% else %} bg-white/5 text-gray-400 hover:bg-white/10 {% endif %}">
-                            {{ ep.episode_number }}
-                        </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </section>
-        
-            <br>
-                <h1 class="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter italic uppercase leading-none bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                    {{ movie.title }}
-                </h1>
-                <p class="text-gray-400 text-base md:text-lg leading-relaxed border-l-4 border-[#00cc4c]/50 pl-6 py-2 italic max-w-4xl backdrop-blur-sm">
-                    {{ movie.description }}
-                </p>
-                <div class="flex flex-wrap gap-4 text-xs font-black uppercase tracking-widest text-gray-500">
-                    <span class="text-[#00cc4c] bg-[#00cc4c]/10 px-4 py-2 rounded-full border border-[#00cc4c]/30 shadow-lg">★ {{ movie.mdl_rank }}</span>
-                    <span class="bg-white/5 px-4 py-2 rounded-full border border-white/10">{{ movie.age_limit }}+</span>
-                    <span class="bg-white/5 px-4 py-2 rounded-full border border-white/10">{{ movie.year }}</span>
-                    <span class="text-blue-400 bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/20">{{ movie.country }}</span>
-                </div>
-                <div class="flex flex-wrap gap-3 pt-4">
-                    {% for tag in movie.tags.all %}
-                    <a href="{{ tag.get_absolute_url }}" class="inline-flex items-center px-5 py-2 rounded-full bg-[#00cc4c]/10 border border-[#00cc4c]/25 text-[#00cc4c] text-xs font-black uppercase tracking-widest hover:bg-[#00cc4c] hover:text-black transition-all">
-                        <i class="fas fa-hashtag mr-2 opacity-60"></i>{{ tag.name }}
-                    </a>
-                    {% endfor %}
-                </div>
-</section>
+        </div>
+        {% if video_1080 and video_1080 != video_720 and not is_restricted %}
+        <button class="r-quality-btn" id="rQualBtn" onclick="switchQuality()">HD</button>
+        {% endif %}
+    </div>
 
-            <div class="mt-8 pt-8 border-t border-white/10">
-                <h3 class="text-xl font-black uppercase tracking-widest text-white mb-6 flex items-center gap-3">
-                    <span class="w-1.5 h-6 bg-[#00cc4c] rounded-full"></span> Rollarda (Cast)
-                </h3>
-                <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
-                    {% for actor in movie.main_actors.all %}
-                    <a href="{{ actor.get_absolute_url }}" class="snap-start flex-shrink-0 w-24 md:w-28 text-center group block">
-                        <div class="relative w-20 h-20 md:w-24 md:h-24 mx-auto mb-3 rounded-full p-[3px] bg-gradient-to-br from-[#00cc4c]/60 to-transparent group-hover:from-[#00cc4c] group-hover:to-[#00ff62] transition-all duration-300">
-                            <img src="{{ actor.image.url }}" class="w-full h-full rounded-full object-cover border-[3px] border-[#0a0a0a] transition-all" alt="{{ actor.name }}">
-                        </div>
-                        <p class="text-xs md:text-sm font-bold text-gray-200 group-hover:text-[#00cc4c] line-clamp-1">{{ actor.name }}</p>
-                        <span class="text-[9px] md:text-[10px] bg-[#00cc4c]/10 text-[#00cc4c] px-2 py-1 rounded flex items-center justify-center gap-1 mt-1.5 uppercase font-black mx-auto w-fit">
-                            <i class="fas fa-star text-[8px]"></i> Bosh rol
-                        </span>
-                    </a>
-                    {% endfor %}
-
-                    {% for actor in movie.actors.all %}
-                    <a href="{{ actor.get_absolute_url }}" class="snap-start flex-shrink-0 w-24 md:w-28 text-center group block">
-                        <div class="relative w-20 h-20 md:w-24 md:h-24 mx-auto mb-3 rounded-full p-[3px] bg-gradient-to-br from-white/20 to-transparent group-hover:from-white/40 transition-all duration-300">
-                            <img src="{{ actor.image.url }}" class="w-full h-full rounded-full object-cover border-[3px] border-[#0a0a0a] grayscale-[20%] group-hover:grayscale-0" alt="{{ actor.name }}">
-                        </div>
-                        <p class="text-xs md:text-sm font-bold text-gray-400 group-hover:text-white line-clamp-1">{{ actor.name }}</p>
-                        <span class="text-[9px] md:text-[10px] bg-white/5 text-gray-400 px-2 py-1 rounded flex items-center justify-center gap-1 mt-1.5 uppercase font-bold mx-auto w-fit">Yordamchi</span>
-                    </a>
-                    {% endfor %}
-                </div>
+    <!-- ── Right Action Buttons ──────────────────────── -->
+    <div class="r-actions">
+        <!-- 1. Like -->
+        <div class="r-act-item" onclick="doLike()" title="Yoqdi">
+            <div class="r-act-circle" id="likeCircle">
+                <i class="fas fa-heart"></i>
             </div>
-
-            <div class="pt-8">
-                <div class="border-b border-white/10 pb-4 mb-8 flex items-center justify-between">
-                    <h3 class="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
-                        <i class="fas fa-comments text-[#00cc4c] mr-3"></i> 
-                        Fikrlar ({{ movie.reviews.all|length }})
-                    </h3> 
-                </div>
- <!-- test -->
-                    {% if user.is_authenticated %} 
-                    {% else %}
-                    <div class="text-center py-10 bg-white/5 rounded-3xl">
-                                <i class="fas fa-comment-slash text-4xl text-gray-600 mb-4"></i>
-                                <p class="text-gray-400 font-bold uppercase tracking-widest">Siz Fikr qoldira olmaysiz. Fikr qoldirish uchun saytdan ro`yhatdan o'tishingiz kerak!</p>
-                            </div>
-                    {% endif %}
-<!-- test end -->
-                <div id="comments-content" class="space-y-10">
-                    {% if user.is_authenticated %}
-                    <form id="commentForm" hx-post="{% url 'drama:add_review' movie.id %}" hx-target="#comment-list" hx-swap="afterbegin" hx-on::after-request="this.reset(); resetCommentTarget();" class="glass-card p-8 md:p-10">
-                        {% csrf_token %}
-                        <input type="hidden" name="parent" id="contactparent" value="">
-                        <div id="replying-to" class="hidden mb-5 flex items-center justify-between bg-[#00cc4c]/15 p-4 rounded-2xl border border-[#00cc4c]/30">
-                            <span class="text-xs font-bold text-[#00cc4c] uppercase tracking-wider"><i class="fas fa-reply mr-2"></i> <span id="reply-name"></span> ga javob...</span>
-                            <button type="button" onclick="resetCommentTarget()" class="text-white/40 hover:text-white"><i class="fas fa-times"></i></button>
-                        </div>
-                        <textarea name="text" id="commentText" required class="w-full bg-black/50 border border-white/15 rounded-3xl p-6 text-sm md:text-base text-white focus:border-[#00cc4c] outline-none transition-all resize-none" rows="4" placeholder="Fikringiz..."></textarea>
-                        <button type="submit" class="mt-6 bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black px-16 py-4 rounded-2xl text-sm uppercase shadow-xl">Yuborish</button>
-                    </form>
-                    {% endif %}
-
-                    <div id="comment-list" class="space-y-8">
-                        {% for review in movie.reviews.all|slice:":3" %}
-                            {% if not review.parent %}
-                                {% include 'movies/partials/comment_item.html' with review=review %}
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
+            <span class="r-act-label" id="likeLabel">Yoqdi</span>
         </div>
 
-        <aside class="w-full lg:w-[30%] space-y-8">
-            <div class="glass-card p-10 sticky top-24">
-                <h3 class="text-sm font-black uppercase tracking-widest text-[#00cc4c] mb-8 flex items-center gap-3">
-                    <span class="w-2 h-2 rounded-full bg-[#00cc4c] animate-pulse"></span>
-                    TOP DRAMALAR
-                </h3>
-                <div class="space-y-6 text-gray-500 italic text-sm font-medium">Rejalashtirilmoqda...</div>
+        <!-- 2. Comment -->
+        <div class="r-act-item" onclick="openSheet('commentSheet')" title="Fikrlar">
+            <div class="r-act-circle">
+                <i class="fas fa-comment-dots"></i>
             </div>
-        </aside>
-    </div>
-</main>
+            <span class="r-act-label">{{ movie.reviews.all|length }}</span>
+        </div>
 
-<div id="listModal" class="fixed inset-0 z-[200] hidden items-center justify-center px-4 bg-black/95 backdrop-blur-xl">
-    <div onclick="toggleListModal()" class="absolute inset-0"></div>
-    <div class="relative glass-card w-full max-w-lg rounded-[40px] p-12 md:p-16 shadow-2xl">
-        <form action="{% url 'drama:add_to_list' movie.id %}" method="POST" class="relative z-10 space-y-8">
-            {% csrf_token %}
-            <div class="text-center border-b border-white/10 pb-6">
-                <h3 class="text-3xl font-black uppercase italic">My Library</h3>
+        <!-- 3. Bookmark / Library -->
+        <div class="r-act-item" onclick="doBookmark()" title="Saqlash">
+            <div class="r-act-circle {% if user_movie_status %}is-saved{% endif %}" id="bookmarkCircle">
+                <i class="fas fa-bookmark"></i>
             </div>
-            
-            <div class="space-y-4">
-                <label class="text-xs font-black text-gray-400 uppercase ml-2">Film holati</label>
-                <select name="status" id="statusSelect" onchange="checkStatus()" class="w-full bg-white/5 border border-white/15 rounded-3xl p-6 text-base font-black text-white outline-none">
-                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>Ko'ryapman</option>
-                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>Tugallangan</option>
-                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>Rejamda bor</option>
-                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>To'xtatilgan</option>
-                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>Qiziq emas</option>
+            <span class="r-act-label">Saqlash</span>
+        </div>
+
+        <!-- 4. Episode List -->
+        <div class="r-act-item" onclick="openSheet('episodeSheet')" title="Qismlar">
+            <div class="r-act-circle">
+                <i class="fas fa-list-ol"></i>
+            </div>
+            <span class="r-act-label">{{ episodes|length }}-qism</span>
+        </div>
+    </div>
+
+    <!-- ── Bottom Info ───────────────────────────────── -->
+    <div class="r-bottom-info">
+        <div class="r-movie-title">{{ movie.title }}</div>
+        <div class="r-ep-badge">
+            <i class="fas fa-play-circle" style="font-size:10px;"></i>
+            {{ active_episode.episode_number }}-qism
+            <span>·</span>{{ movie.year }}
+            <span>·</span>{{ movie.country }}
+            {% if movie.age_limit %}<span>·</span>{{ movie.age_limit }}+{% endif %}
+        </div>
+        <p class="r-description">{{ movie.description }}</p>
+        <div class="r-tags">
+            {% for genre in movie.genres.all|slice:":4" %}
+            <span class="r-tag">{{ genre.name }}</span>
+            {% endfor %}
+        </div>
+        <!-- Prev / Next navigation -->
+        <div class="r-ep-nav">
+            {% if prev_episode %}
+            <a href="?episode={{ prev_episode.episode_number }}" class="r-ep-nav-btn" id="prevEpBtn">
+                <i class="fas fa-chevron-up" style="font-size:9px;"></i> Oldingi
+            </a>
+            {% endif %}
+            {% if next_episode %}
+            <a href="?episode={{ next_episode.episode_number }}" class="r-ep-nav-btn next" id="nextEpBtn">
+                Keyingi <i class="fas fa-chevron-down" style="font-size:9px;"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Progress Bar ──────────────────────────────── -->
+    <div class="r-progress" id="rProgressWrap">
+        <div class="r-progress-fill" id="rProgress"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         BOTTOM SHEET BACKDROP
+    ═══════════════════════════════════════════════ -->
+    <div class="r-sheet-backdrop" id="sheetBackdrop" onclick="closeAllSheets()"></div>
+
+    <!-- ── Comment Sheet ─────────────────────────────── -->
+    <div class="r-sheet" id="commentSheet">
+        <div class="r-sheet-handle"></div>
+        <div class="r-sheet-header">
+            <h3><i class="fas fa-comments" style="color:#00cc4c;margin-right:8px;"></i>Fikrlar ({{ movie.reviews.all|length }})</h3>
+            <button class="r-sheet-close" onclick="closeSheet('commentSheet')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="r-comment-form-wrap">
+            <form id="rCommentForm"
+                  hx-post="{% url 'drama:add_review' movie.id %}"
+                  hx-target="#rCommentList"
+                  hx-swap="afterbegin"
+                  hx-on::after-request="this.reset();"
+                  class="r-comment-form">
+                {% csrf_token %}
+                <input type="hidden" name="parent" value="">
+                <textarea name="text" class="r-comment-input" rows="2"
+                          placeholder="Fikringizni yozing..."></textarea>
+                <button type="submit" class="r-comment-send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <a href="{% url 'users:login' %}"
+               style="display:block;text-align:center;padding:12px;border:1px solid rgba(0,204,76,0.35);border-radius:14px;color:#00cc4c;font-size:13px;font-weight:800;text-decoration:none;transition:all 0.2s;">
+                <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>Fikr qoldirish uchun kiring
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="r-comments-scroll">
+            <div id="rCommentList" style="display:flex;flex-direction:column;gap:2px;">
+                {% for review in movie.reviews.all|slice:":15" %}
+                    {% if not review.parent %}
+                        {% include 'movies/partials/comment_item.html' with review=review %}
+                    {% endif %}
+                {% endfor %}
+                {% if not movie.reviews.all %}
+                <div style="text-align:center;padding:32px 16px;color:rgba(255,255,255,0.30);">
+                    <i class="fas fa-comment-slash" style="font-size:32px;margin-bottom:10px;display:block;"></i>
+                    <p style="font-size:13px;font-weight:700;">Hali fikrlar yo'q. Birinchi bo'ling!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Episode Sheet ─────────────────────────────── -->
+    <div class="r-sheet" id="episodeSheet">
+        <div class="r-sheet-handle"></div>
+        <div class="r-sheet-header">
+            <h3><i class="fas fa-list-ol" style="color:#00cc4c;margin-right:8px;"></i>Qismlar ({{ episodes|length }})</h3>
+            <button class="r-sheet-close" onclick="closeSheet('episodeSheet')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="r-ep-scroll">
+            <div class="r-ep-grid">
+                {% for ep in episodes %}
+                <a href="?episode={{ ep.episode_number }}"
+                   class="r-ep-btn {% if active_episode.id == ep.id %}active{% else %}inactive{% endif %}">
+                    {{ ep.episode_number }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Library Modal ─────────────────────────────── -->
+    {% if user.is_authenticated %}
+    <div id="libraryModal">
+        <div class="r-modal-box" onclick="event.stopPropagation()">
+            <form action="{% url 'drama:add_to_list' movie.id %}" method="POST">
+                {% csrf_token %}
+                <h3>My Library</h3>
+                <select name="status" class="r-select">
+                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>▶ Ko'ryapman</option>
+                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>✓ Tugallangan</option>
+                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>📌 Rejamda bor</option>
+                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>⏸ To'xtatilgan</option>
+                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>✕ Qiziq emas</option>
                 </select>
-            </div>
-
-            <div id="extraFields" class="grid grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <label class="text-xs font-black text-gray-400 uppercase ml-2">Qism</label>
-                    <input type="number" name="current_episode" min="0" max="{{ movie.episodes_count }}" value="{{ user_movie_status.current_episode|default:0 }}" class="w-full bg-white/5 border border-white/15 rounded-2xl p-5 text-white font-black">
-                </div>
-                <div class="space-y-4">
-                    <label class="text-xs font-black text-gray-400 uppercase ml-2">Baho</label>
-                    <select name="score" class="w-full bg-white/5 border border-white/15 rounded-2xl p-5 text-white font-black">
-                        <option value="">--</option>
-                        {% for i in "1234567890" %}
-                            <option value="{{ forloop.counter }}.0" {% if user_movie_status.score|stringformat:".1f" == forloop.counter|stringformat:".1f" %}selected{% endif %}>{{ forloop.counter }}.0</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <button type="submit" class="w-full py-6 bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black uppercase rounded-2xl shadow-2xl">Saqlash</button>
-        </form>
+                <button type="submit" class="r-modal-save">Saqlash</button>
+                <button type="button" class="r-modal-cancel" onclick="closeLibrary()">Bekor qilish</button>
+            </form>
+        </div>
     </div>
+    {% endif %}
+
 </div>
-{% endblock %} 
+<!-- /reelsApp -->
+{% endblock %}
+
 
 {% block extra_js %}
+{# Django template data — JSON sifatida, linter trigger qilmasin #}
+<script id="reelsData" type="application/json">
+{
+    "episodes":  [{% for ep in episodes %}{{ ep.episode_number }}{% if not forloop.last %},{% endif %}{% endfor %}],
+    "currentEp": {{ active_episode.episode_number|default:1 }},
+    "src720":    "{{ video_720|escapejs }}",
+    "src1080":   "{{ video_1080|escapejs }}",
+    "isAuth":    {% if user.is_authenticated %}true{% else %}false{% endif %},
+    "loginUrl":  "{% url 'users:login' %}"
+}
+</script>
+
 <script>
 (function () {
-    'use strict';
+'use strict';
 
-    // ── Yordamchi ──────────────────────────────────────────────────────────
-    function fmtTime(t) {
-        if (!t || isNaN(t)) return '00:00';
-        const m = Math.floor(t / 60), s = Math.floor(t % 60);
-        return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+/* ─────────────────────────────────────────────────────────
+   CONFIG — Django data JSON orqali yuklash
+───────────────────────────────────────────────────────── */
+const _d         = JSON.parse(document.getElementById('reelsData').textContent);
+const ALL_EPS    = _d.episodes;
+const CUR_EP_NUM = _d.currentEp;
+const SRC_720    = _d.src720;
+const SRC_1080   = _d.src1080;
+const IS_AUTH    = _d.isAuth;
+const LOGIN_URL  = _d.loginUrl;
+const BASE_URL   = window.location.pathname;
+const curIdx     = ALL_EPS.indexOf(CUR_EP_NUM);
+const prevEpNum  = curIdx > 0                ? ALL_EPS[curIdx - 1] : null;
+const nextEpNum  = curIdx < ALL_EPS.length-1 ? ALL_EPS[curIdx + 1] : null;
+let   curQual    = '720p';
+
+/* ─────────────────────────────────────────────────────────
+   DOM REFS
+───────────────────────────────────────────────────────── */
+const app        = document.getElementById('reelsApp');
+const video      = document.getElementById('mainVideo');
+const loader     = document.getElementById('rLoader');
+const progress   = document.getElementById('rProgress');
+const progressWr = document.getElementById('rProgressWrap');
+const flashIcon  = document.getElementById('rFlashIcon');
+const flashI     = document.getElementById('rFlashI');
+const likeCircle = document.getElementById('likeCircle');
+
+/* ─────────────────────────────────────────────────────────
+   SWIPE NAVIGATION
+───────────────────────────────────────────────────────── */
+let swipeStartY = 0, swipeStartT = 0;
+let mouseStartY = 0, mouseDown  = false;
+
+function navigate(dir) {
+    const epNum = dir === 'next' ? nextEpNum : prevEpNum;
+    if (!epNum) return;
+
+    const cls = dir === 'next' ? 'slide-up' : 'slide-down';
+    app.classList.add(cls);
+    setTimeout(() => {
+        window.location.href = BASE_URL + '?episode=' + epNum;
+    }, 270);
+}
+
+/* Touch */
+app.addEventListener('touchstart', (e) => {
+    swipeStartY = e.touches[0].clientY;
+    swipeStartT = Date.now();
+}, { passive: true });
+
+app.addEventListener('touchend', (e) => {
+    const dy = swipeStartY - e.changedTouches[0].clientY;
+    const dt = Date.now() - swipeStartT;
+    if (Math.abs(dy) > 70 && dt < 450) {
+        navigate(dy > 0 ? 'next' : 'prev');
     }
+}, { passive: true });
 
-    function showSeek(side) {
-        const el = document.getElementById(side === 'left' ? 'seekLeft' : 'seekRight');
-        if (!el) return;
-        el.classList.remove('show');
-        void el.offsetWidth;
-        el.classList.add('show');
-    }
+/* Mouse (desktop) */
+app.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.r-topbar, .r-actions, .r-bottom-info, .r-sheet, .r-sheet-backdrop, #libraryModal, .r-progress, #rLoader')) return;
+    mouseStartY = e.clientY;
+    mouseDown   = true;
+});
+document.addEventListener('mouseup', (e) => {
+    if (!mouseDown) return;
+    const dy = mouseStartY - e.clientY;
+    mouseDown = false;
+    if (Math.abs(dy) > 80) navigate(dy > 0 ? 'next' : 'prev');
+});
 
-    // ── Menyu ──────────────────────────────────────────────────────────────
-    window.toggleMenu = (id, e) => {
-        e.stopPropagation();
-        const menu = document.getElementById(id);
-        const wasOpen = menu.classList.contains('show');
-        document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
-        if (!wasOpen) menu.classList.add('show');
-    };
+/* ─────────────────────────────────────────────────────────
+   VIDEO PLAYER LOGIC
+───────────────────────────────────────────────────────── */
+if (video) {
+    /* Loader */
+    video.addEventListener('waiting', () => loader.classList.add('on'));
+    video.addEventListener('playing', () => loader.classList.remove('on'));
+    video.addEventListener('canplay', () => loader.classList.remove('on'));
 
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
+    /* Progress */
+    video.addEventListener('timeupdate', () => {
+        if (!video.duration) return;
+        progress.style.width = (video.currentTime / video.duration * 100) + '%';
     });
 
-    // ── Asosiy player ──────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-        const video     = document.getElementById('mainVideo');
-        if (!video) return;  // iframe bo'lsa chiqib ketadi
-
-        const container    = document.getElementById('customPlayer');
-        const progressBar  = document.getElementById('progressBar');
-        const progressArea = document.getElementById('progressArea');
-        const loader       = document.getElementById('videoLoader');
-        const playIcon     = document.getElementById('playIcon');
-        const muteIcon     = document.getElementById('muteIcon');
-        const fsIcon       = document.getElementById('fsIcon');
-        const curTimeEl    = document.getElementById('currentTime');
-        const durEl        = document.getElementById('duration');
-        const volSlider    = document.getElementById('volumeSlider');
-
-        let hideTimer;
-        let curZoom = 100;
-        const speeds = [0.75, 1, 1.25, 1.5, 2];
-        let sIdx = 1;   // default 1.0×
-
-        // ── Controls visibility ──
-        function showControls() {
-            container.classList.add('controls-active');
-            clearTimeout(hideTimer);
-            hideTimer = setTimeout(() => {
-                if (!video.paused && !document.querySelector('.v-menu.show')) {
-                    container.classList.remove('controls-active');
-                }
-            }, 3000);
+    /* Click — single tap play/pause, double tap seek */
+    let lastTap = 0;
+    video.addEventListener('click', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 280) {
+            /* Double tap — seek */
+            const half = video.clientWidth / 2;
+            if (e.offsetX < half) { video.currentTime -= 10; showSeek('L'); }
+            else                  { video.currentTime += 10; showSeek('R'); }
+            lastTap = 0;
+            return;
         }
-
-        container.addEventListener('mousemove', showControls);
-        container.addEventListener('touchstart', showControls, { passive: true });
-
-        // Pauza bo'lganda controls doim ko'rinadi
-        video.addEventListener('pause', () => {
-            container.classList.add('controls-active');
-            clearTimeout(hideTimer);
-        });
-
-        video.addEventListener('play', () => showControls());
-
-        // ── Play / Pause ──
-        function togglePlay() {
-            if (video.paused) { video.play(); }
-            else               { video.pause(); }
-        }
-
-        video.addEventListener('click', (e) => {
-            // Double-tap seek
-            const now = Date.now();
-            if (now - (video._lastTap || 0) < 280) {
-                const x = e.offsetX;
-                if (x < video.clientWidth / 2) {
-                    video.currentTime -= 10;
-                    showSeek('left');
-                } else {
-                    video.currentTime += 10;
-                    showSeek('right');
-                }
-                video._lastTap = 0;
-                return;
-            }
-            video._lastTap = now;
-            showControls();
-        });
-
-        document.getElementById('playPauseBtn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            togglePlay();
-        });
-
-        video.addEventListener('play',  () => { playIcon.textContent = 'pause'; });
-        video.addEventListener('pause', () => { playIcon.textContent = 'play_arrow'; });
-
-        // ── Progress ──
-        video.addEventListener('timeupdate', () => {
-            if (!video.duration) return;
-            progressBar.style.width = (video.currentTime / video.duration * 100) + '%';
-            if (curTimeEl) curTimeEl.textContent = fmtTime(video.currentTime);
-            if (durEl)     durEl.textContent     = fmtTime(video.duration);
-        });
-
-        video.addEventListener('loadedmetadata', () => {
-            if (durEl) durEl.textContent = fmtTime(video.duration);
-        });
-
-        // Progress seek (click + drag)
-        let seeking = false;
-        function seekTo(e) {
-            const rect = progressArea.getBoundingClientRect();
-            const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
-            video.currentTime = ratio * video.duration;
-        }
-        progressArea.addEventListener('mousedown', (e) => { seeking = true; seekTo(e); });
-        document.addEventListener('mousemove',  (e) => { if (seeking) seekTo(e); });
-        document.addEventListener('mouseup',    ()  => { seeking = false; });
-
-        // ── Volume ──
-        if (volSlider) {
-            volSlider.addEventListener('input', (e) => {
-                video.volume = e.target.value;
-                muteIcon.textContent = video.volume === 0 ? 'volume_off' : 'volume_up';
-            });
-        }
-
-        const muteBtn = document.getElementById('muteBtn');
-        if (muteBtn) {
-            muteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                video.muted = !video.muted;
-                muteIcon.textContent = video.muted ? 'volume_off' : 'volume_up';
-                if (volSlider) volSlider.value = video.muted ? 0 : video.volume;
-            });
-        }
-
-        // ── Loader ──
-        video.addEventListener('waiting', () => loader.classList.add('active'));
-        video.addEventListener('playing', () => loader.classList.remove('active'));
-        video.addEventListener('canplay', () => loader.classList.remove('active'));
-
-        // ── Keyboard shortcuts ──
-        document.addEventListener('keydown', (e) => {
-            if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
-            if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
-            if (e.key === 'ArrowLeft')  { video.currentTime -= 10; showSeek('left'); }
-            if (e.key === 'ArrowRight') { video.currentTime += 10; showSeek('right'); }
-            if (e.key === 'm') { video.muted = !video.muted; muteIcon.textContent = video.muted ? 'volume_off' : 'volume_up'; }
-            if (e.key === 'f') { toggleFullscreen(); }
-        });
-
-        // ── Fullscreen ──
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                container.requestFullscreen && container.requestFullscreen();
-            } else {
-                document.exitFullscreen && document.exitFullscreen();
-            }
-        }
-
-        document.getElementById('fullScreen').addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleFullscreen();
-        });
-
-        document.addEventListener('fullscreenchange', () => {
-            fsIcon.textContent = document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen';
-        });
-
-        // ── Quality switch (views.py: video_720 va video_1080 alohida linklar) ──
-        window.changeQuality = (newSrc, label, e) => {
-            e.stopPropagation();
-            const time = video.currentTime;
-            loader.classList.add('active');
-            video.src = newSrc;
-            video.load();
-            video.addEventListener('loadedmetadata', () => {
-                video.currentTime = time;
-                video.play();
-                loader.classList.remove('active');
-                // Label yangilash
-                const btn = document.getElementById('qualityLabelBtn');
-                if (btn) btn.textContent = label === '1080p' ? 'FHD' : 'HD';
-                // Check mark
-                const c720  = document.getElementById('check720');
-                const c1080 = document.getElementById('check1080');
-                if (c720 && c1080) {
-                    if (label === '1080p') {
-                        c1080.style.opacity = '1'; c1080.style.color = '#00cc4c';
-                        c720.style.opacity  = '0';
-                    } else {
-                        c720.style.opacity  = '1'; c720.style.color = '#00cc4c';
-                        c1080.style.opacity = '0';
-                    }
-                }
-                document.querySelectorAll('.v-menu').forEach(m => m.classList.remove('show'));
-            }, { once: true });
-        };
-
-        // ── Zoom (video ichida) ──
-        window.adjustZoom = (amount, e) => {
-            e.stopPropagation();
-            curZoom = Math.min(Math.max(curZoom + amount, 50), 200);
-            video.style.transform = `scale(${curZoom / 100})`;
-            const lbl = document.getElementById('zoomLabel');
-            if (lbl) lbl.textContent = curZoom + '%';
-        };
-
-        // ── Speed cycle ──
-        window.changeSpeedCycle = (e) => {
-            e.stopPropagation();
-            sIdx = (sIdx + 1) % speeds.length;
-            video.playbackRate = speeds[sIdx];
-            const el = document.getElementById('speedDisplay');
-            if (el) el.textContent = speeds[sIdx] + '×';
-        };
+        lastTap = now;
+        setTimeout(() => {
+            if (Date.now() - lastTap >= 260) togglePlay();
+        }, 280);
     });
 
-    // ── List modal ─────────────────────────────────────────────────────────
-    window.toggleListModal = () => {
-        const modal = document.getElementById('listModal');
-        modal.classList.toggle('hidden');
-        modal.classList.toggle('flex');
-        checkStatus();
-    };
+    /* Keyboard */
+    document.addEventListener('keydown', (e) => {
+        if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+        if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
+        if (e.key === 'ArrowLeft')  { video.currentTime -= 10; showSeek('L'); }
+        if (e.key === 'ArrowRight') { video.currentTime += 10; showSeek('R'); }
+        if (e.key === 'ArrowDown')  { e.preventDefault(); navigate('next'); }
+        if (e.key === 'ArrowUp')    { e.preventDefault(); navigate('prev'); }
+        if (e.key === 'f')          { toggleFullscreen(); }
+    });
 
-    window.checkStatus = () => {
-        const status     = document.getElementById('statusSelect').value;
-        const extraFields = document.getElementById('extraFields');
-        const epInput    = document.getElementsByName('current_episode')[0];
-        if (['1','2','4'].includes(status)) {
-            extraFields.style.display = 'grid';
-            epInput.readOnly = (status === '2');
-            epInput.style.opacity = (status === '2') ? '0.4' : '1';
-        } else {
-            extraFields.style.display = 'none';
-        }
-    };
+    /* Progress bar seek */
+    let seeking = false;
+    function seekTo(clientX) {
+        const rect = progressWr.getBoundingClientRect();
+        const r = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+        video.currentTime = r * video.duration;
+    }
+    progressWr.addEventListener('mousedown', (e) => { seeking = true; seekTo(e.clientX); e.stopPropagation(); });
+    document.addEventListener('mousemove',  (e) => { if (seeking) seekTo(e.clientX); });
+    document.addEventListener('mouseup',    ()  => { seeking = false; });
 
-    // ── Comments ────────────────────────────────────────────────────────────
-    window.prepareReply = (name, id) => {
-        document.getElementById('contactparent').value = id;
-        document.getElementById('reply-name').innerText = name;
-        document.getElementById('replying-to').classList.remove('hidden');
-        const form = document.getElementById('commentForm');
-        form.setAttribute('hx-target', `#replies-${id}`);
-        form.setAttribute('hx-swap', 'beforeend');
-        htmx.process(form);
-        document.getElementById('commentText').placeholder = 'Javob yozish...';
-        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        document.getElementById('commentText').focus();
-    };
+    progressWr.addEventListener('touchstart', (e) => { seekTo(e.touches[0].clientX); }, { passive: true });
+}
 
-    window.resetCommentTarget = () => {
-        document.getElementById('contactparent').value = '';
-        document.getElementById('replying-to').classList.add('hidden');
-        const form = document.getElementById('commentForm');
-        form.setAttribute('hx-target', '#comment-list');
-        form.setAttribute('hx-swap', 'afterbegin');
-        document.getElementById('commentText').placeholder = "O'z fikringizni yozib qoldiring...";
-        htmx.process(form);
-    };
+function togglePlay() {
+    if (!video) return;
+    if (video.paused) { video.play();  flashPlay('play');  }
+    else              { video.pause(); flashPlay('pause'); }
+}
 
-    window.toggleReviewText = (btn) => {
-        const wrap      = btn.parentElement;
-        const shortText = wrap.querySelector('.comment-short-text');
-        const fullText  = wrap.querySelector('.comment-full-text');
-        const isHidden  = fullText.classList.contains('hidden');
-        shortText.classList.toggle('hidden', isHidden);
-        fullText.classList.toggle('hidden', !isHidden);
-        btn.innerHTML = isHidden
-            ? `Qisqartirish <i class="fas fa-chevron-up ml-1"></i>`
-            : `Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>`;
-    };
+function flashPlay(type) {
+    flashI.className = type === 'play' ? 'fas fa-play' : 'fas fa-pause';
+    flashIcon.classList.remove('pop');
+    void flashIcon.offsetWidth;
+    flashIcon.classList.add('pop');
+}
+
+function showSeek(side) {
+    const el = document.getElementById('seek' + side);
+    if (!el) return;
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+}
+
+/* ─────────────────────────────────────────────────────────
+   QUALITY SWITCH
+───────────────────────────────────────────────────────── */
+window.switchQuality = function () {
+    if (!video) return;
+    const time = video.currentTime;
+    const wasPaused = video.paused;
+    curQual = curQual === '720p' ? '1080p' : '720p';
+    video.src = curQual === '1080p' ? SRC_1080 : SRC_720;
+    loader.classList.add('on');
+    video.load();
+    video.addEventListener('loadedmetadata', () => {
+        video.currentTime = time;
+        if (!wasPaused) video.play();
+        loader.classList.remove('on');
+        const btn = document.getElementById('rQualBtn');
+        if (btn) btn.textContent = curQual === '1080p' ? 'FHD' : 'HD';
+    }, { once: true });
+};
+
+/* ─────────────────────────────────────────────────────────
+   FULLSCREEN
+───────────────────────────────────────────────────────── */
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        app.requestFullscreen && app.requestFullscreen();
+    } else {
+        document.exitFullscreen && document.exitFullscreen();
+    }
+}
+
+/* ─────────────────────────────────────────────────────────
+   BOTTOM SHEETS
+───────────────────────────────────────────────────────── */
+window.openSheet = function (id) {
+    closeAllSheets();
+    document.getElementById(id).classList.add('open');
+    document.getElementById('sheetBackdrop').classList.add('open');
+    if (video && !video.paused) video.pause();
+};
+window.closeSheet = function (id) {
+    document.getElementById(id).classList.remove('open');
+    const anyOpen = document.querySelector('.r-sheet.open');
+    if (!anyOpen) document.getElementById('sheetBackdrop').classList.remove('open');
+};
+window.closeAllSheets = function () {
+    document.querySelectorAll('.r-sheet').forEach(s => s.classList.remove('open'));
+    document.getElementById('sheetBackdrop').classList.remove('open');
+};
+
+/* ─────────────────────────────────────────────────────────
+   LIKE
+───────────────────────────────────────────────────────── */
+let liked = false;
+window.doLike = function () {
+    if (!IS_AUTH) { window.location.href = LOGIN_URL; return; }
+    liked = !liked;
+    likeCircle.classList.toggle('is-liked', liked);
+    likeCircle.style.transform = 'scale(1.25)';
+    setTimeout(() => { likeCircle.style.transform = ''; }, 200);
+    document.getElementById('likeLabel').textContent = liked ? 'Yoqdi ❤' : 'Yoqdi';
+};
+
+/* ─────────────────────────────────────────────────────────
+   BOOKMARK / LIBRARY
+───────────────────────────────────────────────────────── */
+window.doBookmark = function () {
+    if (!IS_AUTH) { window.location.href = LOGIN_URL; return; }
+    const modal = document.getElementById('libraryModal');
+    if (modal) { modal.classList.add('open'); if (video && !video.paused) video.pause(); }
+};
+window.closeLibrary = function () {
+    const modal = document.getElementById('libraryModal');
+    if (modal) modal.classList.remove('open');
+};
+/* backdrop click to close */
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('libraryModal');
+    if (modal && e.target === modal) closeLibrary();
+});
+
+/* ─────────────────────────────────────────────────────────
+   COMMENT HELPERS (htmx uchun)
+───────────────────────────────────────────────────────── */
+window.prepareReply = function (name, id) {
+    /* Eski funksiya bilan moslik */
+};
+window.resetCommentTarget = function () {};
+window.toggleReviewText = function (btn) {
+    const wrap      = btn.parentElement;
+    const shortText = wrap.querySelector('.comment-short-text');
+    const fullText  = wrap.querySelector('.comment-full-text');
+    const isHidden  = fullText.classList.contains('hidden');
+    shortText.classList.toggle('hidden', isHidden);
+    fullText.classList.toggle('hidden', !isHidden);
+    btn.innerHTML = isHidden
+        ? `Qisqartirish <i class="fas fa-chevron-up ml-1"></i>`
+        : `Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>`;
+};
+
+/* ─────────────────────────────────────────────────────────
+   AUTO-SCROLL ACTIVE EPISODE INTO VIEW (sheet ochilganda)
+───────────────────────────────────────────────────────── */
+document.getElementById('episodeSheet').addEventListener('transitionend', () => {
+    const activeBtn = document.querySelector('.r-ep-btn.active');
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+});
 
 })();
 </script>
