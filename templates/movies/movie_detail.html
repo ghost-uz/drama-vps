@@ -1121,7 +1121,8 @@ const progressWr = document.getElementById('rProgressWrap');
 const flashIcon  = document.getElementById('rFlashIcon');
 const flashI     = document.getElementById('rFlashI');
 const likeCircle = document.getElementById('likeCircle');
-const controlEls = document.querySelectorAll('.controls-ui'); // topbar + bottom-info + gradients
+const tapToPlay  = document.getElementById('tapToPlay');
+const controlEls = document.querySelectorAll('.controls-ui');
 
 /* ─────────────────────────────────────────────────────────
    CONTROLS AUTO-HIDE  (TikTok uslubi)
@@ -1272,8 +1273,6 @@ function togglePlay() {
 }
 
 /* ─── TAP TO PLAY ───────────────────────────────────────── */
-const tapToPlay = document.getElementById('tapToPlay');
-
 function startPlay() {
     tapToPlay.classList.add('hide'); // har doim yashir (embed bo'lsa ham)
     if (!video) return;              // embed: overlay yashirildi, tamom
