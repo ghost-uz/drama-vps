@@ -943,7 +943,7 @@ body > main {
     </div>
 
     <!-- ── TAP TO PLAY overlay ──────────────────────────── -->
-    <div id="tapToPlay" onclick="startPlay()">
+    <div id="tapToPlay" onclick="startPlay()"{% if is_restricted %} class="hide"{% endif %}>
         <div class="ttp-circle"><i class="fas fa-play" style="margin-left:4px;"></i></div>
         <span class="ttp-label">Bosib ko'rish</span>
     </div>
@@ -1261,8 +1261,8 @@ if (video) {
         video.currentTime = r * video.duration;
     }
     progressWr.addEventListener('mousedown', (e) => { seeking = true; seekTo(e.clientX); e.stopPropagation(); });
-    document.addEventListener('mousemove',  (e) => { if (seeking) seekTo(e.clientX); });
-    document.addEventListener('mouseup',    ()  => { seeking = false; });
+    document.addEventListener('mousemove',  (e) => { if (seeking) seekTo(e.clientX); }, { passive: true });
+    document.addEventListener('mouseup',    ()  => { seeking = false; }, { passive: true });
     progressWr.addEventListener('touchstart', (e) => { showControls(); seekTo(e.touches[0].clientX); }, { passive: true });
 }
 
@@ -1413,7 +1413,9 @@ window.toggleReviewText = function (btn) {
 /* ─────────────────────────────────────────────────────────
    AUTO-SCROLL ACTIVE EPISODE INTO VIEW (sheet ochilganda)
 ───────────────────────────────────────────────────────── */
-document.getElementById('episodeSheet').addEventListener('transitionend', () => {
+document.getElementById('episodeSheet').addEventListener('transitionend', (e) => {
+    if (e.propertyName !== 'transform') return; /* visibility transitionend ni o'tkazib yuboramiz */
+    if (!document.getElementById('episodeSheet').classList.contains('open')) return;
     const activeBtn = document.querySelector('.r-ep-btn.active');
     if (activeBtn) activeBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
 });

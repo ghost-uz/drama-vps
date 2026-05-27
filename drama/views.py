@@ -175,19 +175,17 @@ class MovieDetailView(GenreYearMixin, DetailView):
         is_restricted = False
         restriction_type = None
 
-        # Agar qism 2 yoki undan katta bo'lsa himoya boshlanadi. (1-qism doim tekin)
-        if active_episode and active_episode.episode_number > 1:
-            
+        # 1-10 qismlar tekin; 11+ qismdan himoya boshlanadi
+        if active_episode and active_episode.episode_number > 10:
+
             # QOIDA 1: Agar serial Crowdfunding (Pul yig'ish) da bo'lsa
             if funding_project:
-                # Agar user umuman saytga kirmagan bo'lsa YOKI saytga kirib, pul to'lamagan bo'lsa:
                 if not user.is_authenticated or not user_has_access:
                     is_restricted = True
                     restriction_type = 'funding'
 
             # QOIDA 2: Agar serial VIP bo'lsa (va u Crowdfunding bo'lmasa)
             elif movie.is_vip:
-                # Agar user umuman saytga kirmagan bo'lsa YOKI saytga kirib, VIP olmagan bo'lsa:
                 if not user.is_authenticated or not is_premium_user:
                     is_restricted = True
                     restriction_type = 'vip'
