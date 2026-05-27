@@ -245,25 +245,48 @@ body > main {
     letter-spacing: 0.3px;
 }
 
-/* ─── Mute/Unmute tugmasi ───────────────────────────────── */
-#muteBtn {
+/* ─── TAP TO PLAY overlay ───────────────────────────────── */
+#tapToPlay {
     position: absolute;
-    bottom: max(110px, calc(env(safe-area-inset-bottom, 0px) + 110px));
-    left: 14px;
-    z-index: 20;
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.55);
-    border: 1.5px solid rgba(255,255,255,0.25);
-    backdrop-filter: blur(10px);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 17px;
-    color: #fff;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
     cursor: pointer;
-    transition: opacity 0.3s ease, transform 0.15s ease;
     -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.3s ease;
 }
-#muteBtn:active { transform: scale(0.9); }
+#tapToPlay.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+#tapToPlay .ttp-circle {
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: rgba(0,204,76,0.18);
+    border: 2.5px solid #00cc4c;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    color: #00cc4c;
+    box-shadow: 0 0 40px rgba(0,204,76,0.30);
+    transition: transform 0.15s ease, background 0.2s ease;
+}
+#tapToPlay:active .ttp-circle {
+    transform: scale(0.92);
+    background: rgba(0,204,76,0.30);
+}
+#tapToPlay .ttp-label {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.90);
+}
 
 /* ═══════════════════════════════════════════════════════════
    BOTTOM INFO  (iOS safe area aware)
@@ -832,8 +855,6 @@ body > main {
                 <video id="mainVideo"
                        poster="{{ movie.poster.url }}"
                        playsinline
-                       autoplay
-                       muted
                        oncontextmenu="return false;"
                        controlsList="nodownload noremoteplayback nofullscreen">
                     <source src="{{ video_720 }}" type="video/mp4" id="videoSource720">
@@ -921,10 +942,11 @@ body > main {
         </div>
     </div>
 
-    <!-- ── Mute/Unmute tugmasi ──────────────────────────── -->
-    <button id="muteBtn" class="controls-ui" onclick="toggleMute()" title="Ovozni yoq/o'chir" aria-label="Ovozni yoq/o'chir">
-        <i class="fas fa-volume-mute" id="muteIcon"></i>
-    </button>
+    <!-- ── TAP TO PLAY overlay ──────────────────────────── -->
+    <div id="tapToPlay" onclick="startPlay()">
+        <div class="ttp-circle"><i class="fas fa-play" style="margin-left:4px;"></i></div>
+        <span class="ttp-label">Bosib ko'rish</span>
+    </div>
 
     <!-- ── Bottom Info (controls bilan auto-hide) ──────── -->
     <div class="r-bottom-info controls-ui">
@@ -1165,7 +1187,7 @@ app.addEventListener('touchend', (e) => {
 
 /* Mouse (desktop) */
 app.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.r-topbar, .r-actions, .r-bottom-info, .r-sheet, .r-sheet-backdrop, #libraryModal, .r-progress, #rLoader, #muteBtn')) return;
+    if (e.target.closest('.r-topbar, .r-actions, .r-bottom-info, .r-sheet, .r-sheet-backdrop, #libraryModal, .r-progress, #rLoader, #tapToPlay')) return;
     mouseStartY = e.clientY;
     mouseDown   = true;
 });
@@ -1187,9 +1209,8 @@ if (video) {
 
     /* Controls: pauza — doim ko'rinsin; ijro — 3 sek da yashirilsin */
     video.addEventListener('pause',  () => { clearTimeout(ctrlHideTimer); showControls(); });
-    video.addEventListener('play',        () => { showControls(); syncMuteIcon(); });
-    video.addEventListener('playing',     () => { showControls(); }); /* autoplay holatida ham */
-    video.addEventListener('volumechange',() => { syncMuteIcon(); });
+    video.addEventListener('play',    () => { showControls(); });
+    video.addEventListener('playing', () => { showControls(); });
 
     /* Progress */
     video.addEventListener('timeupdate', () => {
@@ -1250,35 +1271,15 @@ function togglePlay() {
     else              { video.pause(); flashPlay('pause'); }
 }
 
-/* ─── Mute / Unmute ────────────────────────────────────── */
-const muteIcon = document.getElementById('muteIcon');
-let userUnmuted = false; // foydalanuvchi birinchi marta unmute qildimi
+/* ─── TAP TO PLAY ───────────────────────────────────────── */
+const tapToPlay = document.getElementById('tapToPlay');
 
-function syncMuteIcon() {
+function startPlay() {
     if (!video) return;
-    if (video.muted) {
-        muteIcon.className = 'fas fa-volume-mute';
-    } else {
-        muteIcon.className = 'fas fa-volume-up';
-    }
-}
-
-function toggleMute() {
-    if (!video) return;
-    video.muted = !video.muted;
-    userUnmuted = !video.muted;
-    syncMuteIcon();
-}
-
-/* Birinchi foydalanuvchi harakatida avtomatik unmute */
-function tryUnmuteOnFirstInteraction() {
-    if (userUnmuted || !video || !video.muted) return;
     video.muted = false;
-    userUnmuted = true;
-    syncMuteIcon();
+    video.play();
+    tapToPlay.classList.add('hide');
 }
-app.addEventListener('touchend', tryUnmuteOnFirstInteraction, { once: true });
-app.addEventListener('mouseup',  tryUnmuteOnFirstInteraction, { once: true });
 
 function flashPlay(type) {
     flashI.className = type === 'play' ? 'fas fa-play' : 'fas fa-pause';
