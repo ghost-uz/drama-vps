@@ -36,6 +36,23 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   BASE TEMPLATE ELEMENTLARINI TO'LIQ YASHIRAMIZ
+   (header, footer, nav, main padding/min-height)
+═══════════════════════════════════════════════════════════ */
+body > header,
+body > footer,
+body > nav {
+    display: none !important;
+}
+
+body > main {
+    padding: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    background: #000 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
    REELS WRAPPER — full-screen, above everything
 ═══════════════════════════════════════════════════════════ */
 #reelsApp {
