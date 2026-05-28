@@ -1128,8 +1128,8 @@ body > main {
 {
     "episodes":  [{% for ep in episodes %}{{ ep.episode_number }}{% if not forloop.last %},{% endif %}{% endfor %}],
     "currentEp": {{ active_episode.episode_number|default:1 }},
-    "src720":    "{{ video_720|escapejs }}",
-    "src1080":   "{{ video_1080|escapejs }}",
+    "src720":    "{% if not is_restricted %}{{ video_720|escapejs }}{% endif %}",
+    "src1080":   "{% if not is_restricted %}{{ video_1080|escapejs }}{% endif %}",
     "isAuth":    {% if user.is_authenticated %}true{% else %}false{% endif %},
     "loginUrl":  "{% url 'users:login' %}"
 }

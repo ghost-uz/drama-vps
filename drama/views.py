@@ -196,9 +196,13 @@ class MovieDetailView(GenreYearMixin, DetailView):
         # ==========================================
         # PLEYER URL LARI VA BOSHQA NARSALAR
         # ==========================================
-        video_source = active_episode.video_embed_code if (active_episode and active_episode.video_embed_code) else movie.film_embed_code
-        v720, v1080 = self.parse_video_links(video_source)
-        context['video_720'], context['video_1080'] = v720, v1080
+        if is_restricted:
+            context['video_720'] = ''
+            context['video_1080'] = ''
+        else:
+            video_source = active_episode.video_embed_code if (active_episode and active_episode.video_embed_code) else movie.film_embed_code
+            v720, v1080 = self.parse_video_links(video_source)
+            context['video_720'], context['video_1080'] = v720, v1080
         
         if user.is_authenticated:
             context['user_movie_status'] = UserMovieList.objects.filter(profile=user.profile, movie=movie).first()
