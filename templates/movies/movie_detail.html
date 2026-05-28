@@ -803,6 +803,51 @@ body > main {
     .r-tags { display: none; }
     .grad-bottom { height: 180px; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DESKTOP — YouTube Shorts uslubi
+   Vertikal (9:16) video ekran o'rtasida, qora yon barlar
+   Faqat gorizontal (landscape) katta ekranlar uchun
+═══════════════════════════════════════════════════════════ */
+@media (min-aspect-ratio: 1/1) and (min-width: 768px) {
+    /* Body background qora — yon barlar avtomatik qora ko'rinadi */
+    html, body {
+        background: #000 !important;
+    }
+
+    #reelsApp {
+        /* Kengligi = balandlik × (9/16), maksimal 480px
+           left: calc() orqali markazlashtirish —
+           transform ishlatilmaydi (animatsiyalar bilan ziddiyat bo'lmasin) */
+        right: auto;
+        left: calc(50vw - min(480px, calc(100vh * 9 / 16)) / 2);
+        width: min(480px, calc(100vh * 9 / 16));
+    }
+
+    /* Yon qora barlarni chiroyliroq qilish uchun blur effekti */
+    body::before,
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0; bottom: 0;
+        background: #000;
+        z-index: 1;
+        pointer-events: none;
+    }
+    body::before {
+        left: 0;
+        right: calc(50vw + min(480px, calc(100vh * 9 / 16)) / 2);
+    }
+    body::after {
+        right: 0;
+        left: calc(50vw + min(480px, calc(100vh * 9 / 16)) / 2);
+    }
+
+    /* Desktop uchun action buttons & bottom info — column ichida to'g'ri joylashsin */
+    .r-actions { right: 14px; }
+    .r-bottom-info { right: 72px; }
+    .r-act-circle { width: 48px; height: 48px; font-size: 19px; }
+}
 </style>
 {% endblock %}
 
