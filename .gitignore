@@ -8,3 +8,4 @@ env/
 staticfiles/
 media/
 node_modules
+drama-key-v2.json
