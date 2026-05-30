@@ -196,3 +196,65 @@ class TopUpRequest(models.Model):
                             profile.save(update_fields=['balance'])
 
         super().save(*args, **kwargs)
+
+
+class CryptoTopUpRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Kutilmoqda'),
+        ('approved', 'Tasdiqlandi'),
+        ('rejected', 'Rad etildi'),
+    )
+
+    USDT_TO_COIN = 12  # 1 USDT = 12 Coin
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='crypto_topup_requests')
+    amount_usdt = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="To'lov summasi (USDT)")
+    points = models.PositiveIntegerField(verbose_name="Beriladigan Coinlar", blank=True, null=True)
+    receipt_image = models.ImageField(upload_to='crypto_receipts/%Y/%m/', verbose_name="To'lov skrinshotı")
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending', verbose_name="Holati")
+    admin_note = models.TextField(blank=True, null=True, verbose_name="Admin izohi (rad etilsa)")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Kripto to'ldirish so'rovi"
+        verbose_name_plural = "Kripto to'ldirish so'rovlari"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount_usdt} USDT ({self.get_status_display()})"
+
+    def clean(self):
+        if self.status == 'pending' and not self.pk and getattr(self, 'user_id', None):
+            has_pending = CryptoTopUpRequest.objects.filter(user=self.user, status='pending').exists()
+            if has_pending:
+                raise ValidationError("Sizda allaqachon kutilayotgan kripto so'rov mavjud.")
+
+    def save(self, *args, **kwargs):
+        if not self.points:
+            self.points = int(float(self.amount_usdt) * self.USDT_TO_COIN)
+
+        if self.pk:
+            try:
+                old_record = CryptoTopUpRequest.objects.get(pk=self.pk)
+            except CryptoTopUpRequest.DoesNotExist:
+                old_record = None
+
+            if old_record:
+                from django.db import transaction as db_transaction
+
+                if old_record.status == 'pending' and self.status == 'approved':
+                    with db_transaction.atomic():
+                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
+                        profile.balance += self.points
+                        profile.save(update_fields=['balance'])
+
+                elif old_record.status == 'approved' and self.status in ['pending', 'rejected']:
+                    with db_transaction.atomic():
+                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
+                        if profile.balance >= self.points:
+                            profile.balance -= self.points
+                            profile.save(update_fields=['balance'])
+
+        super().save(*args, **kwargs)

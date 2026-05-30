@@ -9,9 +9,9 @@ import requests
 import logging
 from decouple import config
 
-from .models import Profile, UserMovieList, TopUpRequest
+from .models import Profile, UserMovieList, TopUpRequest, CryptoTopUpRequest
 from users.utils import follow, unfollow
-from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm, TopUpRequestForm
+from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm, TopUpRequestForm, CryptoTopUpRequestForm
 
 logger = logging.getLogger(__name__)
 
@@ -276,4 +276,40 @@ def topup_view(request):
         'form': form,
         'pending_request': pending_request,
         'title': "Hisobni to'ldirish",
+    })
+
+
+@login_required
+def crypto_topup_view(request):
+    pending_request = CryptoTopUpRequest.objects.filter(user=request.user, status='pending').first()
+
+    if request.method == 'POST':
+        if pending_request:
+            messages.error(request, "Sizda allaqachon kutilayotgan kripto so'rov mavjud!")
+            return redirect('users:crypto_topup')
+
+        form = CryptoTopUpRequestForm(request.POST, request.FILES)
+        if form.is_valid():
+            topup = form.save(commit=False)
+            topup.user = request.user
+            topup.save()
+
+            msg = (
+                f"💎 <b>YANGI KRIPTO TO'LOV SO'ROVI!</b>\n\n"
+                f"👤 <b>Foydalanuvchi:</b> @{request.user.username}\n"
+                f"💵 <b>To'lov summasi:</b> {topup.amount_usdt} USDT (TON)\n"
+                f"🪙 <b>Beriladigan Coin:</b> {topup.points} Coin\n\n"
+                f"👉 https://drama.uz/admin/users/cryptotopuprequest/"
+            )
+            send_telegram_notification(msg)
+
+            messages.success(request, "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting.")
+            return redirect('users:crypto_topup')
+    else:
+        form = CryptoTopUpRequestForm()
+
+    return render(request, 'users/topup_crypto.html', {
+        'form': form,
+        'pending_request': pending_request,
+        'title': "Kripto orqali to'ldirish",
     })

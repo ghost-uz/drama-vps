@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import Profile, TopUpRequest # TopUpRequest ni import qildik
+from .models import Profile, TopUpRequest, CryptoTopUpRequest
 from django.forms.widgets import SelectDateWidget # 🌟 YANIGI QO'SHILDI
 from datetime import datetime # 🌟 YANIGI QO'SHILDI
 # Hozirgi yildan 1980 gacha bo'lgan yillar ro'yxatini yaratamiz
@@ -59,9 +59,34 @@ class TopUpRequestForm(forms.ModelForm):
             ),
             'receipt_image': forms.FileInput(
                 attrs={
-                    # Chiroyli fayl tanlash tugmasi uchun
                     'class': 'w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-gray-400 outline-none focus:border-[#00cc4c] file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-[#00cc4c] file:text-black hover:file:bg-[#00ff62] transition-colors cursor-pointer',
                     'accept': 'image/*'
+                }
+            ),
+        }
+
+
+class CryptoTopUpRequestForm(forms.ModelForm):
+    class Meta:
+        model = CryptoTopUpRequest
+        fields = ['amount_usdt', 'receipt_image']
+        labels = {
+            'amount_usdt': "To'lov summasi (USDT)",
+            'receipt_image': "To'lov skrinshotini yuklang",
+        }
+        widgets = {
+            'amount_usdt': forms.NumberInput(
+                attrs={
+                    'placeholder': 'Masalan: 5.00',
+                    'min': '1',
+                    'step': '0.01',
+                    'class': 'w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-[#0098EA] transition-colors',
+                }
+            ),
+            'receipt_image': forms.FileInput(
+                attrs={
+                    'class': 'w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-gray-400 outline-none focus:border-[#0098EA] file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-[#0098EA] file:text-white hover:file:bg-[#007bc2] transition-colors cursor-pointer',
+                    'accept': 'image/*',
                 }
             ),
         }

@@ -27,7 +27,8 @@ urlpatterns = [
 
     # Hisob
     path('settings/',    user_views.settings_view,    name='settings'),
-    path('topup/',       user_views.topup_view,        name='topup'),
+    path('topup/',        user_views.topup_view,        name='topup'),
+    path('topup/crypto/', user_views.crypto_topup_view, name='crypto_topup'),
     path('subscription/', user_views.subscription_view, name='subscription'),
     path('buy-vip/',     user_views.buy_premium,       name='buy_premium'),
 ]

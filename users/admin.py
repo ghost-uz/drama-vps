@@ -6,7 +6,7 @@ from unfold.admin import ModelAdmin, StackedInline
 from unfold.decorators import display 
 from .models import Profile
 from django.utils.safestring import mark_safe
-from .models import TopUpRequest
+from .models import TopUpRequest, CryptoTopUpRequest
 
 class ProfileInline(StackedInline): 
     model = Profile
@@ -62,6 +62,41 @@ class TopUpRequestAdmin(ModelAdmin):
             req.status = 'approved'
             req.save() # save() chaqirilganda modeldagi point qo'shish mantiqi ishlaydi
         self.message_user(request, "Tanlangan so'rovlar tasdiqlandi va pointlar berildi.")
+
+    @admin.action(description="Tanlanganlarni RAD ETISH")
+    def reject_requests(self, request, queryset):
+        queryset.filter(status='pending').update(status='rejected')
+        self.message_user(request, "Tanlangan so'rovlar rad etildi.")
+
+
+@admin.register(CryptoTopUpRequest)
+class CryptoTopUpRequestAdmin(ModelAdmin):
+    list_display = ['user', 'amount_usdt', 'points', 'get_status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['user__username', 'user__email']
+    readonly_fields = ['points', 'get_receipt_image']
+    actions = ['approve_requests', 'reject_requests']
+
+    def get_status(self, obj):
+        if obj.status == 'approved':
+            return mark_safe('<span class="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">Tasdiqlandi</span>')
+        elif obj.status == 'rejected':
+            return mark_safe('<span class="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">Rad etildi</span>')
+        return mark_safe('<span class="bg-yellow-500 text-black px-2 py-1 rounded text-xs font-bold">Kutilmoqda</span>')
+    get_status.short_description = 'Holati'
+
+    def get_receipt_image(self, obj):
+        if obj.receipt_image:
+            return mark_safe(f'<a href="{obj.receipt_image.url}" target="_blank"><img src="{obj.receipt_image.url}" width="300" style="border-radius:10px;"/></a>')
+        return "Skrinshot yuklanmagan"
+    get_receipt_image.short_description = "To'lov skrinshotı"
+
+    @admin.action(description="Tanlanganlarni TASDIQLASH")
+    def approve_requests(self, request, queryset):
+        for req in queryset.filter(status='pending'):
+            req.status = 'approved'
+            req.save()
+        self.message_user(request, "Tanlangan so'rovlar tasdiqlandi va coinlar berildi.")
 
     @admin.action(description="Tanlanganlarni RAD ETISH")
     def reject_requests(self, request, queryset):
