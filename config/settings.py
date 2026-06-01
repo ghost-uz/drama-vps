@@ -287,7 +287,17 @@ STORAGES = {
 }
 
 # ==============================================================================
-# 21. DEFAULT AUTO FIELD
+# 21. BUNNY STREAM CDN
+# ==============================================================================
+# Bunny Stream dashboard dan olinadi:
+#   Library ID → Stream > Library > Library ID
+#   CDN Hostname → Stream > Library > CDN Hostname (vz-xxxxxxxx.b-cdn.net)
+BUNNY_STREAM_LIBRARY_ID = config('BUNNY_STREAM_LIBRARY_ID', default='')
+BUNNY_STREAM_CDN_HOSTNAME = config('BUNNY_STREAM_CDN_HOSTNAME', default='')
+BUNNY_STREAM_API_KEY = config('BUNNY_STREAM_API_KEY', default='')
+
+# ==============================================================================
+# 22. DEFAULT AUTO FIELD
 # ==============================================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

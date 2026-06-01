@@ -36,8 +36,8 @@ class MovieShotsInline(TabularInline):
 class EpisodeInline(TabularInline):
     model = Episode
     extra = 1
-    tab = True 
-    fields = ("episode_number", "title", "video_embed_code")
+    tab = True
+    fields = ("episode_number", "title", "bunny_video_id", "video_embed_code")
     sortable_field_name = "episode_number"
 
 # --- ADMIN CLASSES ---
@@ -104,8 +104,12 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
             "fields": ("tags",) # Keywords o'rniga Tags qo'shildi
         }),
         (_("Media & Vizual"), {
-            "classes": ["tab"], 
-            "fields": (("poster", "display_poster_preview"), ("film_embed_code", "trailer_embed_code"))
+            "classes": ["tab"],
+            "fields": (
+                ("poster", "display_poster_preview"),
+                ("bunny_video_id", "bunny_trailer_id"),
+                ("film_embed_code", "trailer_embed_code"),
+            )
         }),
         (_("Metrikalar"), {
             "classes": ["tab"], 

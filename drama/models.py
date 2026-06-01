@@ -183,8 +183,10 @@ class Movie(TimeStampedModel):
     duration = models.PositiveIntegerField("Davomiyligi (daqiqada)", default=60)
     episodes_count = models.PositiveIntegerField("Qismlar soni", default=16)
     age_limit = models.PositiveIntegerField("Yosh chegarasi", default=18)
-    film_embed_code = models.TextField("Film HTML kodi", blank=True, default="<div>...</div>") 
-    trailer_embed_code = models.TextField("Trailer HTML kodi", blank=True)
+    bunny_video_id = models.CharField("Bunny Stream Video ID (Film)", max_length=100, blank=True)
+    bunny_trailer_id = models.CharField("Bunny Stream Video ID (Trailer)", max_length=100, blank=True)
+    film_embed_code = models.TextField("Film HTML kodi (Eski)", blank=True, default="<div>...</div>")
+    trailer_embed_code = models.TextField("Trailer HTML kodi (Eski)", blank=True)
     site_rank = models.IntegerField("Sayt reytingi (Ichki)", default=0)
     mdl_rank = models.DecimalField("MyDramaList Reytingi", max_digits=4, decimal_places=1, default=0.0)
     main_actors = models.ManyToManyField(Actor, related_name="main_acted_movies")
@@ -236,7 +238,8 @@ class Episode(TimeStampedModel):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="episodes")
     title = models.CharField("Qism nomi", max_length=150)
     episode_number = models.PositiveIntegerField("Qism raqami")
-    video_embed_code = models.TextField("Video HTML kodi (Embed)")
+    bunny_video_id = models.CharField("Bunny Stream Video ID", max_length=100, blank=True)
+    video_embed_code = models.TextField("Video HTML kodi (Eski / Embed)", blank=True)
     thumbnail = models.ImageField("Qism uchun rasm", upload_to="episodes/", blank=True, null=True)
 
     class Meta:

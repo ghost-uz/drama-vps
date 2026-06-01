@@ -197,12 +197,50 @@ class MovieDetailView(GenreYearMixin, DetailView):
         # PLEYER URL LARI VA BOSHQA NARSALAR
         # ==========================================
         if is_restricted:
-            context['video_720'] = ''
-            context['video_1080'] = ''
+            context.update({
+                'use_bunny': False,
+                'video_hls': '',
+                'video_720': '',
+                'video_1080': '',
+                'video_thumbnail': '',
+                'video_preview': '',
+            })
         else:
-            video_source = active_episode.video_embed_code if (active_episode and active_episode.video_embed_code) else movie.film_embed_code
-            v720, v1080 = self.parse_video_links(video_source)
-            context['video_720'], context['video_1080'] = v720, v1080
+            from drama.bunny_stream import get_all_urls, is_configured
+
+            # Aktiv epizod yoki filmning Bunny Video ID sini aniqlaymiz
+            vid = None
+            if active_episode and active_episode.bunny_video_id:
+                vid = active_episode.bunny_video_id
+            elif not active_episode and movie.bunny_video_id:
+                vid = movie.bunny_video_id
+
+            if vid and is_configured():
+                urls = get_all_urls(vid)
+                context.update({
+                    'use_bunny': True,
+                    'video_hls': urls['hls'],
+                    'video_720': urls['play_720'],
+                    'video_1080': urls['play_1080'],
+                    'video_thumbnail': urls['thumbnail'],
+                    'video_preview': urls['preview'],
+                })
+            else:
+                # Eski tizimga fallback (Contabo URL yoki embed kod)
+                video_source = (
+                    active_episode.video_embed_code
+                    if (active_episode and active_episode.video_embed_code)
+                    else movie.film_embed_code
+                )
+                v720, v1080 = self.parse_video_links(video_source)
+                context.update({
+                    'use_bunny': False,
+                    'video_hls': '',
+                    'video_720': v720,
+                    'video_1080': v1080,
+                    'video_thumbnail': '',
+                    'video_preview': '',
+                })
         
         if user.is_authenticated:
             context['user_movie_status'] = UserMovieList.objects.filter(profile=user.profile, movie=movie).first()

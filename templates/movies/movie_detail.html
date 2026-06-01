@@ -889,7 +889,15 @@ body > main {
 
         {% else %}
             <!-- Actual video content -->
-            {% if "<iframe" in video_720 %}
+            {% if use_bunny %}
+                {# Bunny Stream — HLS.js orqali adaptive streaming #}
+                <video id="mainVideo"
+                       poster="{{ video_thumbnail|default:movie.poster.url }}"
+                       playsinline
+                       oncontextmenu="return false;"
+                       controlsList="nodownload noremoteplayback nofullscreen">
+                </video>
+            {% elif "<iframe" in video_720 %}
                 <div class="embed-wrap">{{ video_720|safe }}</div>
             {% elif "embed" in video_720 or "youtube.com" in video_720 %}
                 <div class="embed-wrap">
@@ -947,7 +955,9 @@ body > main {
                 ★ {{ movie.mdl_rank }}
             </div>
         </div>
-        {% if video_1080 and video_1080 != video_720 and not is_restricted %}
+        {% if not is_restricted and use_bunny %}
+        <button class="r-quality-btn" id="rQualBtn" onclick="switchQuality()">HD</button>
+        {% elif video_1080 and video_1080 != video_720 and not is_restricted %}
         <button class="r-quality-btn" id="rQualBtn" onclick="switchQuality()">HD</button>
         {% endif %}
     </div>
@@ -1123,11 +1133,16 @@ body > main {
 
 
 {% block extra_js %}
+{# HLS.js — Bunny Stream adaptive streaming uchun #}
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+
 {# Django template data — JSON sifatida, linter trigger qilmasin #}
 <script id="reelsData" type="application/json">
 {
     "episodes":  [{% for ep in episodes %}{{ ep.episode_number }}{% if not forloop.last %},{% endif %}{% endfor %}],
     "currentEp": {{ active_episode.episode_number|default:1 }},
+    "useBunny":  {% if use_bunny %}true{% else %}false{% endif %},
+    "srcHls":    "{% if not is_restricted and use_bunny %}{{ video_hls|escapejs }}{% endif %}",
     "src720":    "{% if not is_restricted %}{{ video_720|escapejs }}{% endif %}",
     "src1080":   "{% if not is_restricted %}{{ video_1080|escapejs }}{% endif %}",
     "isAuth":    {% if user.is_authenticated %}true{% else %}false{% endif %},
@@ -1145,6 +1160,8 @@ body > main {
 const _d         = JSON.parse(document.getElementById('reelsData').textContent);
 const ALL_EPS    = _d.episodes;
 const CUR_EP_NUM = _d.currentEp;
+const USE_BUNNY  = _d.useBunny;
+const SRC_HLS    = _d.srcHls;
 const SRC_720    = _d.src720;
 const SRC_1080   = _d.src1080;
 const IS_AUTH    = _d.isAuth;
@@ -1154,6 +1171,7 @@ const curIdx     = ALL_EPS.indexOf(CUR_EP_NUM);
 const prevEpNum  = curIdx > 0                ? ALL_EPS[curIdx - 1] : null;
 const nextEpNum  = curIdx < ALL_EPS.length-1 ? ALL_EPS[curIdx + 1] : null;
 let   curQual    = '720p';
+let   hlsInst    = null;
 
 /* ─────────────────────────────────────────────────────────
    DOM REFS
@@ -1243,6 +1261,37 @@ document.addEventListener('mouseup', (e) => {
     mouseDown = false;
     if (Math.abs(dy) > 80) navigate(dy > 0 ? 'next' : 'prev');
 });
+
+/* ─────────────────────────────────────────────────────────
+   HLS.JS INIT — Bunny Stream adaptive streaming
+───────────────────────────────────────────────────────── */
+function initHls() {
+    if (!video || !SRC_HLS) return;
+    if (typeof Hls === 'undefined') {
+        /* HLS.js yuklanmagan bo'lsa — to'g'ridan-to'g'ri MP4 ga fallback */
+        if (SRC_720) video.src = SRC_720;
+        return;
+    }
+    if (Hls.isSupported()) {
+        hlsInst = new Hls({ enableWorker: true, lowLatencyMode: false });
+        hlsInst.loadSource(SRC_HLS);
+        hlsInst.attachMedia(video);
+        hlsInst.on(Hls.Events.ERROR, function (_, data) {
+            if (data.fatal && SRC_720) {
+                hlsInst.destroy();
+                hlsInst = null;
+                video.src = SRC_720;
+            }
+        });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        /* Safari — native HLS qo'llab-quvvatlaydi */
+        video.src = SRC_HLS;
+    } else if (SRC_720) {
+        video.src = SRC_720;
+    }
+}
+
+if (USE_BUNNY) initHls();
 
 /* ─────────────────────────────────────────────────────────
    VIDEO PLAYER LOGIC
@@ -1348,9 +1397,30 @@ function showSeek(side) {
 
 /* ─────────────────────────────────────────────────────────
    QUALITY SWITCH
+   — Bunny (HLS) da: Auto ↔ FHD sifat darajasi
+   — Eski (MP4) da: 720p ↔ 1080p URL almashtirish
 ───────────────────────────────────────────────────────── */
 window.switchQuality = function () {
     if (!video) return;
+    const btn = document.getElementById('rQualBtn');
+
+    /* Bunny HLS mode */
+    if (hlsInst) {
+        const levels = hlsInst.levels;
+        if (hlsInst.currentLevel === -1) {
+            /* Auto → eng yuqori sifatga o'tish */
+            const fhdIdx = levels.findIndex(l => l.height >= 1080);
+            hlsInst.currentLevel = fhdIdx >= 0 ? fhdIdx : levels.length - 1;
+            if (btn) btn.textContent = 'FHD';
+        } else {
+            /* Muayyan sifat → Avtomatik (adaptive) */
+            hlsInst.currentLevel = -1;
+            if (btn) btn.textContent = 'HD';
+        }
+        return;
+    }
+
+    /* Eski MP4 mode */
     const time = video.currentTime;
     const wasPaused = video.paused;
     curQual = curQual === '720p' ? '1080p' : '720p';
@@ -1361,7 +1431,6 @@ window.switchQuality = function () {
         video.currentTime = time;
         if (!wasPaused) video.play();
         loader.classList.remove('on');
-        const btn = document.getElementById('rQualBtn');
         if (btn) btn.textContent = curQual === '1080p' ? 'FHD' : 'HD';
     }, { once: true });
 };
