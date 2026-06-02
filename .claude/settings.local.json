@@ -14,7 +14,9 @@
       "PowerShell(py --list 2>&1)",
       "Bash(Get-ChildItem -Path \"c:\\\\projects\\\\drama-vps\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(python manage.py makemigrations drama --name bunny_stream_video_id)"
+      "Bash(python manage.py makemigrations drama --name bunny_stream_video_id)",
+      "Bash(python manage.py check --deploy)",
+      "Bash(python -c \"import ast, sys; ast.parse\\(open\\('config/middleware.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
