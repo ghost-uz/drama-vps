@@ -1,0 +1,1219 @@
+{
+  "meta": {
+    "project_name": "drama.uz",
+    "project_type": "Kino/serial streaming SaaS platforma",
+    "description_uz": "Koreys/Osiyo dramalari (kino-serial) ko'rish uchun production darajasidagi Django SaaS platforma. Crowdfunding (tarjima uchun pul yig'ish), VIP obuna, Coin (ichki valyuta) tizimi, aktyor profillari va Bunny Stream orqali video uzatish.",
+    "source_project_path": "C:/projects/drama-vps",
+    "tracker_version": "v1.0",
+    "created": "2026-06-08",
+    "target_stack": {
+      "language": "Python 3.12+",
+      "framework": "Django 6.0",
+      "api": "Django REST Framework (DRF) + drf-spectacular (OpenAPI)",
+      "database": "PostgreSQL 16+",
+      "cache_broker": "Redis 7+ (cache + Celery broker + session)",
+      "background_jobs": "Celery 5 + Celery Beat (periodik vazifalar)",
+      "frontend": "Django Templates (SSR) + HTMX + Alpine.js + Tailwind CSS (SEO uchun server-side rendering)",
+      "media_video": "Bunny Stream (HLS adaptiv, token-himoyalangan URL, TUS upload)",
+      "media_image": "Google Cloud Storage (cdn.drama.uz) — siqilgan WEBP",
+      "auth": "django-allauth (username/email + social), DRF uchun JWT (simplejwt)",
+      "admin": "django-unfold",
+      "i18n": "django-modeltranslation (uz, en)",
+      "deploy": "Docker Compose (web, db, redis, celery, beat, nginx) + CI/CD"
+    },
+    "instructions_for_agents_uz": "Bu fayl drama.uz loyihasini KUCHLI FUNDAMENT ustiga qayta qurish uchun to'liq vazifalar ro'yxati. Har bir task atomik va testlanadigan bo'lishi kerak. Fazalar ketma-ket bajariladi (P0 → P14), lekin faza ichidagi tasklar 'depends_on' ga qarab parallel ketishi mumkin. Har bir task tugaganda: (1) testlar yoziladi va o'tadi, (2) migration toza, (3) mypy/ruff toza, (4) status 'done' ga o'tkaziladi. Eski kod C:/projects/drama-vps da — uni o'chirmang, qayta foydalaning va kuchaytiring.",
+    "status_legend": {
+      "todo": "Boshlanmagan",
+      "in_progress": "Jarayonda",
+      "review": "Tekshiruv kutilmoqda",
+      "done": "Tugallangan",
+      "blocked": "To'sib qo'yilgan"
+    },
+    "priority_legend": {
+      "P0": "Kritik — fundament, busiz keyingilar ishlamaydi",
+      "P1": "Yuqori — asosiy funksional",
+      "P2": "O'rta — sifat va kengaytirish",
+      "P3": "Past — yaxshilanish, nice-to-have"
+    }
+  },
+
+  "current_state_audit": {
+    "mavjud": [
+      "Django 6.0.1, Python 3.12, PostgreSQL ulangan",
+      "3 ta app: drama (Movie, Episode, Actor, Genre, Tag, Category, Review, Rating, ActorGift, TopSlider, MovieShots), users (Profile, UserMovieList, TopUpRequest, CryptoTopUpRequest, balance/Coin, XP, premium), funding (FundingProject, FundingContributor — crowdfunding)",
+      "Bunny Stream URL generator service (drama/bunny_stream.py) — HLS, direct mp4, thumbnail, preview, embed",
+      "Google Cloud Storage CDN (cdn.drama.uz) static/media uchun, rasm WEBP ga siqiladi",
+      "django-allauth autentifikatsiya, modeltranslation (uz/en), django-unfold admin",
+      "HTMX (django_htmx) qisman, crispy-forms + bootstrap5, Tailwind",
+      "Sitemap, robots.txt, asosiy SEO",
+      "Cloudflare + Telegram WebView uchun cookie/CORS sozlamalari",
+      "VIP gating + crowdfunding gating mantiqi (11-qismdan himoya) MovieDetailView da",
+      "Coin tizimi: TopUp (UZS chek) + Crypto (USDT) admin tasdiq orqali, select_for_update bilan"
+    ],
+    "muammolar_va_yetishmayotgan": [
+      "DRF UMUMAN YO'Q — REST API mavjud emas (mobil/SPA imkonsiz)",
+      "Redis sozlanmagan — settings.py da CACHES yo'q, lekin views.py cache.get_or_set ishlatadi (default LocMemCache — production'da ishlamaydi, har worker alohida kesh)",
+      "Celery YO'Q — barcha og'ir ishlar (rasm siqish PIL orqali) save() ichida SINXRON bajariladi → sekin admin, request bloklanadi",
+      "Alpine.js yo'q (faqat HTMX)",
+      "Bunny video URL lari TOKEN-HIMOYASIZ — CDN linkni bilgan har kim videoni ko'radi/yuklab oladi (DRM/signed URL yo'q)",
+      "Bunny upload QO'LDA — admin Bunny dashboardga kirib yuklab, GUID ni nusxalaydi (avtomatlashtirilmagan)",
+      "Sirlar REPODA: drama-key-v2.json (GCS service account), .env qiymatlari — xavfli",
+      "Xavfsizlik bo'sh joylari: X_FRAME_OPTIONS='ALLOWALL', parol min_length=3, ACCOUNT_EMAIL_VERIFICATION='none', CSP yo'q, rate-limit yo'q",
+      "Testlar yo'q (tests.py bo'sh)",
+      "Docker/CI/CD yo'q, deploy passenger_wsgi (shared hosting) — zaif",
+      "Qidiruv faqat icontains (full-text search yo'q)",
+      "Coin balansi bitta PositiveIntegerField — tranzaksiya tarixi/ledger yo'q (audit imkonsiz)",
+      "Episode flat tuzilma — Season (fasl) modeli yo'q",
+      "Watch history / 'davom ettirish' (resume playback) yo'q",
+      "Settings bitta fayl (dev/prod ajratilmagan)",
+      "Logging/monitoring/Sentry yo'q",
+      "Rating IP asosida (foydalanuvchi bahosi UserMovieList.score da alohida, bog'lanmagan)"
+    ]
+  },
+
+  "conventions": {
+    "code_style": "ruff + black + isort, mypy (strict-ish), Google-style docstring",
+    "test": "pytest + pytest-django + factory_boy + faker, coverage >= 80%",
+    "api_versioning": "/api/v1/ prefiks, drf-spectacular OpenAPI sxema",
+    "migrations": "Har task o'z migration'i bilan, data migration alohida ajratilgan, reversible",
+    "commits": "Conventional Commits (feat:, fix:, refactor:, test:, chore:)",
+    "branches": "har faza/task uchun feature branch, PR + review",
+    "settings": "config/settings/{base,dev,prod,test}.py — django-environ orqali",
+    "secrets": "Hech qachon repoda emas — .env (gitignore) + production'da secret manager/env"
+  },
+
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Fundament va loyiha gigiyenasi",
+      "goal": "Production-ready infratuzilma: settings split, sirlarni tozalash, Redis, Celery skeleti, Docker, logging, pre-commit. Busiz qolgan hammasi qum ustiga quriladi.",
+      "tasks": [
+        {
+          "id": "P0-T1",
+          "title_en": "Split settings into base/dev/prod/test",
+          "title_uz": "Settings'ni base/dev/prod/test ga bo'lish",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Bitta config/settings.py ni config/settings/{base,dev,prod,test}.py ga bo'lish. django-environ orqali env o'qish. DEBUG, ALLOWED_HOSTS, DATABASES, security har muhitga mos.",
+          "acceptance_criteria": [
+            "config/settings/ paketi yaratilgan, DJANGO_SETTINGS_MODULE env orqali tanlanadi",
+            "dev'da DEBUG=True, console email; prod'da DEBUG=False, strict security",
+            "test settings tez (LocMem cache, sqlite yoki tez postgres, migratsiya o'chirilmagan)",
+            "manage.py, wsgi, asgi yangilangan, mavjud funksional buzilmagan"
+          ],
+          "affected": ["config/settings/", "manage.py", "config/wsgi.py", "config/asgi.py"]
+        },
+        {
+          "id": "P0-T2",
+          "title_en": "Remove committed secrets, rotate keys, .gitignore audit",
+          "title_uz": "Repodagi sirlarni o'chirish, kalitlarni almashtirish",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "drama-key-v2.json (GCS service account) va boshqa sirlarni repodan o'chirish, git tarixidan tozalash (git filter-repo), yangi kalit generatsiya. GCS credentials env/fayl yo'li orqali, repoga tushmaydi. .gitignore to'liqlash.",
+          "acceptance_criteria": [
+            "Hech qanday .json kalit, .env, parol repoda yo'q",
+            "GCS_CREDENTIALS env yo'l yoki JSON-string orqali yuklanadi",
+            "SECRET_KEY va barcha kalitlar rotatsiya qilingan",
+            ".gitignore: .env, *.key.json, media/, staticfiles/, __pycache__, *.pyc qamraydi"
+          ],
+          "affected": [".gitignore", "config/settings/base.py", "drama-key-v2.json"]
+        },
+        {
+          "id": "P0-T3",
+          "title_en": "Configure Redis as cache + session backend",
+          "title_uz": "Redis'ni kesh va sessiya backend qilib sozlash",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T1"],
+          "description_uz": "django-redis o'rnatish, CACHES default = RedisCache. SESSION_ENGINE = cache (yoki cached_db). views.py dagi cache.get_or_set lar endi haqiqiy Redis bilan ishlaydi. Kesh kalitlari uchun prefiks/versiya.",
+          "acceptance_criteria": [
+            "CACHES['default'] django_redis.cache.RedisCache, REDIS_URL env'dan",
+            "Sessiyalar Redis'da, login saqlanadi",
+            "Kesh prefiks 'drama:' va versiyalash sozlangan",
+            "Local va Docker'da Redis ulanishi test qilingan"
+          ],
+          "affected": ["config/settings/base.py", "requirements"]
+        },
+        {
+          "id": "P0-T4",
+          "title_en": "Celery + Beat skeleton wired to Redis",
+          "title_uz": "Celery + Beat skeletini Redis'ga ulash",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T3"],
+          "description_uz": "config/celery.py yaratish, Celery app, Redis broker + result backend. django-celery-beat (DB scheduler). Bitta test task (debug_task). worker va beat ishga tushadi.",
+          "acceptance_criteria": [
+            "celery -A config worker va celery -A config beat ishlaydi",
+            "@shared_task debug_task .delay() ishlaydi va natija qaytaradi",
+            "django-celery-beat migratsiyasi qo'llangan, admin'da ko'rinadi",
+            "task autodiscover barcha app'lardan ishlaydi"
+          ],
+          "affected": ["config/celery.py", "config/__init__.py", "requirements"]
+        },
+        {
+          "id": "P0-T5",
+          "title_en": "Structured logging configuration",
+          "title_uz": "Tuzilmali (structured) logging sozlash",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T1"],
+          "description_uz": "LOGGING dict: console (dev), JSON formatter (prod), fayl/stdout. django, celery, app loggerlari. WARNING+ alohida. Request ID middleware (ixtiyoriy).",
+          "acceptance_criteria": [
+            "LOGGING konfiguratsiyasi har muhit uchun",
+            "Prod'da JSON log, dev'da o'qiladigan format",
+            "Xatolar to'liq traceback bilan loglanadi"
+          ],
+          "affected": ["config/settings/", "config/logging.py"]
+        },
+        {
+          "id": "P0-T6",
+          "title_en": "Dockerize: Dockerfile + docker-compose (web, db, redis, celery, beat, nginx)",
+          "title_uz": "Docker: Dockerfile + docker-compose (barcha servislar)",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T3", "P0-T4"],
+          "description_uz": "Multi-stage Dockerfile (Python 3.12-slim). docker-compose.yml: web (gunicorn/uvicorn), db (postgres16), redis, celery-worker, celery-beat, nginx. .dockerignore. Healthcheck'lar. Hot-reload uchun dev compose.",
+          "acceptance_criteria": [
+            "docker compose up bilan to'liq stack ishga tushadi",
+            "web migratsiya, static collect avtomatik",
+            "celery worker+beat alohida konteyner, Redis'ga ulanadi",
+            "nginx static/media proxy, gzip, cache header",
+            "dev override compose hot-reload bilan"
+          ],
+          "affected": ["Dockerfile", "docker-compose.yml", "docker-compose.dev.yml", ".dockerignore", "nginx/"]
+        },
+        {
+          "id": "P0-T7",
+          "title_en": "Split & pin requirements (base/dev/prod) + add DRF, Celery, Redis deps",
+          "title_uz": "Requirements'ni bo'lish va pin qilish, yangi paketlar",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "requirements/{base,dev,prod}.txt (yoki pyproject + uv/poetry). Qo'shish: djangorestframework, drf-spectacular, djangorestframework-simplejwt, django-redis, celery, django-celery-beat, django-filter, django-ratelimit, sentry-sdk, pytest, pytest-django, factory_boy, ruff, mypy. Versiyalar pin.",
+          "acceptance_criteria": [
+            "requirements/base.txt prod minimal, dev qo'shimcha test/lint",
+            "Barcha versiyalar pin (==)",
+            "'requerements.txt' typo tuzatilgan -> requirements/",
+            "pip install toza o'rnatiladi"
+          ],
+          "affected": ["requirements/", "requerements.txt", "pyproject.toml"]
+        },
+        {
+          "id": "P0-T8",
+          "title_en": "Pre-commit: ruff, black, isort, mypy, django-upgrade",
+          "title_uz": "Pre-commit: ruff, black, isort, mypy",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T7"],
+          "description_uz": ".pre-commit-config.yaml: ruff (lint+format), isort, mypy, django-upgrade, check-yaml, end-of-file-fixer. CI'da ham ishlaydi.",
+          "acceptance_criteria": [
+            "pre-commit run --all-files toza o'tadi (mavjud kod tozalangan)",
+            "mypy asosiy modullarda toza",
+            "ruff konfiguratsiyasi pyproject.toml da"
+          ],
+          "affected": [".pre-commit-config.yaml", "pyproject.toml"]
+        },
+        {
+          "id": "P0-T9",
+          "title_en": "Health check & readiness endpoints",
+          "title_uz": "Health check / readiness endpoint",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T3"],
+          "description_uz": "/healthz (liveness) va /readyz (DB+Redis+migratsiya tekshiradi). Docker healthcheck va monitoring uchun.",
+          "acceptance_criteria": [
+            "/healthz 200 qaytaradi (yengil)",
+            "/readyz DB va Redis ulanishini tekshiradi, muammoda 503",
+            "Docker healthcheck shu endpoint'dan foydalanadi"
+          ],
+          "affected": ["config/urls.py", "core/health.py"]
+        }
+      ]
+    },
+
+    {
+      "id": "P1",
+      "name": "Ma'lumotlar modeli va data qatlamini mustahkamlash",
+      "goal": "Modellarni production'ga moslash: og'ir ishni save()'dan chiqarish, Season strukturasi, watch history, ledger, indekslar, constraint'lar.",
+      "tasks": [
+        {
+          "id": "P1-T1",
+          "title_en": "Move image optimization out of save() into Celery tasks",
+          "title_uz": "Rasm siqishni save()'dan Celery task'ga ko'chirish",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T4"],
+          "description_uz": "Hozir Movie/Actor/Profile/Episode .save() ichida PIL bilan sinxron WEBP siqish bor — bu request'ni bloklaydi. Buni post_save signal + Celery task'ga ko'chirish. Yuklangan original saqlanadi, async siqiladi va almashtiriladi.",
+          "acceptance_criteria": [
+            "save() endi PIL chaqirmaydi (tez)",
+            "optimize_image_task Celery'da, retry bilan",
+            "Admin yuklaganda darhol javob, rasm fonda siqiladi",
+            "Mavjud rasmlar uchun backfill management command"
+          ],
+          "affected": ["drama/models.py", "users/models.py", "drama/tasks.py", "core/images.py"]
+        },
+        {
+          "id": "P1-T2",
+          "title_en": "Introduce Season model for proper series structure",
+          "title_uz": "Season (fasl) modeli — to'g'ri serial strukturasi",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Hozir Episode to'g'ridan Movie'ga bog'langan (flat). Season modeli qo'shish: Movie -> Season -> Episode. Eski episodelar uchun default 'Season 1' data migration. Backward compatible.",
+          "acceptance_criteria": [
+            "Season(movie, number, title, year) modeli",
+            "Episode.season FK qo'shilgan, unique_together (season, episode_number)",
+            "Data migration: barcha mavjud episode -> Season 1",
+            "Admin va detail view fasllar bo'yicha guruhlaydi"
+          ],
+          "affected": ["drama/models.py", "drama/migrations/", "drama/admin.py"]
+        },
+        {
+          "id": "P1-T3",
+          "title_en": "Watch history / resume playback model",
+          "title_uz": "Ko'rish tarixi / 'davom ettirish' modeli",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "WatchProgress(user, episode, position_seconds, duration, completed, updated_at). Foydalanuvchi qaysi qismda, qaysi sekundda to'xtaganini saqlaydi. 'Davom ettirish' va 'Ko'rilmoqda' ro'yxati uchun.",
+          "acceptance_criteria": [
+            "WatchProgress modeli unique (user, episode)",
+            "API/HTMX endpoint position'ni saqlaydi (throttle qilingan, har 10-15s)",
+            "Bosh sahifada 'Davom ettirish' karuseli",
+            "Indeks (user, -updated_at)"
+          ],
+          "affected": ["users/models.py", "users/api/", "templates/"]
+        },
+        {
+          "id": "P1-T4",
+          "title_en": "Coin wallet ledger (transaction history, double-entry)",
+          "title_uz": "Coin hamyon ledgeri (tranzaksiya tarixi)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Hozir balance bitta int — audit imkonsiz, race xavfi. CoinTransaction(user, amount, type[topup/spend/gift/refund/funding], reference, balance_after, created_at) ledger qo'shish. Balance ledger yig'indisidan hisoblanadi/sinxron. select_for_update + atomic.",
+          "acceptance_criteria": [
+            "CoinTransaction modeli, har coin harakati yoziladi",
+            "Balansni o'zgartiruvchi yagona service funksiya (wallet.credit/debit), atomik",
+            "Gift, topup, funding shu service orqali o'tadi",
+            "Profil sahifasida tranzaksiya tarixi",
+            "Mavjud balanslar uchun migration (opening balance tranzaksiyasi)"
+          ],
+          "affected": ["users/models.py", "users/services/wallet.py", "drama/views.py", "funding/"]
+        },
+        {
+          "id": "P1-T5",
+          "title_en": "Unify rating: user ratings + denormalized aggregate recompute task",
+          "title_uz": "Reytingni birlashtirish: foydalanuvchi bahosi + agregat qayta hisoblash",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P0-T4"],
+          "description_uz": "Rating (IP asosida) va UserMovieList.score ikki xil. Birlashtirish: foydalanuvchi bahosi asosiy. Movie.average_rating/total_votes denormalizatsiyasini Celery task bilan davriy/signal orqali qayta hisoblash (har save'da emas).",
+          "acceptance_criteria": [
+            "Foydalanuvchi bahosi yagona manba",
+            "recompute_movie_rating Celery task",
+            "average_rating signal yoki periodic task bilan yangilanadi",
+            "Eski Rating(IP) data migratsiya/arxiv qilingan"
+          ],
+          "affected": ["drama/models.py", "drama/tasks.py", "users/models.py"]
+        },
+        {
+          "id": "P1-T6",
+          "title_en": "Movie publish workflow (draft/scheduled/published) + constraints/indexes audit",
+          "title_uz": "Kino holati workflow (qoralama/rejalashtirilgan/chop etilgan) + indeks audit",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "is_draft bool o'rniga status (draft/scheduled/published) + publish_at. Rejalashtirilgan chop etish Celery beat orqali. Barcha tez-tez filtrlangan maydonlarga indeks, CheckConstraint'lar.",
+          "acceptance_criteria": [
+            "Movie.status va publish_at, scheduled -> published task",
+            "Public querysetlar status=published bo'yicha filtrlaydi",
+            "Indekslar va constraint'lar qo'shilgan, migration reversible"
+          ],
+          "affected": ["drama/models.py", "drama/tasks.py", "drama/views.py"]
+        },
+        {
+          "id": "P1-T7",
+          "title_en": "Custom AUTH_USER_MODEL decision & (optional) migration",
+          "title_uz": "Maxsus User model qarori (ixtiyoriy migratsiya)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Hozir Django User + Profile. Kelajakdagi moslashuvchanlik uchun custom User (AbstractUser) ni baholash. RISKLI bo'lgani uchun ehtiyotkorlik bilan; agar qilinsa — to'liq data migration rejasi. Aks holda Profile yetarli deb hujjatlashtirish.",
+          "acceptance_criteria": [
+            "Qaror hujjatlashtirilgan (ADR)",
+            "Agar migratsiya qilinsa: barcha FK yangilangan, ma'lumot yo'qolmagan, testlar o'tadi"
+          ],
+          "affected": ["users/models.py", "docs/adr/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P2",
+      "name": "DRF REST API qatlami",
+      "goal": "To'liq versiyalangan REST API: mobil ilova/SPA, integratsiyalar uchun. OpenAPI hujjat, JWT auth, throttling, filtering.",
+      "tasks": [
+        {
+          "id": "P2-T1",
+          "title_en": "Install & configure DRF + drf-spectacular + JWT",
+          "title_uz": "DRF + drf-spectacular + JWT o'rnatish va sozlash",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T7"],
+          "description_uz": "DRF base sozlamalari, /api/v1/ namespace, drf-spectacular OpenAPI sxema + Swagger/Redoc UI. simplejwt token (access/refresh) endpointlari. Default pagination, throttle, renderer.",
+          "acceptance_criteria": [
+            "/api/v1/schema/, /api/v1/docs/ (Swagger) ishlaydi",
+            "/api/v1/auth/token/ va refresh JWT beradi",
+            "DEFAULT_PAGINATION, THROTTLE, PERMISSION sozlangan",
+            "Sxema CI'da validatsiyadan o'tadi"
+          ],
+          "affected": ["config/settings/", "config/urls.py", "config/api_urls.py"]
+        },
+        {
+          "id": "P2-T2",
+          "title_en": "Catalog API: movies, seasons, episodes, genres, tags, actors",
+          "title_uz": "Katalog API: kinolar, fasllar, qismlar, janrlar, aktyorlar",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P2-T1", "P1-T2"],
+          "description_uz": "ReadOnly viewset'lar: MovieViewSet (list/detail), seasons/episodes nested, genres, tags, actors. Serializerlar optimallashtirilgan (select/prefetch). Public, kesh-do'st. Filtering (django-filter): year, genre, country, status.",
+          "acceptance_criteria": [
+            "GET /api/v1/movies/ filtrlar, pagination bilan",
+            "GET /api/v1/movies/{slug}/ to'liq detail (fasllar, qismlar)",
+            "N+1 yo'q (django-debug-toolbar/assertNumQueries bilan tasdiqlangan)",
+            "OpenAPI'da hujjatlangan"
+          ],
+          "affected": ["drama/api/serializers.py", "drama/api/views.py", "drama/api/urls.py"]
+        },
+        {
+          "id": "P2-T3",
+          "title_en": "User & interaction API: profile, watchlist, watch-progress, reviews",
+          "title_uz": "Foydalanuvchi API: profil, ro'yxat, ko'rish progressi, izohlar",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P2-T1", "P1-T3"],
+          "description_uz": "Authenticated endpointlar: profil olish/yangilash, UserMovieList CRUD, WatchProgress saqlash, Review yaratish/list. Permission (egasi yoki admin). Throttle.",
+          "acceptance_criteria": [
+            "JWT bilan himoyalangan endpointlar",
+            "Watchlist va watch-progress CRUD ishlaydi",
+            "Review yaratish (spam/rate-limit bilan)",
+            "Permission testlari o'tadi"
+          ],
+          "affected": ["users/api/", "drama/api/"]
+        },
+        {
+          "id": "P2-T4",
+          "title_en": "Secure video playback API (signed Bunny URLs, gating in API)",
+          "title_uz": "Xavfsiz video pleyback API (signed Bunny URL, gating)",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P2-T1", "P4-T1"],
+          "description_uz": "GET /api/v1/episodes/{id}/playback/ — VIP/funding/free gating tekshiradi, ruxsat bo'lsa qisqa muddatli token-himoyalangan Bunny URL qaytaradi. Ruxsatsiz 403. Bu pleyer (web+mobil) uchun yagona xavfsiz manba.",
+          "acceptance_criteria": [
+            "Gating mantiqi (free 1-10 qism, 11+ VIP/funding) API'da takrorlanadi (yagona service)",
+            "Signed/expiring URL qaytariladi, ruxsatsizga 403",
+            "Token muddati cheklangan (masalan 4 soat)",
+            "Testlar: VIP, funding, free, anonim holatlar"
+          ],
+          "affected": ["drama/api/views.py", "drama/services/playback.py", "drama/bunny_stream.py"]
+        },
+        {
+          "id": "P2-T5",
+          "title_en": "API throttling, filtering, search & versioning hardening",
+          "title_uz": "API throttle, filter, qidiruv va versiyalashni mustahkamlash",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P2-T2"],
+          "description_uz": "AnonRateThrottle/UserRateThrottle, ScopedThrottle (qidiruv/playback). django-filter to'liq. Search endpoint. Versiyalash strategiyasi hujjatlangan.",
+          "acceptance_criteria": [
+            "Throttle scope'lari sozlangan va test qilingan",
+            "Filtering barcha katalog endpointlarida",
+            "429 to'g'ri qaytadi"
+          ],
+          "affected": ["config/settings/", "drama/api/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P3",
+      "name": "Celery background jobs va avtomatlashtirish",
+      "goal": "Barcha og'ir/sekin/davriy ishlarni fonga: rasm siqish, Bunny upload pipeline, bildirishnomalar, agregatsiya, tozalash.",
+      "tasks": [
+        {
+          "id": "P3-T1",
+          "title_en": "Bunny Stream upload pipeline (create video, TUS upload, status poll)",
+          "title_uz": "Bunny Stream upload pipeline (avtomatik yuklash)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T4"],
+          "description_uz": "Admin video fayl yuklaganda: Bunny API'da video yaratish (GUID olish), TUS/PUT bilan yuklash, encoding statusini poll qilish — barchasi Celery'da. Tugagach Episode.bunny_video_id avtomatik to'ladi. Qo'lda GUID nusxalash yo'qoladi.",
+          "acceptance_criteria": [
+            "BUNNY_STREAM_API_KEY bilan video create/upload Celery task",
+            "Yuklash progressi admin'da ko'rinadi (status maydoni)",
+            "Encoding tugaganda bunny_video_id va status avtomatik yangilanadi",
+            "Xato/retry boshqarilgan"
+          ],
+          "affected": ["drama/services/bunny_upload.py", "drama/tasks.py", "drama/admin.py"]
+        },
+        {
+          "id": "P3-T2",
+          "title_en": "Bunny webhook handler (encoding finished, thumbnail ready)",
+          "title_uz": "Bunny webhook handler (encoding tugadi signali)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P3-T1"],
+          "description_uz": "Bunny Stream webhook qabul qiluvchi endpoint: video encoding tugaganda statusni yangilaydi, kesh tozalaydi, kerak bo'lsa admin'ga xabar. Imzo/secret bilan tekshiriladi.",
+          "acceptance_criteria": [
+            "POST /webhooks/bunny/ imzo tekshiradi",
+            "Status yangilanadi, tegishli kesh invalidatsiya",
+            "Soxta so'rovlar rad etiladi"
+          ],
+          "affected": ["drama/webhooks.py", "config/urls.py"]
+        },
+        {
+          "id": "P3-T3",
+          "title_en": "Async notifications (Telegram + email) via Celery",
+          "title_uz": "Async bildirishnomalar (Telegram + email)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P0-T4"],
+          "description_uz": "Telegram bot (admin xabarnoma: yangi topup, funding) va email Celery task orqali. Hozir EMAIL console. Yangi qism chiqdi/funding maqsadga yetdi kabi event'lar.",
+          "acceptance_criteria": [
+            "send_telegram_message va send_email Celery task",
+            "Topup/funding eventlarida admin'ga xabar",
+            "Email backend prod'da SMTP (env)"
+          ],
+          "affected": ["core/notifications.py", "*/tasks.py", "config/settings/"]
+        },
+        {
+          "id": "P3-T4",
+          "title_en": "Periodic tasks: trending recompute, expire premium, cleanup stale topups, sitemap warm",
+          "title_uz": "Davriy tasklar: trend, premium muddati, eski topup tozalash",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P0-T4"],
+          "description_uz": "Celery Beat: trending_tags qayta hisoblash (context_processor uchun), muddati o'tgan premiumni o'chirish, eski 'pending' topuplarni tozalash/eslatish, sitemap/kesh isitish, rating agregatsiya.",
+          "acceptance_criteria": [
+            "django-celery-beat'da davriy jadval",
+            "Har task idempotent va loglanadi",
+            "Premium muddati o'tganda is_premium False bo'ladi"
+          ],
+          "affected": ["*/tasks.py", "config/settings/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P4",
+      "name": "Bunny Stream video xavfsizligi",
+      "goal": "Videolarni himoyalash: token-authenticated (signed) URL, referer/IP cheklash, ixtiyoriy DRM. Hozir CDN linklari ochiq.",
+      "tasks": [
+        {
+          "id": "P4-T1",
+          "title_en": "Token-authenticated (signed, expiring) Bunny URLs",
+          "title_uz": "Token-himoyalangan (signed, muddatli) Bunny URL",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Bunny 'Token Authentication' yoqish va URL imzolash (security key + expiry + path/IP). bunny_stream.py ni signed URL beradigan qilib yangilash. Endi CDN linkni bilgan har kim emas, faqat ruxsatli foydalanuvchi ko'radi.",
+          "acceptance_criteria": [
+            "hls_url/direct_url signed token + expiry bilan",
+            "Imzosiz URL Bunny tomonidan rad etiladi (sozlangan)",
+            "Token muddati va (ixtiyoriy) IP bog'lanishi",
+            "Eski ochiq URL ishlatuvchi joylar yangilangan"
+          ],
+          "affected": ["drama/bunny_stream.py", "config/settings/", "drama/services/playback.py"]
+        },
+        {
+          "id": "P4-T2",
+          "title_en": "Referer/hotlink protection & allowed-origins config",
+          "title_uz": "Referer/hotlink himoyasi sozlamasi",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P4-T1"],
+          "description_uz": "Bunny pull zone'da referer cheklash (faqat drama.uz), hotlink himoyasi. Hujjatlashtirish va sozlama tekshiruvi.",
+          "acceptance_criteria": [
+            "Boshqa saytdan embed ishlamaydi",
+            "Sozlama hujjatlangan (ops runbook)"
+          ],
+          "affected": ["docs/ops/bunny.md"]
+        },
+        {
+          "id": "P4-T3",
+          "title_en": "Optional DRM (MediaCage) evaluation & toggle for VIP content",
+          "title_uz": "Ixtiyoriy DRM (MediaCage) baholash — VIP kontent uchun",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["P4-T1"],
+          "description_uz": "VIP/premium kontent uchun Bunny DRM (MediaCage) imkoniyatini baholash va kerak bo'lsa yoqish. Xarajat/murakkablik tahlili.",
+          "acceptance_criteria": [
+            "DRM qarori hujjatlangan (ADR)",
+            "Agar yoqilsa: VIP videolar DRM bilan, pleyer mos"
+          ],
+          "affected": ["docs/adr/", "drama/services/playback.py"]
+        }
+      ]
+    },
+
+    {
+      "id": "P5",
+      "name": "Frontend SSR: HTMX + Alpine.js + Tailwind + SEO",
+      "goal": "Server-side rendered, tez, SEO-optimal frontend. Alpine.js interaktivlik, HTMX qisman yangilash, mukammal video pleyer, structured data.",
+      "tasks": [
+        {
+          "id": "P5-T1",
+          "title_en": "Integrate Alpine.js + production Tailwind build pipeline",
+          "title_uz": "Alpine.js integratsiya + Tailwind production build",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Alpine.js qo'shish (modal, dropdown, tab, pleyer boshqaruvi). Tailwind production build (purge/minify), output.css optimallashtirilgan. base.html da to'g'ri yuklash, defer.",
+          "acceptance_criteria": [
+            "Alpine.js ishlaydi (modallar, dropdownlar Alpine bilan)",
+            "Tailwind production CSS purge qilingan (kichik hajm)",
+            "JS/CSS CDN'dan (GCS), cache header bilan"
+          ],
+          "affected": ["templates/base.html", "static/", "tailwind.config.js", "package.json"]
+        },
+        {
+          "id": "P5-T2",
+          "title_en": "Advanced HLS player (hls.js, quality switch, resume, autoplay next)",
+          "title_uz": "Ilg'or HLS pleyer (sifat almashtirish, davom ettirish, keyingi qism)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P2-T4", "P1-T3"],
+          "description_uz": "hls.js asosida adaptiv pleyer: sifat tanlash, davom ettirish (WatchProgress), tugaganda keyingi qism avtomatik, klaviatura boshqaruvi, mobil. Playback URL'ni xavfsiz API'dan oladi.",
+          "acceptance_criteria": [
+            "HLS adaptiv ishlaydi, sifat almashadi",
+            "To'xtagan joydan davom etadi, progress saqlanadi",
+            "Keyingi qism avtomatik, anti-debug nazorat",
+            "Mobil va desktop'da silliq"
+          ],
+          "affected": ["templates/movies/movie_detail.html", "static/js/player.js"]
+        },
+        {
+          "id": "P5-T3",
+          "title_en": "HTMX UX: infinite scroll, live search, filter without reload, comments",
+          "title_uz": "HTMX UX: cheksiz skroll, jonli qidiruv, reloadsiz filtr",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P5-T1"],
+          "description_uz": "Katalog/explore'da cheksiz skroll (HTMX), live-search dropdown, filtrlar reloadsiz, izohlar HTMX bilan qo'shiladi. Mavjud HTMX kod kuchaytiriladi.",
+          "acceptance_criteria": [
+            "Filtr/skroll sahifa qayta yuklanmasdan ishlaydi",
+            "Live search debounced",
+            "Izoh qo'shilganda partial yangilanadi",
+            "JS-siz ham asosiy funksiya ishlaydi (progressive enhancement)"
+          ],
+          "affected": ["templates/movies/", "drama/views.py"]
+        },
+        {
+          "id": "P5-T4",
+          "title_en": "SEO: JSON-LD (VideoObject, TVSeries, BreadcrumbList), OG/Twitter, hreflang",
+          "title_uz": "SEO: JSON-LD structured data, Open Graph, hreflang",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Har kino/qism sahifasiga JSON-LD (VideoObject/TVSeries), BreadcrumbList; Open Graph + Twitter Card; uz/en uchun hreflang; canonical; meta title/description (modeltranslation keywords mavjud). Google rich results uchun.",
+          "acceptance_criteria": [
+            "Rich Results Test'da xatosiz JSON-LD",
+            "OG/Twitter preview to'g'ri",
+            "hreflang uz/en juftligi, canonical mavjud",
+            "Har sahifada unikal title/description"
+          ],
+          "affected": ["templates/base.html", "templates/movies/movie_detail.html", "drama/views.py"]
+        },
+        {
+          "id": "P5-T5",
+          "title_en": "Sitemap, robots, image/video sitemaps, performance (lazy img, srcset)",
+          "title_uz": "Sitemap/robots kengaytirish + performans (lazy, srcset)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P5-T4"],
+          "description_uz": "Video/image sitemap qo'shish, sitemap index, lastmod. Rasmlarga loading=lazy, responsive srcset, AVIF/WEBP. Core Web Vitals yaxshilash (LCP, CLS).",
+          "acceptance_criteria": [
+            "Video va image sitemap mavjud",
+            "Lighthouse SEO 95+, Performance 85+",
+            "Rasmlar lazy + srcset"
+          ],
+          "affected": ["drama/sitemaps.py", "templates/", "config/urls.py"]
+        },
+        {
+          "id": "P5-T6",
+          "title_en": "Mobile nav, PWA manifest, accessibility (a11y) pass",
+          "title_uz": "Mobil navigatsiya, PWA, accessibility",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["P5-T1"],
+          "description_uz": "Mobil bottom-nav, PWA manifest + service worker (offline shell), a11y (ARIA, fokus, kontrast, klaviatura). Telegram WebView mosligi saqlanadi.",
+          "acceptance_criteria": [
+            "Mobil navigatsiya qulay, PWA o'rnatiladi",
+            "Lighthouse Accessibility 90+",
+            "Klaviatura bilan to'liq navigatsiya"
+          ],
+          "affected": ["templates/", "static/", "static/manifest.json"]
+        }
+      ]
+    },
+
+    {
+      "id": "P6",
+      "name": "Autentifikatsiya va foydalanuvchi tizimi",
+      "goal": "Xavfsiz auth: email tasdiqlash, kuchli parol, social login (Google/Telegram), brute-force himoya, foydalanuvchi kabineti.",
+      "tasks": [
+        {
+          "id": "P6-T1",
+          "title_en": "Email verification ON + strong password policy + login rate-limit",
+          "title_uz": "Email tasdiqlash + kuchli parol + login rate-limit",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P3-T3"],
+          "description_uz": "ACCOUNT_EMAIL_VERIFICATION 'none' -> 'mandatory' (yoki optional + tasdiqlangan belgisi). Parol min_length 3 -> 8 + validatorlar. django-ratelimit/allauth bilan login urinishlarini cheklash.",
+          "acceptance_criteria": [
+            "Ro'yxatdan o'tganda email tasdiqlash (async yuboriladi)",
+            "Parol siyosati kuchaytirilgan (min 8 + umumiy parol bloki)",
+            "Login brute-force cheklangan (N urinish/IP)"
+          ],
+          "affected": ["config/settings/", "users/"]
+        },
+        {
+          "id": "P6-T2",
+          "title_en": "Social login: Google + Telegram login",
+          "title_uz": "Social login: Google + Telegram",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P6-T1"],
+          "description_uz": "allauth socialaccount: Google OAuth. Telegram Login Widget/Mini App auth (telegram_id mavjud) bilan bog'lash. Mavjud Telegram WebView konteksti hisobga olinadi.",
+          "acceptance_criteria": [
+            "Google bilan kirish ishlaydi",
+            "Telegram login -> hisob bog'lanadi/yaratiladi",
+            "Profil avtomatik yaratiladi (signal mavjud)"
+          ],
+          "affected": ["config/settings/", "users/", "templates/users/login.html"]
+        },
+        {
+          "id": "P6-T3",
+          "title_en": "User dashboard: continue watching, watchlist, history, notifications",
+          "title_uz": "Foydalanuvchi kabineti: davom ettirish, ro'yxat, tarix, bildirishnomalar",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P1-T3", "P5-T1"],
+          "description_uz": "Profil sahifasini kuchaytirish: 'Davom ettirish', watchlist statuslar bo'yicha, ko'rish tarixi, Coin tarixi, bildirishnomalar markazi. Mavjud profile/settings shablonlari asosida.",
+          "acceptance_criteria": [
+            "Davom ettirish va watchlist ko'rinadi",
+            "Coin tranzaksiya tarixi (P1-T4)",
+            "Bildirishnomalar ro'yxati"
+          ],
+          "affected": ["users/views.py", "templates/users/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P7",
+      "name": "Monetizatsiya: obuna, Coin, crowdfunding, to'lov",
+      "goal": "To'liq SaaS billing: VIP obuna rejalari, ishonchli Coin hamyon, crowdfunding, real to'lov shlyuzlari (Payme/Click/crypto) + webhook.",
+      "tasks": [
+        {
+          "id": "P7-T1",
+          "title_en": "Subscription plans & VIP tiers model",
+          "title_uz": "Obuna rejalari va VIP darajalar modeli",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P1-T4"],
+          "description_uz": "SubscriptionPlan(name, price, duration, perks) va Subscription(user, plan, start, end, status, auto_renew). Hozir is_premium/premium_until bool — buni reja asosli tizimga ko'tarish.",
+          "acceptance_criteria": [
+            "Rejalar admin'da boshqariladi",
+            "Obuna boshlanishi/tugashi, auto-renew flag",
+            "is_currently_premium reja asosida ishlaydi",
+            "Beat task muddati o'tganlarni yopadi (P3-T4)"
+          ],
+          "affected": ["users/models.py", "users/admin.py"]
+        },
+        {
+          "id": "P7-T2",
+          "title_en": "Payment gateway integration: Payme/Click (UZ) + webhooks",
+          "title_uz": "To'lov shlyuzi: Payme/Click integratsiyasi + webhook",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P7-T1", "P1-T4"],
+          "description_uz": "O'zbekiston to'lov tizimlari (Payme/Click) integratsiyasi: obuna/Coin sotib olish. Provider webhook'lari (to'lov tasdig'i) -> Coin/obuna avtomatik. Qo'lda chek (TopUpRequest) zaxira variant sifatida qoladi.",
+          "acceptance_criteria": [
+            "Payme/Click checkout boshlanadi",
+            "Webhook imzo bilan tekshiriladi, idempotent",
+            "Muvaffaqiyatli to'lov -> Coin/obuna avtomatik (ledger orqali)",
+            "Sandbox'da test qilingan"
+          ],
+          "affected": ["billing/", "billing/webhooks.py", "users/services/wallet.py"]
+        },
+        {
+          "id": "P7-T3",
+          "title_en": "Crypto top-up automation (replace manual screenshot)",
+          "title_uz": "Kripto to'ldirishni avtomatlashtirish",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["P7-T2"],
+          "description_uz": "CryptoTopUpRequest hozir qo'lda skrinshot + admin tasdiq. Imkon bo'lsa on-chain tekshiruv/provider (masalan, har manzilga unik memo) bilan avtomatlashtirish. Aks holda jarayonni xavfsizlashtirib qoldirish.",
+          "acceptance_criteria": [
+            "Avtomatik tasdiqlash yoki xavfsizroq qo'lda jarayon",
+            "Double-credit imkonsiz (ledger + idempotency)"
+          ],
+          "affected": ["users/models.py", "billing/"]
+        },
+        {
+          "id": "P7-T4",
+          "title_en": "Crowdfunding flow hardening (atomic contribute, access, refunds)",
+          "title_uz": "Crowdfunding oqimini mustahkamlash (atomik hissa, ruxsat, qaytarish)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P1-T4"],
+          "description_uz": "FundingProject/Contributor: hissa qo'shish atomik (ledger orqali Coin yechiladi), collected_amount yangilanadi, access beriladi. Maqsadga yetganda status o'zgaradi + bildirishnoma. Bekor bo'lsa refund mantiqi.",
+          "acceptance_criteria": [
+            "Hissa qo'shish atomik, race-safe (select_for_update)",
+            "collected_amount va has_access to'g'ri",
+            "Maqsadga yetganda 'translating' + xabar (P3-T3)",
+            "Refund stsenariysi (loyiha bekor bo'lsa)"
+          ],
+          "affected": ["funding/views.py", "funding/models.py", "funding/services.py"]
+        }
+      ]
+    },
+
+    {
+      "id": "P8",
+      "name": "Qidiruv va discovery",
+      "goal": "Kuchli qidiruv (PostgreSQL FTS/trigram), tavsiyalar, faceted filter, autocomplete.",
+      "tasks": [
+        {
+          "id": "P8-T1",
+          "title_en": "PostgreSQL full-text search + trigram fuzzy search",
+          "title_uz": "PostgreSQL full-text + trigram (xato-bardosh) qidiruv",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P1-T6"],
+          "description_uz": "icontains o'rniga SearchVector/SearchRank + pg_trgm (xato yozuvga bardosh). title, original_title, description, aktyorlar bo'yicha. SearchVectorField + GIN indeks, signal/Celery bilan yangilanadi. uz/en.",
+          "acceptance_criteria": [
+            "Full-text qidiruv reytinglangan natija beradi",
+            "Trigram bilan 'kdrama' ~ 'k-drama' topiladi",
+            "GIN indeks, qidiruv tez (<50ms)",
+            "Live-search shu mexanizmga o'tadi"
+          ],
+          "affected": ["drama/search.py", "drama/models.py", "drama/views.py", "drama/tasks.py"]
+        },
+        {
+          "id": "P8-T2",
+          "title_en": "Recommendations: similar, trending, 'because you watched'",
+          "title_uz": "Tavsiyalar: o'xshash, trenddagi, 'siz ko'rganingiz asosida'",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P8-T1", "P1-T3"],
+          "description_uz": "Teg/janr asosida o'xshashlar (mavjud), trenddagi (ko'rishlar/baholar), ko'rish tarixiga asoslangan tavsiyalar. Celery'da oldindan hisoblab keshlash.",
+          "acceptance_criteria": [
+            "Bosh sahifa: trend, yangi, davom ettirish, tavsiya bloklari",
+            "Tavsiyalar keshlangan, tez yuklanadi",
+            "Detail sahifada 'o'xshash' yaxshilangan"
+          ],
+          "affected": ["drama/recommendations.py", "drama/tasks.py", "templates/index.html"]
+        },
+        {
+          "id": "P8-T3",
+          "title_en": "Faceted filters & sorting + autocomplete",
+          "title_uz": "Faceted filtr, saralash + autocomplete",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["P8-T1"],
+          "description_uz": "Explore'da janr/yil/davlat/reyting facet (har facet uchun son), saralash (yangi/reyting/mashhur), qidiruv autocomplete.",
+          "acceptance_criteria": [
+            "Facet'lar son bilan, ko'p tanlov",
+            "Saralash variantlari ishlaydi",
+            "Autocomplete debounced va tez"
+          ],
+          "affected": ["drama/views.py", "templates/movies/explore_list.html"]
+        }
+      ]
+    },
+
+    {
+      "id": "P9",
+      "name": "Performans va keshlash",
+      "goal": "Redis keshlash strategiyasi, kesh invalidatsiyasi, DB optimizatsiya, CDN header, sahifalash.",
+      "tasks": [
+        {
+          "id": "P9-T1",
+          "title_en": "Caching strategy: per-view, fragment, low-level + invalidation signals",
+          "title_uz": "Keshlash strategiyasi: view, fragment, low-level + invalidatsiya",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T3"],
+          "description_uz": "Bosh sahifa, katalog, detail uchun kesh (anonim uchun agressiv). Template fragment cache. Movie/Episode o'zgarganda post_save signal bilan tegishli keshni invalidatsiya (hozir 86400s muddat — eskirgan ma'lumot xavfi).",
+          "acceptance_criteria": [
+            "Anonim sahifalar keshdan tez keladi",
+            "Kontent o'zgarsa kesh darhol invalidatsiya bo'ladi (eskirmaydi)",
+            "Kesh kalitlari versiyalangan",
+            "Login foydalanuvchi to'g'ri (kesh aralashmaydi)"
+          ],
+          "affected": ["drama/views.py", "drama/signals.py", "templates/"]
+        },
+        {
+          "id": "P9-T2",
+          "title_en": "DB query optimization audit (select/prefetch, indexes, assertNumQueries)",
+          "title_uz": "DB so'rov optimizatsiyasi audit (N+1, indeks)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Barcha asosiy view/API'da select_related/prefetch_related auditi, N+1 yo'q qilish, indekslarni EXPLAIN bilan tekshirish. Testlarda assertNumQueries. django-debug-toolbar (dev).",
+          "acceptance_criteria": [
+            "Asosiy sahifalarda N+1 yo'q (assertNumQueries bilan qotirilgan)",
+            "Sekin so'rovlar EXPLAIN bilan indekslangan",
+            "Detail/list so'rov soni cheklangan va doimiy"
+          ],
+          "affected": ["drama/views.py", "drama/api/", "drama/models.py"]
+        },
+        {
+          "id": "P9-T3",
+          "title_en": "CDN cache headers, pagination (cursor), pgbouncer",
+          "title_uz": "CDN cache header, cursor pagination, pgbouncer",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P0-T6"],
+          "description_uz": "Static/media uchun uzoq cache header (immutable). Katta ro'yxatlar uchun cursor pagination (API). PgBouncer ulanish puli (prod). nginx gzip/brotli.",
+          "acceptance_criteria": [
+            "Static immutable cache, media mos header",
+            "API katta ro'yxatlarda cursor pagination",
+            "PgBouncer prod compose'da"
+          ],
+          "affected": ["nginx/", "drama/api/", "docker-compose.yml"]
+        }
+      ]
+    },
+
+    {
+      "id": "P10",
+      "name": "Xavfsizlik (Security hardening)",
+      "goal": "Production xavfsizlik: header/CSP, sirlar, rate-limit, upload validatsiya, audit log, admin 2FA, GDPR.",
+      "tasks": [
+        {
+          "id": "P10-T1",
+          "title_en": "Security headers & CSP (fix X_FRAME_OPTIONS=ALLOWALL)",
+          "title_uz": "Xavfsizlik headerlari va CSP (ALLOWALL ni tuzatish)",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T1"],
+          "description_uz": "X_FRAME_OPTIONS='ALLOWALL' xavfli — faqat Telegram uchun aniq ruxsat. django-csp bilan Content-Security-Policy, Permissions-Policy, Referrer-Policy. Telegram WebView mosligi saqlanadi.",
+          "acceptance_criteria": [
+            "ALLOWALL o'rniga aniq frame-ancestors (Telegram + drama.uz)",
+            "CSP sozlangan, inline-script minimal/nonce",
+            "securityheaders.com 'A' baho",
+            "Telegram Mini App hali ishlaydi"
+          ],
+          "affected": ["config/settings/", "config/middleware.py"]
+        },
+        {
+          "id": "P10-T2",
+          "title_en": "Rate limiting (login, API, search, reviews, gifts)",
+          "title_uz": "Rate limiting (login, API, qidiruv, izoh, sovg'a)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T3"],
+          "description_uz": "django-ratelimit (web) + DRF throttle (API). Login, ro'yxatdan o'tish, qidiruv, izoh, sovg'a yuborish, topup'ni cheklash. Abuse himoyasi.",
+          "acceptance_criteria": [
+            "Sezgir endpointlar rate-limited (Redis backed)",
+            "429/throttle to'g'ri javob",
+            "Konfiguratsiya markazlashgan"
+          ],
+          "affected": ["users/views.py", "drama/views.py", "config/settings/"]
+        },
+        {
+          "id": "P10-T3",
+          "title_en": "File upload validation (type, size, image bomb, malware)",
+          "title_uz": "Fayl yuklash validatsiyasi (tur, hajm, image-bomb)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Avatar/poster/chek/video yuklashda: MIME va kengaytma tekshiruvi (haqiqiy content), hajm chegarasi, dekompressiya-bomba himoyasi (PIL), nomlarni tozalash. Chek rasmlari xavfsiz saqlanadi.",
+          "acceptance_criteria": [
+            "Faqat ruxsat etilgan turlar, soxta kengaytma rad",
+            "Image-bomb/oversize rad etiladi",
+            "Yuklash xatolari foydalanuvchiga aniq"
+          ],
+          "affected": ["core/validators.py", "*/forms.py", "*/models.py"]
+        },
+        {
+          "id": "P10-T4",
+          "title_en": "Admin 2FA, audit logging, dependency & secret scanning in CI",
+          "title_uz": "Admin 2FA, audit log, CI'da dependency/secret skan",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P13-T1"],
+          "description_uz": "Admin uchun 2FA (django-otp). Muhim amallar audit logi (kim, nima, qachon). CI'da pip-audit/safety + gitleaks (secret skan).",
+          "acceptance_criteria": [
+            "Admin login 2FA talab qiladi",
+            "Audit log (topup tasdiq, kontent o'zgarishi) yoziladi",
+            "CI zaif paket/sirni topsa fail bo'ladi"
+          ],
+          "affected": ["config/settings/", "core/audit.py", ".github/workflows/"]
+        },
+        {
+          "id": "P10-T5",
+          "title_en": "GDPR/data privacy: export & delete account",
+          "title_uz": "Maxfiylik: ma'lumot eksport va hisobni o'chirish",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["P2-T3"],
+          "description_uz": "Foydalanuvchi o'z ma'lumotini eksport qilishi va hisobni o'chirishi (yoki anonimlashtirish). Maxfiylik siyosati sahifasi.",
+          "acceptance_criteria": [
+            "Ma'lumot eksporti (JSON)",
+            "Hisobni o'chirish/anonimlashtirish (ledger saqlanadi)",
+            "Maxfiylik sahifasi mavjud"
+          ],
+          "affected": ["users/views.py", "templates/pages/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P11",
+      "name": "Testlar",
+      "goal": "Ishonchli test bazasi: unit, API, integratsiya, E2E. CI gate coverage >= 80%.",
+      "tasks": [
+        {
+          "id": "P11-T1",
+          "title_en": "pytest + pytest-django + factory_boy setup, coverage gate",
+          "title_uz": "pytest + factory_boy sozlash, coverage gate",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T7"],
+          "description_uz": "pytest infratuzilma, conftest, factory_boy fabrikalari (Movie, Episode, User, Profile, FundingProject...), coverage konfiguratsiya, test settings (tez).",
+          "acceptance_criteria": [
+            "pytest ishlaydi, fabrikalar mavjud",
+            "coverage hisoboti, gate >= 80% (boshlang'ich pastroq, oshib boradi)",
+            "Test DB tez (reuse-db)"
+          ],
+          "affected": ["conftest.py", "*/tests/", "pyproject.toml"]
+        },
+        {
+          "id": "P11-T2",
+          "title_en": "Unit tests: models, services (wallet, playback gating, funding)",
+          "title_uz": "Unit testlar: modellar, servislar (wallet, gating, funding)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P11-T1"],
+          "description_uz": "Kritik mantiq: Coin wallet (credit/debit/race), VIP/funding gating, crowdfunding hissa, premium muddati, rating agregatsiya, image task. Edge case'lar.",
+          "acceptance_criteria": [
+            "Wallet double-credit/oversend testlari",
+            "Gating barcha holatlar (free/VIP/funding/anonim)",
+            "Funding atomik hissa testi"
+          ],
+          "affected": ["*/tests/"]
+        },
+        {
+          "id": "P11-T3",
+          "title_en": "API tests (auth, permissions, playback, throttle)",
+          "title_uz": "API testlar (auth, ruxsat, playback, throttle)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P11-T1", "P2-T2"],
+          "description_uz": "DRF endpointlari: JWT auth, permission (egasi/admin), playback gating 403/200, throttle 429, filtering/pagination.",
+          "acceptance_criteria": [
+            "Barcha asosiy endpointlar test qilingan",
+            "Ruxsatsiz kirish 401/403",
+            "Playback signed URL gating testi"
+          ],
+          "affected": ["*/tests/test_api.py"]
+        },
+        {
+          "id": "P11-T4",
+          "title_en": "E2E (Playwright): register, watch (gating), subscribe, fund",
+          "title_uz": "E2E (Playwright): ro'yxat, ko'rish, obuna, funding",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P5-T2", "P7-T2"],
+          "description_uz": "Kritik foydalanuvchi oqimlari: ro'yxatdan o'tish, kino topish, free qism ko'rish, VIP gate, obuna sotib olish (sandbox), funding hissa, davom ettirish.",
+          "acceptance_criteria": [
+            "Asosiy oqimlar E2E o'tadi",
+            "CI'da headless ishlaydi (ixtiyoriy nightly)"
+          ],
+          "affected": ["e2e/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P12",
+      "name": "Kuzatuv (Observability) va monitoring",
+      "goal": "Sentry xato kuzatuvi, metrikalar, uptime, performance APM.",
+      "tasks": [
+        {
+          "id": "P12-T1",
+          "title_en": "Sentry error tracking (web + Celery)",
+          "title_uz": "Sentry xato kuzatuvi (web + Celery)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P0-T5"],
+          "description_uz": "sentry-sdk Django + Celery integratsiyasi, environment/release tegi, PII filtrlash, performance trace namunasi.",
+          "acceptance_criteria": [
+            "Xatolar Sentry'ga boradi (web va worker)",
+            "PII filtrlanган, release tracking",
+            "Prod'da yoqilgan, dev'da o'chiq"
+          ],
+          "affected": ["config/settings/prod.py"]
+        },
+        {
+          "id": "P12-T2",
+          "title_en": "Metrics & uptime: Prometheus/health, alerting",
+          "title_uz": "Metrikalar va uptime: Prometheus/health, alert",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P0-T9"],
+          "description_uz": "django-prometheus yoki metrik endpoint (request, DB, Celery queue). Uptime monitor (healthz). Asosiy alert (xato darajasi, queue backlog).",
+          "acceptance_criteria": [
+            "Metrikalar ochiq (himoyalangan endpoint)",
+            "Uptime monitoring sozlangan",
+            "Kritik alert kanali (Telegram/email)"
+          ],
+          "affected": ["config/", "docs/ops/"]
+        }
+      ]
+    },
+
+    {
+      "id": "P13",
+      "name": "DevOps: CI/CD va deployment",
+      "goal": "Avtomatlashtirilgan lint/test/build, ishonchli deploy, migratsiya, backup, staging. Passenger'dan zamonaviy stack'ga o'tish.",
+      "tasks": [
+        {
+          "id": "P13-T1",
+          "title_en": "CI pipeline: lint, type-check, test, build (GitHub Actions)",
+          "title_uz": "CI pipeline: lint, mypy, test, build",
+          "priority": "P0",
+          "status": "todo",
+          "depends_on": ["P0-T8", "P11-T1"],
+          "description_uz": "GitHub Actions: ruff+mypy, pytest (postgres+redis service), coverage gate, Docker build, drf-spectacular sxema validatsiya. PR'da majburiy.",
+          "acceptance_criteria": [
+            "Har PR'da lint+test+build ishlaydi",
+            "Coverage gate va sxema validatsiya",
+            "Yashil bo'lmasa merge bloklanadi"
+          ],
+          "affected": [".github/workflows/ci.yml"]
+        },
+        {
+          "id": "P13-T2",
+          "title_en": "CD: zero-downtime deploy, migrations, collectstatic, rollback",
+          "title_uz": "CD: zero-downtime deploy, migratsiya, rollback",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P13-T1", "P0-T6"],
+          "description_uz": "Deploy avtomatlashtirish (compose/registry). Migratsiya xavfsiz tartibi, collectstatic, healthcheck'dan keyin trafik. Rollback rejasi. Passenger o'rniga gunicorn/uvicorn + nginx.",
+          "acceptance_criteria": [
+            "Deploy bir buyruq/CD orqali",
+            "Migratsiya avtomatik va xavfsiz",
+            "Nosozlikda rollback",
+            "Passenger olib tashlangan"
+          ],
+          "affected": [".github/workflows/deploy.yml", "passenger_wsgi.py", "docker-compose.prod.yml"]
+        },
+        {
+          "id": "P13-T3",
+          "title_en": "Backups (DB + media) & restore drill, staging env",
+          "title_uz": "Backup (DB + media) va tiklash mashqi, staging muhit",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P13-T2"],
+          "description_uz": "PostgreSQL avtomatik backup (pg_dump/WAL), GCS media versiyalash, tiklash mashqi (drill) hujjatlangan. Staging muhit (prod'ga o'xshash) deploy oldidan sinov uchun.",
+          "acceptance_criteria": [
+            "Avtomatik kunlik DB backup + saqlash siyosati",
+            "Tiklash test qilingan va hujjatlangan",
+            "Staging muhit ishlaydi"
+          ],
+          "affected": ["scripts/backup.sh", "docs/ops/", "docker-compose.staging.yml"]
+        }
+      ]
+    },
+
+    {
+      "id": "P14",
+      "name": "Admin va kontent boshqaruvi",
+      "goal": "Kontent jamoasi uchun samarali admin: Bunny upload, scheduling, moderatsiya, analitika.",
+      "tasks": [
+        {
+          "id": "P14-T1",
+          "title_en": "Admin: direct Bunny upload + encoding status UI",
+          "title_uz": "Admin: to'g'ridan Bunny upload + encoding status",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["P3-T1"],
+          "description_uz": "Unfold admin'da Episode/Movie uchun video faylni to'g'ridan yuklash, encoding statusini ko'rsatish (P3-T1 pipeline'iga ulangan). Qo'lda GUID kiritish yo'qoladi.",
+          "acceptance_criteria": [
+            "Admin'dan video yuklash tugmasi/maydoni",
+            "Status (yuklanmoqda/encoding/tayyor) ko'rinadi",
+            "Tayyor bo'lganda avtomatik bog'lanadi"
+          ],
+          "affected": ["drama/admin.py", "drama/services/bunny_upload.py"]
+        },
+        {
+          "id": "P14-T2",
+          "title_en": "Content scheduling, bulk actions, draft preview",
+          "title_uz": "Kontent rejalashtirish, bulk amallar, qoralama ko'rish",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P1-T6"],
+          "description_uz": "Rejalashtirilgan chop etish (publish_at), bulk actions (chop et/yashir/teg qo'sh), admin uchun qoralama preview (saytda).",
+          "acceptance_criteria": [
+            "Bulk amallar ishlaydi",
+            "publish_at bo'yicha avtomatik chop etiladi",
+            "Admin draft'ni saytda preview qiladi"
+          ],
+          "affected": ["drama/admin.py", "drama/views.py"]
+        },
+        {
+          "id": "P14-T3",
+          "title_en": "Review/comment moderation queue",
+          "title_uz": "Izoh/sharh moderatsiya navbati",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["P10-T2"],
+          "description_uz": "Izohlar moderatsiyasi: flag/report, navbat, spam filtri, ban. Hozir faqat admin reply yozadi — moderatsiya qo'shish.",
+          "acceptance_criteria": [
+            "Izohni report qilish",
+            "Moderatsiya navbati admin'da",
+            "Spam/abuse cheklangan (rate-limit + filtr)"
+          ],
+          "affected": ["drama/models.py", "drama/admin.py", "drama/views.py"]
+        },
+        {
+          "id": "P14-T4",
+          "title_en": "Admin analytics dashboard (views, revenue, funding, top content)",
+          "title_uz": "Admin analitika paneli (ko'rishlar, daromad, funding)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["P7-T2", "P1-T3"],
+          "description_uz": "Unfold dashboard: kunlik ko'rishlar, daromad (obuna/Coin), funding progress, top kinolar/aktyorlar, yangi foydalanuvchilar. Keshlangan agregatlar.",
+          "acceptance_criteria": [
+            "Asosiy KPI'lar dashboard'da",
+            "Grafiklar keshlangan, tez",
+            "Sana oralig'i filtri"
+          ],
+          "affected": ["config/admin_dashboard.py", "core/analytics.py"]
+        }
+      ]
+    }
+  ],
+
+  "summary": {
+    "total_phases": 15,
+    "total_tasks": 65,
+    "critical_path_uz": "P0 (fundament) → P1 (model) → P2 (API) + P3 (Celery) + P4 (Bunny xavfsizlik) parallel → P5 (frontend) → P7 (monetizatsiya) → P11 (test) + P13 (CI/CD). Xavfsizlik (P10) va performans (P9) ko'ndalang davom etadi.",
+    "eng_muhim_birinchi_5_uz": [
+      "P0-T2: Repodagi sirlarni o'chirish (drama-key-v2.json) — DARHOL, xavfsizlik teshigi",
+      "P0-T3: Redis kesh — hozir kesh aslida ishlamayapti (production'da buzuq)",
+      "P4-T1: Bunny videolarni token bilan himoyalash — hozir hamma yuklab oladi",
+      "P0-T4 + P1-T1: Celery + rasm siqishni async qilish — admin sekinligini hal qiladi",
+      "P0-T1: Settings split — qolgan hammasi shunga tayanadi"
+    ],
+    "eslatma_uz": "Bu reja eski C:/projects/drama-vps kodini QAYTA ISHLATADI va kuchaytiradi — noldan yozish emas. Mavjud biznes-mantiq (gating, funding, Coin, Bunny URL generator, modeltranslation, SEO) saqlanadi va production darajasiga ko'tariladi."
+  }
+}
