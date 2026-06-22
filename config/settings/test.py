@@ -34,3 +34,7 @@ CSRF_COOKIE_SECURE = False
 
 # Logging — testlarda jim (WARNING+)
 LOGGING = build_logging(debug=False, json_logs=False, log_level="WARNING")
+
+# Celery — testlarda sinxron (eager): task'lar worker'siz, shu jarayonda bajariladi.
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True

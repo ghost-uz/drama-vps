@@ -60,3 +60,10 @@ django_settings_module = "config.settings.dev"
 # P1 (data model qatlami)da modellarga manager/M2M annotatsiyalari qo'shilib yoqiladi.
 module = ["drama.*", "users.*", "funding.*"]
 ignore_errors = true
+
+
+# --- pytest ---
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "--strict-markers"

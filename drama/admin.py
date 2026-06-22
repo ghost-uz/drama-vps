@@ -17,6 +17,7 @@ from .models import (
     Rating,
     RatingStar,
     Review,
+    Season,
     Tag,
     TopSlider,
 )
@@ -52,8 +53,15 @@ class EpisodeInline(TabularInline):
     model = Episode
     extra = 1
     tab = True
-    fields = ("episode_number", "title", "bunny_video_id", "video_embed_code")
+    fields = ("season", "episode_number", "title", "bunny_video_id", "video_embed_code")
     sortable_field_name = "episode_number"
+
+
+class SeasonInline(TabularInline):
+    model = Season
+    extra = 1
+    tab = True
+    fields = ("number", "title", "year")
 
 
 # --- ADMIN CLASSES ---
@@ -121,7 +129,7 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
     # Autocomplete: Minglab ma'lumotlar ichidan tez qidirib topish uchun
     autocomplete_fields = ["category", "genres", "tags", "main_actors", "actors"]
 
-    inlines = [MovieShotsInline, EpisodeInline, ReviewInline]
+    inlines = [SeasonInline, MovieShotsInline, EpisodeInline, ReviewInline]
     save_on_top = True
     actions = ["publish_movies", "unpublish_movies"]
 
@@ -215,6 +223,18 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
     @admin.action(description=_("Nashr etish"))
     def publish_movies(self, request, queryset):
         queryset.update(is_draft=False)
+
+
+@admin.register(Season)
+class SeasonAdmin(ModelAdmin):
+    list_display = ("movie", "number", "title", "year", "episode_count")
+    list_filter = ("year",)
+    search_fields = ("movie__title", "title")
+    autocomplete_fields = ["movie"]
+
+    @display(description=_("Qismlar"))
+    def episode_count(self, obj):
+        return obj.episodes.count()
 
 
 @admin.register(Review)

@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView, ListView
 from django.views.generic.base import View
 
@@ -116,6 +116,15 @@ class MoviesView(GenreYearMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["top_sliders"] = TopSlider.objects.all()
+        # 'Davom ettirish' karuseli — tugatilmagan progresslar (indeks: user, -updated_at)
+        if self.request.user.is_authenticated:
+            from users.models import WatchProgress
+
+            context["continue_watching"] = (
+                WatchProgress.objects.filter(user=self.request.user, completed=False)
+                .select_related("episode", "episode__movie")
+                .order_by("-updated_at")[:12]
+            )
         return context
 
 
@@ -591,3 +600,38 @@ class Search(GenreYearMixin, ListView):
         context["q"] = self.request.GET.get("q")
         context["title"] = f"'{context['q']}' bo'yicha qidiruv natijalari"
         return context
+
+
+@login_required
+@require_POST
+def save_watch_progress(request, episode_id):
+    """Pleyer pozitsiyasini saqlaydi (P1-T3).
+
+    Pleyer har 10-15s POST yuboradi (client-side throttle): position_seconds,
+    duration_seconds, completed (ixtiyoriy). 90%+ ko'rilgan bo'lsa avto-completed.
+    """
+    from users.models import WatchProgress
+
+    from .models import Episode
+
+    episode = get_object_or_404(Episode, id=episode_id)
+    try:
+        position = int(request.POST.get("position_seconds", 0))
+        duration = int(request.POST.get("duration_seconds", 0))
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Noto'g'ri qiymat"}, status=400)
+
+    completed = request.POST.get("completed") in ("1", "true", "True")
+    if duration and position / duration >= 0.9:
+        completed = True
+
+    WatchProgress.objects.update_or_create(
+        user=request.user,
+        episode=episode,
+        defaults={
+            "position_seconds": max(position, 0),
+            "duration_seconds": max(duration, 0),
+            "completed": completed,
+        },
+    )
+    return JsonResponse({"status": "saved", "completed": completed})

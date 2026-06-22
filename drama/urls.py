@@ -19,6 +19,11 @@ urlpatterns = [
     path("review/<int:pk>/", views.AddReview.as_view(), name="add_review"),
     path("add-to-list/<int:movie_id>/", views.add_to_list, name="add_to_list"),
     path("actor/<int:actor_id>/gift/", views.send_gift_to_actor, name="send_gift_to_actor"),
+    path(
+        "episode/<int:episode_id>/progress/",
+        views.save_watch_progress,
+        name="save_watch_progress",
+    ),
     # =========================================================
     # 🌟 YANGI QO'SHILGAN QISM: Barcha fikrlar uchun sahifa
     path("<slug:slug>/reviews/", views.MovieReviewsView.as_view(), name="movie_reviews"),

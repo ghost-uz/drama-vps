@@ -1,49 +1,15 @@
 # users/models.py
-import time  # Cache busting uchun timestamp yaratishga kerak
-from io import BytesIO
-
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils.text import slugify
-from PIL import Image
+
+from core.images import ImageOptimizationMixin
 
 
-# --- Universal Optimizatsiya Funksiyasi ---
-def optimize_avatar(image_field, username):
-    if not image_field or not hasattr(image_field, "file"):
-        return image_field
+class Profile(ImageOptimizationMixin, models.Model):
+    OPTIMIZE_IMAGE_FIELDS = {"avatar": {"max_size": (400, 400), "quality": 75}}
 
-    # 🌟 SENIOR FIX: InMemoryUploadedFile o'rniga UploadedFile ishlatsangiz,
-    # 3-5 MB li rasmlar ham xatosiz siqilib, saqlanadi!
-    from django.core.files.uploadedfile import UploadedFile
-
-    if not isinstance(image_field.file, UploadedFile):
-        return image_field
-
-    try:
-        img = Image.open(image_field)
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-
-        # Avatar uchun 400x400 yetarli (hajmni tejash uchun)
-        img.thumbnail((400, 400), Image.LANCZOS)
-
-        output = BytesIO()
-        img.save(output, format="WEBP", quality=75)  # Avatar uchun 75% sifat ideal
-        output.seek(0)
-
-        timestamp = int(time.time() * 1000)
-        new_filename = f"{slugify(username)}_{timestamp}.webp"
-
-        return ContentFile(output.read(), name=new_filename)
-    except Exception:
-        return image_field
-
-
-class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     # ✅ Faqat bitta M2M yetarli (following orqali followers ni ham olamiz)
     following = models.ManyToManyField(
@@ -63,23 +29,8 @@ class Profile(models.Model):
     premium_until = models.DateTimeField(null=True, blank=True)
     balance = models.PositiveIntegerField(default=0, verbose_name="Balans (Point)")
 
-    def save(self, *args, **kwargs):
-        # 1. Agar profil yangi bo'lsa
-        if not self.pk:
-            if self.avatar and "default.jpg" not in self.avatar.name:
-                self.avatar = optimize_avatar(self.avatar, self.user.username)
-        else:
-            # 2. Agar mavjud profil tahrirlanayotgan bo'lsa
-            try:
-                old_instance = Profile.objects.get(pk=self.pk)
-                # Faqat rasm o'zgargan bo'lsa optimallashtiramiz
-                if old_instance.avatar != self.avatar and self.avatar:
-                    if "default.jpg" not in self.avatar.name:
-                        self.avatar = optimize_avatar(self.avatar, self.user.username)
-            except Profile.DoesNotExist:
-                pass
-
-        super().save(*args, **kwargs)
+    # Avatar siqish ImageOptimizationMixin.save() orqali fon (Celery)da bajariladi.
+    # default.jpg storage'dagi committed fayl — yangi yuklanmagani uchun siqilmaydi.
 
     @property
     def is_currently_premium(self):
@@ -276,3 +227,34 @@ class CryptoTopUpRequest(models.Model):
                             profile.save(update_fields=["balance"])
 
         super().save(*args, **kwargs)
+
+
+class WatchProgress(models.Model):
+    """Foydalanuvchining qism bo'yicha ko'rish progressi ('davom ettirish')."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="watch_progress")
+    episode = models.ForeignKey(
+        "drama.Episode", on_delete=models.CASCADE, related_name="watch_progress"
+    )
+    position_seconds = models.PositiveIntegerField("Pozitsiya (sekund)", default=0)
+    duration_seconds = models.PositiveIntegerField("Davomiyligi (sekund)", default=0)
+    completed = models.BooleanField("Ko'rib tugatilgan", default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "episode")
+        # (user, -updated_at): 'davom ettirish' ro'yxatini tez oladi
+        indexes = [models.Index(fields=["user", "-updated_at"])]
+        ordering = ["-updated_at"]
+        verbose_name = "Ko'rish progressi"
+        verbose_name_plural = "Ko'rish progresslari"
+
+    @property
+    def percent(self) -> int:
+        if self.duration_seconds:
+            return min(round(self.position_seconds / self.duration_seconds * 100), 100)
+        return 0
+
+    def __str__(self):
+        return f"{self.user.username} - {self.episode} ({self.percent}%)"

@@ -243,7 +243,7 @@
           "title_en": "Move image optimization out of save() into Celery tasks",
           "title_uz": "Rasm siqishni save()'dan Celery task'ga ko'chirish",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T4"],
           "description_uz": "Hozir Movie/Actor/Profile/Episode .save() ichida PIL bilan sinxron WEBP siqish bor — bu request'ni bloklaydi. Buni post_save signal + Celery task'ga ko'chirish. Yuklangan original saqlanadi, async siqiladi va almashtiriladi.",
           "acceptance_criteria": [
@@ -259,7 +259,7 @@
           "title_en": "Introduce Season model for proper series structure",
           "title_uz": "Season (fasl) modeli — to'g'ri serial strukturasi",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Hozir Episode to'g'ridan Movie'ga bog'langan (flat). Season modeli qo'shish: Movie -> Season -> Episode. Eski episodelar uchun default 'Season 1' data migration. Backward compatible.",
           "acceptance_criteria": [
@@ -275,7 +275,7 @@
           "title_en": "Watch history / resume playback model",
           "title_uz": "Ko'rish tarixi / 'davom ettirish' modeli",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "WatchProgress(user, episode, position_seconds, duration, completed, updated_at). Foydalanuvchi qaysi qismda, qaysi sekundda to'xtaganini saqlaydi. 'Davom ettirish' va 'Ko'rilmoqda' ro'yxati uchun.",
           "acceptance_criteria": [
