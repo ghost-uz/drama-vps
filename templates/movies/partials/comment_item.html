@@ -9,7 +9,7 @@
             </h5>
             <span class="text-[9px] text-gray-600 font-bold">{{ review.created_at|timesince }} avval</span>
         </div>
-        
+
         <div class="text-xs text-gray-300 leading-relaxed">
             {% if review.text|length > 280 %}
                 <span class="comment-short-text inline">{{ review.text|truncatechars:280 }}</span>
@@ -51,8 +51,8 @@
             </div>
 
             {% if request.user.is_superuser %}
-                <button type="button" 
-                        onclick="prepareReply('{{ review.user.username }}', '{{ review.id }}')" 
+                <button type="button"
+                        onclick="prepareReply('{{ review.user.username }}', '{{ review.id }}')"
                         class="text-[10px] font-black text-[#00cc4c] uppercase hover:underline flex items-center gap-1 bg-[#00cc4c]/10 px-3 py-1.5 rounded-xl transition-all">
                     <i class="fas fa-reply"></i> Javob berish
                 </button>

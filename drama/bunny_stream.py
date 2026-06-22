@@ -9,11 +9,11 @@ from django.conf import settings
 
 
 def _cdn_host() -> str:
-    return getattr(settings, 'BUNNY_STREAM_CDN_HOSTNAME', '')
+    return getattr(settings, "BUNNY_STREAM_CDN_HOSTNAME", "")
 
 
 def _library_id() -> str:
-    return getattr(settings, 'BUNNY_STREAM_LIBRARY_ID', '')
+    return getattr(settings, "BUNNY_STREAM_LIBRARY_ID", "")
 
 
 def is_configured() -> bool:
@@ -51,10 +51,10 @@ def get_all_urls(video_id: str) -> dict:
     if not video_id or not is_configured():
         return {}
     return {
-        'hls': hls_url(video_id),
-        'play_720': direct_url(video_id, 720),
-        'play_1080': direct_url(video_id, 1080),
-        'thumbnail': thumbnail_url(video_id),
-        'preview': preview_url(video_id),
-        'embed': embed_url(video_id),
+        "hls": hls_url(video_id),
+        "play_720": direct_url(video_id, 720),
+        "play_1080": direct_url(video_id, 1080),
+        "thumbnail": thumbnail_url(video_id),
+        "preview": preview_url(video_id),
+        "embed": embed_url(video_id),
     }

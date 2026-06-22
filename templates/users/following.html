@@ -4,7 +4,7 @@
 <div class="max-w-xl mx-auto my-10 px-4">
     <!-- Glassmorphic Konteyner -->
     <div class="bg-zinc-950/40 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-6 shadow-2xl">
-        
+
         <!-- Header qismi -->
         <div class="mb-6 border-b border-zinc-800 pb-4 flex items-center justify-between">
             <h1 class="text-xl font-semibold text-zinc-100 flex items-center gap-2">
@@ -21,7 +21,7 @@
                 <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/20 border border-zinc-800/40 hover:border-emerald-800/50 hover:bg-zinc-900/40 transition-all duration-300 group">
                     <div class="flex items-center gap-3">
                         <!-- Minimalist Avatar (Foydalanuvchi ismining bosh harfi) -->
-                         
+
 
                          {% if profile.user.profile.avatar %}
                 <div class="w-12 h-12 rounded-full overflow-hidden border border-white/10">
@@ -39,7 +39,7 @@
                             <span class="text-xs text-zinc-500">@{{ profile.user.username }}</span>
                         </div>
                     </div>
-                    
+
                     <!-- Profilga o'tish tugmasi -->
                     <a href="{% url 'users:profile' username=profile.user.username %}" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 hover:bg-emerald-600 hover:text-white hover:border-transparent transition-all duration-200">
                         Profil
@@ -52,7 +52,7 @@
                 </div>
             {% endfor %}
         </div>
-        
+
     </div>
 </div>
 

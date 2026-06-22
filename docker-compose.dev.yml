@@ -1,0 +1,40 @@
+# ==============================================================================
+# Dev override — hot-reload, dev settings, ochiq portlar, nginx o'chiq.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# ==============================================================================
+
+services:
+  web:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      COLLECTSTATIC: "0"
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+
+  celery-worker:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - .:/app
+
+  celery-beat:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - .:/app
+
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  # Dev'da nginx kerak emas — runserver statikani o'zi beradi.
+  # Faqat `--profile proxy` bilan ataylab ko'tariladi.
+  nginx:
+    profiles: ["proxy"]

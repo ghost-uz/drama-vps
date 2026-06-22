@@ -1,0 +1,123 @@
+# ==============================================================================
+# Drama.uz — to'liq stack (prod-leaning).
+#   Prod:  docker compose up -d
+#   Dev :  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# DJANGO_SETTINGS_MODULE .env yoki override orqali (default: prod).
+# ==============================================================================
+
+name: drama
+
+# Umumiy Django/infra env — har servisda takrorlamaslik uchun YAML anchor.
+# (Docker-ichki host nomlari env_file'dagi .env qiymatlarini override qiladi.)
+x-django-env: &django-env
+  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.prod}
+  DB_HOST: db
+  DB_PORT: "5432"
+  REDIS_URL: redis://redis:6379/1
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+x-app-build: &app-build
+  build:
+    context: .
+    target: runtime
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-drama_db}
+      POSTGRES_USER: ${DB_USER:-drama_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD .env'da bo'lishi shart}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-drama_user} -d ${DB_NAME:-drama_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    <<: *app-build
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *django-env
+      RUN_MIGRATIONS: "1"
+      COLLECTSTATIC: "1"
+    volumes:
+      - staticfiles:/app/staticfiles
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  celery-worker:
+    <<: *app-build
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *django-env
+    command: celery -A config worker -l info --concurrency=2
+    volumes:
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    <<: *app-build
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *django-env
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - staticfiles:/app/staticfiles:ro
+      - media:/app/media:ro
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  redisdata:
+  staticfiles:
+  media:

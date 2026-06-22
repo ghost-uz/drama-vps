@@ -1,0 +1,62 @@
+# ==============================================================================
+# Drama.uz — asboblar konfiguratsiyasi (P0-T8)
+# ruff = lint + format + isort (bitta vosita). mypy = faqat core/ (qat'iy).
+# ==============================================================================
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [
+    "env",
+    "venv",
+    ".venv",
+    ".claude",
+    "*/migrations/*",
+    "staticfiles",
+    "media",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+]
+# NOTE: "DJ" (flake8-django) P1 (data model qatlami)da yoqiladi — DJ001/DJ008/DJ012
+# model refaktoringi va migratsiya talab qiladi, P0-T8 (lint sozlash) doirasidan tashqari.
+ignore = [
+    "B008",  # funksiya chaqiruvi default argumentda (Django/DRF keng tarqalgan)
+    "E501",  # satr uzunligi — ruff format boshqaradi (qolgan uzun url/string qabul qilinadi)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# settings paketi base'dan yulduzcha import qiladi (standart Django pattern)
+"config/settings/*" = ["F403", "F405", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "core", "drama", "users", "funding"]
+
+# --- mypy: FAQAT core/ qat'iy tekshiriladi (eski kod bosqichma-bosqich) ---
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+warn_unused_ignores = false
+exclude = ['/migrations/', '^env/']
+
+[[tool.mypy.overrides]]
+module = ["decouple.*", "celery.*", "google.*", "storages.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.dev"
+
+[[tool.mypy.overrides]]
+# Eski app'lar bosqichma-bosqich type-check qilinadi (P0-T8: faqat core/ qat'iy).
+# django-stubs plugin ularni model-registry uchun yuklaydi, lekin xatolarini jim qiladi.
+# P1 (data model qatlami)da modellarga manager/M2M annotatsiyalari qo'shilib yoqiladi.
+module = ["drama.*", "users.*", "funding.*"]
+ignore_errors = true

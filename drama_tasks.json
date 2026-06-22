@@ -93,7 +93,7 @@
           "title_en": "Split settings into base/dev/prod/test",
           "title_uz": "Settings'ni base/dev/prod/test ga bo'lish",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Bitta config/settings.py ni config/settings/{base,dev,prod,test}.py ga bo'lish. django-environ orqali env o'qish. DEBUG, ALLOWED_HOSTS, DATABASES, security har muhitga mos.",
           "acceptance_criteria": [
@@ -109,7 +109,7 @@
           "title_en": "Remove committed secrets, rotate keys, .gitignore audit",
           "title_uz": "Repodagi sirlarni o'chirish, kalitlarni almashtirish",
           "priority": "P0",
-          "status": "todo",
+          "status": "in_progress",
           "depends_on": [],
           "description_uz": "drama-key-v2.json (GCS service account) va boshqa sirlarni repodan o'chirish, git tarixidan tozalash (git filter-repo), yangi kalit generatsiya. GCS credentials env/fayl yo'li orqali, repoga tushmaydi. .gitignore to'liqlash.",
           "acceptance_criteria": [
@@ -125,7 +125,7 @@
           "title_en": "Configure Redis as cache + session backend",
           "title_uz": "Redis'ni kesh va sessiya backend qilib sozlash",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T1"],
           "description_uz": "django-redis o'rnatish, CACHES default = RedisCache. SESSION_ENGINE = cache (yoki cached_db). views.py dagi cache.get_or_set lar endi haqiqiy Redis bilan ishlaydi. Kesh kalitlari uchun prefiks/versiya.",
           "acceptance_criteria": [
@@ -141,7 +141,7 @@
           "title_en": "Celery + Beat skeleton wired to Redis",
           "title_uz": "Celery + Beat skeletini Redis'ga ulash",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T3"],
           "description_uz": "config/celery.py yaratish, Celery app, Redis broker + result backend. django-celery-beat (DB scheduler). Bitta test task (debug_task). worker va beat ishga tushadi.",
           "acceptance_criteria": [
@@ -157,7 +157,7 @@
           "title_en": "Structured logging configuration",
           "title_uz": "Tuzilmali (structured) logging sozlash",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T1"],
           "description_uz": "LOGGING dict: console (dev), JSON formatter (prod), fayl/stdout. django, celery, app loggerlari. WARNING+ alohida. Request ID middleware (ixtiyoriy).",
           "acceptance_criteria": [
@@ -172,7 +172,7 @@
           "title_en": "Dockerize: Dockerfile + docker-compose (web, db, redis, celery, beat, nginx)",
           "title_uz": "Docker: Dockerfile + docker-compose (barcha servislar)",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T3", "P0-T4"],
           "description_uz": "Multi-stage Dockerfile (Python 3.12-slim). docker-compose.yml: web (gunicorn/uvicorn), db (postgres16), redis, celery-worker, celery-beat, nginx. .dockerignore. Healthcheck'lar. Hot-reload uchun dev compose.",
           "acceptance_criteria": [
@@ -189,7 +189,7 @@
           "title_en": "Split & pin requirements (base/dev/prod) + add DRF, Celery, Redis deps",
           "title_uz": "Requirements'ni bo'lish va pin qilish, yangi paketlar",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "requirements/{base,dev,prod}.txt (yoki pyproject + uv/poetry). Qo'shish: djangorestframework, drf-spectacular, djangorestframework-simplejwt, django-redis, celery, django-celery-beat, django-filter, django-ratelimit, sentry-sdk, pytest, pytest-django, factory_boy, ruff, mypy. Versiyalar pin.",
           "acceptance_criteria": [
@@ -205,7 +205,7 @@
           "title_en": "Pre-commit: ruff, black, isort, mypy, django-upgrade",
           "title_uz": "Pre-commit: ruff, black, isort, mypy",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T7"],
           "description_uz": ".pre-commit-config.yaml: ruff (lint+format), isort, mypy, django-upgrade, check-yaml, end-of-file-fixer. CI'da ham ishlaydi.",
           "acceptance_criteria": [
@@ -220,7 +220,7 @@
           "title_en": "Health check & readiness endpoints",
           "title_uz": "Health check / readiness endpoint",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T3"],
           "description_uz": "/healthz (liveness) va /readyz (DB+Redis+migratsiya tekshiradi). Docker healthcheck va monitoring uchun.",
           "acceptance_criteria": [

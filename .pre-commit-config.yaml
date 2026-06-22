@@ -1,0 +1,62 @@
+# ==============================================================================
+# pre-commit konfiguratsiyasi (P0-T8)
+#   O'rnatish:  env\Scripts\pre-commit install
+#   Qo'lda:     env\Scripts\pre-commit run --all-files
+#
+# ruff/mypy — LOKAL `system` hook'lar: loyiha venv'idagi (requirements/dev.txt)
+# vositalarni ishlatadi (versiya izchilligi: ruff 0.15, mypy 2.1 + django-stubs).
+# ⚠️ Commit'dan oldin venv'ni PATH'ga qo'shing, aks holda hook ruff/mypy topa olmaydi:
+#    $env:PATH = "C:\projects\drama-vps\env\Scripts;$env:PATH"
+# ==============================================================================
+default_language_version:
+  python: python3.12
+
+repos:
+  # --- Fayl gigienasi (barqaror upstream tag) ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.min\.(js|css)$|static/css/output\.css$'
+      - id: end-of-file-fixer
+        exclude: '\.min\.(js|css)$|static/css/output\.css$'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+        exclude: '\.min\.(js|css)$|static/css/output\.css$'
+
+  # --- django-upgrade (Django 6.0 sintaksisi) ---
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: 1.30.0
+    hooks:
+      - id: django-upgrade
+        args: ["--target-version", "6.0"]
+
+  # --- Lint / format / type-check (loyiha venv vositalari, PATH'dan) ---
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff (lint + fix)
+        entry: ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff (format)
+        entry: ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: mypy
+        name: mypy (type-check core/)
+        entry: mypy core
+        language: system
+        types: [python]
+        pass_filenames: false
+        files: ^core/.*\.py$

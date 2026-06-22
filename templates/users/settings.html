@@ -1,4 +1,4 @@
-{% extends 'base.html' %} 
+{% extends 'base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <style>
-    
+
     /* QORA FONDA XATOLIKLAR KO'RINISHI UCHUN */
     .invalid-feedback,
     .text-danger,
@@ -18,7 +18,7 @@
         display: block;
         text-shadow: 0 0 10px rgba(255, 77, 79, 0.4);
     }
-    
+
     .has-error .form-control,
     .is-invalid {
         border-color: #ff4d4f !important;
@@ -39,12 +39,12 @@
         text-align: center;
         appearance: auto;
     }
-    
+
     /* Oxirgi (Uchinchi) qutining yonida bo'sh joy qolmasligi uchun */
     .custom-date-select:last-child {
         margin-right: 0;
     }
-    
+
     /* Mobil ekranda qutilar sal kichrayishi uchun */
     @media (max-width: 640px) {
         .custom-date-select {
@@ -66,7 +66,7 @@
     }
 
     /* Crispy Forms Dark Mode Override - Yanada silliqroq variant */
-    .dark-form .form-control, 
+    .dark-form .form-control,
     .dark-form .form-select,
     .dark-form textarea {
         background-color: #0a0a0a !important;
@@ -114,7 +114,7 @@
 {% block content %}
 <div class="min-h-screen bg-[#050505] py-12 px-4">
     <div class="max-w-6xl mx-auto">
-        
+
         <div class="mb-10 flex items-center gap-4">
             <div class="w-2 h-10 bg-[#00cc4c] shadow-[0_0_15px_#00cc4c] rounded-full"></div>
             <div>
@@ -124,7 +124,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
+
             <div class="lg:col-span-4">
                 <div class="sticky top-28 space-y-6">
                     <div class="bg-[#0f0f0f] border border-[#1f1f1f] rounded-[2rem] p-8 text-center neon-border backdrop-blur-md">
@@ -169,10 +169,10 @@
             <div class="lg:col-span-8">
                 <div class="bg-[#0f0f0f] border border-[#1f1f1f] rounded-[2.5rem] p-6 md:p-12 shadow-2xl relative overflow-hidden">
                     <div class="absolute -top-24 -right-24 w-64 h-64 bg-[#00cc4c]/5 rounded-full blur-[100px]"></div>
-                    
+
                     <form method="POST" enctype="multipart/form-data" class="dark-form relative z-10">
                         {% csrf_token %}
-                        
+
                         <div class="mb-12">
                             <div class="flex items-center gap-3 mb-8">
                                 <span class="p-2 bg-[#00cc4c]/10 rounded-lg text-[#00cc4c]">

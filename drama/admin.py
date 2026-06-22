@@ -1,24 +1,36 @@
-from unfold.admin import ModelAdmin, TabularInline
-from unfold.decorators import display
 from django.contrib import admin
-from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from modeltranslation.admin import TranslationAdmin
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.decorators import display
 
 from .models import (
-    Category, Genre, Tag, TopSlider, Movie, Episode,
-    MovieShots, Actor, ActorGift, Rating, RatingStar, Review
+    Actor,
+    ActorGift,
+    Category,
+    Episode,
+    Genre,
+    Movie,
+    MovieShots,
+    Rating,
+    RatingStar,
+    Review,
+    Tag,
+    TopSlider,
 )
 
 # --- INLINES ---
+
 
 class ReviewInline(TabularInline):
     model = Review
     extra = 0
     readonly_fields = ("user", "parent", "text", "created_at")
     can_delete = True
-    tab = True 
+    tab = True
+
 
 class MovieShotsInline(TabularInline):
     model = MovieShots
@@ -30,8 +42,11 @@ class MovieShotsInline(TabularInline):
     @display(description=_("Kadr"))
     def display_image(self, obj):
         if obj.image:
-            return mark_safe(f'<img src="{obj.image.url}" class="rounded h-12 w-20 object-cover" />')
+            return mark_safe(
+                f'<img src="{obj.image.url}" class="rounded h-12 w-20 object-cover" />'
+            )
         return "-"
+
 
 class EpisodeInline(TabularInline):
     model = Episode
@@ -40,7 +55,9 @@ class EpisodeInline(TabularInline):
     fields = ("episode_number", "title", "bunny_video_id", "video_embed_code")
     sortable_field_name = "episode_number"
 
+
 # --- ADMIN CLASSES ---
+
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin, TranslationAdmin):
@@ -52,17 +69,20 @@ class CategoryAdmin(ModelAdmin, TranslationAdmin):
     def movie_count(self, obj):
         return obj.movies.count()
 
+
 @admin.register(Genre)
 class GenreAdmin(ModelAdmin, TranslationAdmin):
     list_display = ("name", "slug")
     search_fields = ("name",)
     prepopulated_fields = {"slug": ("name",)}
 
+
 @admin.register(Tag)
 class TagAdmin(ModelAdmin):
     list_display = ("name", "slug")
-    search_fields = ("name",) # Muhim: Autocomplete ishlashi uchun
+    search_fields = ("name",)  # Muhim: Autocomplete ishlashi uchun
     prepopulated_fields = {"slug": ("name",)}
+
 
 @admin.register(Actor)
 class ActorAdmin(ModelAdmin, TranslationAdmin):
@@ -74,58 +94,95 @@ class ActorAdmin(ModelAdmin, TranslationAdmin):
     @display(description=_("Aktyor"), header=True)
     def display_actor(self, obj):
         img = obj.image.url if obj.image else "https://via.placeholder.com/50"
-        return obj.name, obj.original_name, mark_safe(f'<img src="{img}" class="w-10 h-10 rounded-full object-cover" />')
+        return (
+            obj.name,
+            obj.original_name,
+            mark_safe(f'<img src="{img}" class="w-10 h-10 rounded-full object-cover" />'),
+        )
+
 
 @admin.register(Movie)
 class MovieAdmin(ModelAdmin, TranslationAdmin):
     list_display = (
-        "display_header", "year", "category", "get_mdl_rank", 
-        "get_internal_stats", "display_status", "is_draft"
+        "display_header",
+        "year",
+        "category",
+        "get_mdl_rank",
+        "get_internal_stats",
+        "display_status",
+        "is_draft",
     )
     list_filter = ("is_draft", "is_vip", "year", "category", "genres", "tags")
     search_fields = ("title", "original_title")
     list_editable = ("is_draft",)
     list_full_width = True
     prepopulated_fields = {"slug": ("title",)}
-    
+
     # Autocomplete: Minglab ma'lumotlar ichidan tez qidirib topish uchun
     autocomplete_fields = ["category", "genres", "tags", "main_actors", "actors"]
-    
+
     inlines = [MovieShotsInline, EpisodeInline, ReviewInline]
     save_on_top = True
     actions = ["publish_movies", "unpublish_movies"]
 
     fieldsets = (
-        (_("Asosiy Ma'lumotlar"), {
-            "fields": (("title", "original_title"), ("slug", "is_vip", "is_draft"), "tagline", "description")
-        }),
-        (_("Teglar va SEO"), {
-            "classes": ["tab"],
-            "fields": ("tags",) # Keywords o'rniga Tags qo'shildi
-        }),
-        (_("Media & Vizual"), {
-            "classes": ["tab"],
-            "fields": (
-                ("poster", "display_poster_preview"),
-                ("bunny_video_id", "bunny_trailer_id"),
-                ("film_embed_code", "trailer_embed_code"),
-            )
-        }),
-        (_("Metrikalar"), {
-            "classes": ["tab"], 
-            "fields": (("mdl_rank", "site_rank"), ("average_rating", "total_votes"))
-        }),
-        (_("Texnik Tafsilotlar"), {
-            "classes": ["tab"], 
-            "fields": (("year", "country"), ("duration", "episodes_count", "age_limit"), "category")
-        }),
-        (_("Jamoa"), {
-            "classes": ["collapse"], 
-            "fields": ("genres", "main_actors", "actors")
-        }),
+        (
+            _("Asosiy Ma'lumotlar"),
+            {
+                "fields": (
+                    ("title", "original_title"),
+                    ("slug", "is_vip", "is_draft"),
+                    "tagline",
+                    "description",
+                )
+            },
+        ),
+        (
+            _("Teglar va SEO"),
+            {
+                "classes": ["tab"],
+                "fields": ("tags",),  # Keywords o'rniga Tags qo'shildi
+            },
+        ),
+        (
+            _("Media & Vizual"),
+            {
+                "classes": ["tab"],
+                "fields": (
+                    ("poster", "display_poster_preview"),
+                    ("bunny_video_id", "bunny_trailer_id"),
+                    ("film_embed_code", "trailer_embed_code"),
+                ),
+            },
+        ),
+        (
+            _("Metrikalar"),
+            {
+                "classes": ["tab"],
+                "fields": (("mdl_rank", "site_rank"), ("average_rating", "total_votes")),
+            },
+        ),
+        (
+            _("Texnik Tafsilotlar"),
+            {
+                "classes": ["tab"],
+                "fields": (
+                    ("year", "country"),
+                    ("duration", "episodes_count", "age_limit"),
+                    "category",
+                ),
+            },
+        ),
+        (_("Jamoa"), {"classes": ["collapse"], "fields": ("genres", "main_actors", "actors")}),
     )
 
-    readonly_fields = ("display_poster_preview", "average_rating", "total_votes", "created_at", "updated_at")
+    readonly_fields = (
+        "display_poster_preview",
+        "average_rating",
+        "total_votes",
+        "created_at",
+        "updated_at",
+    )
 
     @display(description=_("Film"), header=True)
     def display_header(self, obj):
@@ -138,7 +195,9 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
     @display(description=_("Poster"))
     def display_poster_preview(self, obj):
         if obj.poster:
-            return mark_safe(f'<img src="{obj.poster.url}" class="rounded-lg shadow-md" width="100" />')
+            return mark_safe(
+                f'<img src="{obj.poster.url}" class="rounded-lg shadow-md" width="100" />'
+            )
         return "Rasm yo'q"
 
     @display(description=_("Status"), label={True: "warning", False: "success"})
@@ -149,13 +208,13 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
     def get_mdl_rank(self, obj):
         return f"★ {obj.mdl_rank}"
 
+    @admin.action(description=_("Qoralamaga olish"))
     def unpublish_movies(self, request, queryset):
         queryset.update(is_draft=True)
-    unpublish_movies.short_description = _("Qoralamaga olish")
 
+    @admin.action(description=_("Nashr etish"))
     def publish_movies(self, request, queryset):
         queryset.update(is_draft=False)
-    publish_movies.short_description = _("Nashr etish")
 
 
 @admin.register(Review)
@@ -163,7 +222,7 @@ class ReviewAdmin(ModelAdmin):
     list_display = ("user_link", "movie_link", "parent_info", "created_at_formatted", "short_text")
     list_filter = ("created_at", "movie")
     search_fields = ("text", "user__username", "movie__title")
-    autocomplete_fields = ["movie", "user"] 
+    autocomplete_fields = ["movie", "user"]
     readonly_fields = ("user", "movie", "parent", "created_at")
 
     @display(description=_("Foydalanuvchi"))
@@ -173,7 +232,9 @@ class ReviewAdmin(ModelAdmin):
     @display(description=_("Film"))
     def movie_link(self, obj):
         url = reverse("admin:drama_movie_change", args=[obj.movie.id])
-        return mark_safe(f'<a href="{url}" class="font-bold text-blue-500 underline">{obj.movie.title}</a>')
+        return mark_safe(
+            f'<a href="{url}" class="font-bold text-blue-500 underline">{obj.movie.title}</a>'
+        )
 
     @display(description=_("Tur"), label={"Javob": "info", "Asosiy": "success"})
     def parent_info(self, obj):
@@ -182,21 +243,23 @@ class ReviewAdmin(ModelAdmin):
     @display(description=_("Vaqt"))
     def created_at_formatted(self, obj):
         return obj.created_at.strftime("%d.%m.%Y %H:%M")
-    
+
     @display(description=_("Matn"))
     def short_text(self, obj):
         return obj.text[:60] + "..." if len(obj.text) > 60 else obj.text
 
+
 @admin.register(TopSlider)
 class TopSliderAdmin(ModelAdmin):
     list_display = ("name", "rank", "display_slide")
-    
+
     @display(description=_("Slayd Rasmi"))
     def display_slide(self, obj):
         if obj.image:
-            return mark_safe(f'<img src="{obj.image.url}" class="h-12 w-24 object-cover rounded-md" />')
+            return mark_safe(
+                f'<img src="{obj.image.url}" class="h-12 w-24 object-cover rounded-md" />'
+            )
         return "-"
-
 
 
 # drama/admin.py fayli
@@ -205,26 +268,31 @@ class TopSliderAdmin(ModelAdmin):
 @admin.register(ActorGift)
 class ActorGiftAdmin(ModelAdmin):
     # Admin panelda nimalar ko'rinib turishi kerak?
-    list_display = ['user', 'actor', 'get_gift_icon', 'price_display', 'created_at']
-    list_filter = ['gift_type', 'created_at']
-    search_fields = ['user__username', 'actor__name']
-    
+    list_display = ["user", "actor", "get_gift_icon", "price_display", "created_at"]
+    list_filter = ["gift_type", "created_at"]
+    search_fields = ["user__username", "actor__name"]
+
     # Jurnal o'zgartirilmasligi uchun o'qish rejimiga o'tkazish
-    readonly_fields = ['user', 'actor', 'gift_type', 'price', 'created_at']
+    readonly_fields = ["user", "actor", "gift_type", "price", "created_at"]
 
     # Chiroyli qilib ko'rsatish funksiyalari
+    @admin.display(description="Sovg'a")
     def get_gift_icon(self, obj):
         return obj.get_gift_type_display()
-    get_gift_icon.short_description = "Sovg'a"
 
+    @admin.display(description="To'langan Coin")
     def price_display(self, obj):
-        return mark_safe(f'<span style="color: #d4af37; font-weight: bold;">{obj.price} Coin</span>')
-    price_display.short_description = "To'langan Coin"
+        return mark_safe(
+            f'<span style="color: #d4af37; font-weight: bold;">{obj.price} Coin</span>'
+        )
 
     # Admin panelda sovg'a tarixini o'chirish/tahrirlashni taqiqlash (Xavfsizlik)
     def has_add_permission(self, request):
         return False
+
     def has_change_permission(self, request, obj=None):
         return False
+
+
 admin.site.register(Rating)
 admin.site.register(RatingStar)

@@ -9,3 +9,33 @@ staticfiles/
 media/
 node_modules
 drama-key-v2.json
+
+# --- Sirlar / kalitlar (HECH QACHON commit qilinmasin) ---
+*.key.json
+*-key*.json
+*credentials*.json
+.env.*
+!.env.example
+
+# --- Test / lint / build artefaktlari ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+
+# --- IDE / OS ---
+.DS_Store
+.idea/
+.vscode/
+
+# --- Claude Code (worktree'lar, sozlamalar) ---
+.claude/
+
+# --- DB dump / backup (maxfiy — HECH QACHON commit qilinmasin) ---
+*.pgdump
+*.dump
+*.sql
+*_old_db_*
+drama_uz_old_db_*

@@ -1,0 +1,25 @@
+# ==============================================================================
+# .gitattributes — qator-oxiri (line-ending) normalizatsiyasi
+# Loyiha Linux/Docker'da deploy bo'ladi → barcha matn fayllar LF.
+# Bu git core.autocrlf'ni bekor qiladi va pre-commit mixed-line-ending hook
+# bilan izchillikni ta'minlaydi (CRLF<->LF kurashini oldini oladi).
+# ==============================================================================
+
+# Barcha matn fayllar LF (working copy + index)
+* text=auto eol=lf
+
+# Shell skriptlar — har doim LF (Linux konteynerda bajariladi)
+*.sh text eol=lf
+
+# Binary fayllar — git eol normalizatsiyasi qilmasin
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pyc binary

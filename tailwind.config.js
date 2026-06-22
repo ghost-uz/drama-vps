@@ -12,8 +12,8 @@ module.exports = {
         'drama-green': '#00cc4c',
         'drama-dark': '#0a0a0a',
       },
-      fontFamily: { 
-        'inter': ['Inter', 'sans-serif'] 
+      fontFamily: {
+        'inter': ['Inter', 'sans-serif']
       }
     },
   },

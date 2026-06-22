@@ -10,12 +10,12 @@
         backdrop-filter: blur(20px);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
-    
+
     .status-tab {
         transition: all 0.3s ease;
         border-bottom: 2px solid transparent;
     }
-    
+
     .status-tab.active {
         color: #00cc4c;
         border-bottom-color: #00cc4c;
@@ -41,7 +41,7 @@
 
 {% block content %}
 <div class="min-h-screen bg-[#050505] text-white pb-20">
-    
+
     <div class="pt-12 pb-6 px-4 md:px-8 max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
     <div class="flex items-center gap-4">
@@ -55,7 +55,7 @@
             </p>
         </div>
     </div>
-    
+
     <div class="flex gap-2">
         <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-center">
             <p class="text-[10px] text-gray-500 font-bold">LVL</p>
@@ -98,7 +98,7 @@
                 <div class="w-1.5 h-8 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
                 <h2 class="text-2xl font-black italic uppercase tracking-tight">Hozirda ko'rilmoqda</h2>
             </div>
-            
+
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 {% for item in watching %}
                     {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-watching" %}
@@ -113,7 +113,7 @@
                 <div class="w-1.5 h-8 bg-[#00cc4c] rounded-full shadow-[0_0_10px_#00cc4c]"></div>
                 <h2 class="text-2xl font-black italic uppercase tracking-tight">Ko'rib tugallangan</h2>
             </div>
-            
+
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 {% for item in completed %}
                     {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-completed" %}
@@ -128,7 +128,7 @@
                 <div class="w-1.5 h-8 bg-purple-500 rounded-full shadow-[0_0_10px_#a855f7]"></div>
                 <h2 class="text-2xl font-black italic uppercase tracking-tight">Ko'rish rejamda bor</h2>
             </div>
-            
+
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 {% for item in plan_to_watch %}
                     {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-planned" %}

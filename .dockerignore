@@ -1,0 +1,59 @@
+# ==============================================================================
+# .dockerignore — build context'ni yengillashtirish + sirlarni image'dan chiqarish
+# ==============================================================================
+
+# --- Git ---
+.git
+.gitignore
+.gitattributes
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# --- Virtualenv (image o'zining /opt/venv'ini quradi) ---
+env/
+venv/
+.venv/
+
+# --- Django runtime artefaktlari ---
+*.sqlite3
+staticfiles/
+media/
+*.log
+
+# --- Sirlar (HECH QACHON image'ga tushmasin — runtime'da env_file/volume) ---
+.env
+.env.*
+!.env.example
+drama-key-v2.json
+*-key*.json
+*credentials*.json
+
+# --- Test / lint cache ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node ---
+node_modules/
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+
+# --- Docker fayllarining o'zi (image ichida kerak emas) ---
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# --- Loyihaga oid, image'ga kerak emas ---
+.claude/
+docs/
+drama_tasks.json
+drama_uz_old_db_09_06_26

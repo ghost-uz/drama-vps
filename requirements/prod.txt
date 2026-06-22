@@ -1,0 +1,6 @@
+# Production — base ustiga (WSGI server + monitoring).
+#   pip install -r requirements/prod.txt
+-r base.txt
+
+gunicorn==25.0.3
+sentry-sdk==2.63.0
