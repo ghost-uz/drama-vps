@@ -27,7 +27,10 @@ class Profile(ImageOptimizationMixin, models.Model):
     xp = models.PositiveIntegerField(default=0)
     is_premium = models.BooleanField(default=False)
     premium_until = models.DateTimeField(null=True, blank=True)
-    balance = models.PositiveIntegerField(default=0, verbose_name="Balans (Point)")
+    # IntegerField (PositiveIntegerField emas): admin tasdiqni bekor qilganda
+    # (coin allaqachon sarflangan bo'lsa) balans manfiy = "qarzdor" bo'lishi mumkin.
+    # Ledger invarianti (balance == SUM(amount)) shu tufayli har doim saqlanadi.
+    balance = models.IntegerField(default=0, verbose_name="Balans (Point)")
 
     # Avatar siqish ImageOptimizationMixin.save() orqali fon (Celery)da bajariladi.
     # default.jpg storage'dagi committed fayl — yangi yuklanmagani uchun siqilmaydi.
@@ -138,23 +141,28 @@ class TopUpRequest(models.Model):
                 old_record = None
 
             if old_record:
-                from django.db import transaction as db_transaction
+                from users.services import wallet
 
-                # Tasdiqlash: balance qo'shish
+                # Tasdiqlash: ledger orqali kredit (atomik + audit izi)
                 if old_record.status == "pending" and self.status == "approved":
-                    with db_transaction.atomic():
-                        # select_for_update — parallel so'rovlar balance ni 2x qo'shib yubormasligi uchun
-                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
-                        profile.balance += self.points
-                        profile.save(update_fields=["balance"])
+                    wallet.credit(
+                        self.user.profile,
+                        self.points,
+                        CoinTransaction.Type.TOPUP,
+                        description=f"Hisob to'ldirish #{self.pk} ({self.amount_uzs} UZS)",
+                        reference=f"topup:{self.pk}",
+                    )
 
-                # Orqaga qaytarish: balance ayirish
+                # Tasdiq bekor qilindi: debet (coin sarflangan bo'lsa manfiyga ruxsat)
                 elif old_record.status == "approved" and self.status in ["pending", "rejected"]:
-                    with db_transaction.atomic():
-                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
-                        if profile.balance >= self.points:
-                            profile.balance -= self.points
-                            profile.save(update_fields=["balance"])
+                    wallet.debit(
+                        self.user.profile,
+                        self.points,
+                        CoinTransaction.Type.REFUND,
+                        description=f"Hisob to'ldirish #{self.pk} tasdig'i bekor qilindi",
+                        reference=f"topup:{self.pk}",
+                        allow_negative=True,
+                    )
 
         super().save(*args, **kwargs)
 
@@ -211,20 +219,26 @@ class CryptoTopUpRequest(models.Model):
                 old_record = None
 
             if old_record:
-                from django.db import transaction as db_transaction
+                from users.services import wallet
 
                 if old_record.status == "pending" and self.status == "approved":
-                    with db_transaction.atomic():
-                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
-                        profile.balance += self.points
-                        profile.save(update_fields=["balance"])
+                    wallet.credit(
+                        self.user.profile,
+                        self.points,
+                        CoinTransaction.Type.CRYPTO_TOPUP,
+                        description=f"Kripto to'ldirish #{self.pk} ({self.amount_usdt} USDT)",
+                        reference=f"crypto_topup:{self.pk}",
+                    )
 
                 elif old_record.status == "approved" and self.status in ["pending", "rejected"]:
-                    with db_transaction.atomic():
-                        profile = Profile.objects.select_for_update().get(pk=self.user.profile.pk)
-                        if profile.balance >= self.points:
-                            profile.balance -= self.points
-                            profile.save(update_fields=["balance"])
+                    wallet.debit(
+                        self.user.profile,
+                        self.points,
+                        CoinTransaction.Type.REFUND,
+                        description=f"Kripto to'ldirish #{self.pk} tasdig'i bekor qilindi",
+                        reference=f"crypto_topup:{self.pk}",
+                        allow_negative=True,
+                    )
 
         super().save(*args, **kwargs)
 
@@ -258,3 +272,41 @@ class WatchProgress(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.episode} ({self.percent}%)"
+
+
+class CoinTransaction(models.Model):
+    """Coin hamyon ledgeri — har bir balans harakatining o'zgarmas yozuvi.
+
+    Invariant: ``profile.balance == SUM(amount)``. ``balance_after`` har
+    yozuvdan keyingi balans (sverka/audit uchun). Yozuvlar o'zgartirilmaydi.
+    Yagona yozuvchi: ``users.services.wallet`` (credit/debit).
+    """
+
+    class Type(models.TextChoices):
+        OPENING = "opening", "Boshlang'ich balans"
+        TOPUP = "topup", "Hisob to'ldirish"
+        CRYPTO_TOPUP = "crypto_topup", "Kripto to'ldirish"
+        GIFT = "gift", "Aktyorga sovg'a"
+        FUNDING = "funding", "Crowdfunding hissa"
+        VIP = "vip", "VIP obuna"
+        REFUND = "refund", "Qaytarish"
+        ADJUSTMENT = "adjustment", "Admin tuzatishi"
+
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="coin_transactions")
+    amount = models.IntegerField("Miqdor (+kredit / -debet)")
+    type = models.CharField("Turi", max_length=20, choices=Type.choices)
+    balance_after = models.IntegerField("Yozuvdan keyingi balans")
+    description = models.CharField("Izoh", max_length=255, blank=True)
+    reference = models.CharField("Manba (model:id)", max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # (-created_at, -id): bir soniyada bir nechta yozuvni ham aniq tartiblaydi
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["profile", "-created_at"])]
+        verbose_name = "Coin tranzaksiyasi"
+        verbose_name_plural = "Coin tranzaksiyalari"
+
+    def __str__(self):
+        sign = "+" if self.amount >= 0 else ""
+        return f"{self.profile.user.username}: {sign}{self.amount} ({self.get_type_display()})"

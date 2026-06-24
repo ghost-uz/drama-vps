@@ -178,7 +178,8 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
     is_draft = models.BooleanField("Qoralama (Draft)", default=False)
     # Denormalization (Tezlik uchun)
     total_votes = models.PositiveIntegerField(default=0)
-    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    # max_digits=4 (3 emas): 10.00 baho saqlanishi uchun (3 → maksimum 9.99 edi — bug).
+    average_rating = models.DecimalField(max_digits=4, decimal_places=2, default=0.0)
 
     class Meta:
         indexes = [
@@ -260,6 +261,11 @@ class MovieShots(ImageOptimizationMixin, models.Model):
 
 # --- Reyting va Izoh Modellari ---
 class RatingStar(models.Model):
+    """DEPRECATED (P1-T5): eski IP-reyting yulduzi. Yangi manba — UserMovieList.score.
+
+    Faqat tarixiy/arxiv ma'lumot uchun saqlanadi (yangi kod ishlatmaydi).
+    """
+
     value = models.PositiveSmallIntegerField("Qiymat", default=0)
 
     def __str__(self):
@@ -267,6 +273,12 @@ class RatingStar(models.Model):
 
 
 class Rating(models.Model):
+    """DEPRECATED (P1-T5): IP-asosli anonim reyting (foydalanuvchiga bog'lanmagan).
+
+    Yagona yangi manba — UserMovieList.score (recompute_movie_rating task).
+    Bu model arxiv sifatida saqlanadi; yangi yozuv yaratilmaydi.
+    """
+
     ip = models.GenericIPAddressField("IP Manzil")
     star = models.ForeignKey(RatingStar, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="ratings")

@@ -291,7 +291,7 @@
           "title_en": "Coin wallet ledger (transaction history, double-entry)",
           "title_uz": "Coin hamyon ledgeri (tranzaksiya tarixi)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Hozir balance bitta int — audit imkonsiz, race xavfi. CoinTransaction(user, amount, type[topup/spend/gift/refund/funding], reference, balance_after, created_at) ledger qo'shish. Balance ledger yig'indisidan hisoblanadi/sinxron. select_for_update + atomic.",
           "acceptance_criteria": [
@@ -308,7 +308,7 @@
           "title_en": "Unify rating: user ratings + denormalized aggregate recompute task",
           "title_uz": "Reytingni birlashtirish: foydalanuvchi bahosi + agregat qayta hisoblash",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T4"],
           "description_uz": "Rating (IP asosida) va UserMovieList.score ikki xil. Birlashtirish: foydalanuvchi bahosi asosiy. Movie.average_rating/total_votes denormalizatsiyasini Celery task bilan davriy/signal orqali qayta hisoblash (har save'da emas).",
           "acceptance_criteria": [

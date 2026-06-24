@@ -58,3 +58,23 @@ def optimize_image_task(self, app_label, model_name, pk, field_name, max_size, q
                 pass
     except Exception as exc:
         raise self.retry(exc=exc) from exc
+
+
+@shared_task
+def recompute_movie_rating(movie_id: int) -> None:
+    """Movie.average_rating/total_votes ni UserMovieList.score lardan qayta hisoblaydi.
+
+    Yagona reyting manbai — foydalanuvchi bahosi (UserMovieList.score, 1.0-10.0).
+    `.update()` ishlatadi → Movie.save() chaqirmaydi (rasm-task/signal loop'i yo'q).
+    Hech kim baholamagan bo'lsa 0/0 ga tushiradi.
+    """
+    from django.db.models import Avg, Count
+
+    from drama.models import Movie
+    from users.models import UserMovieList
+
+    agg = UserMovieList.objects.filter(movie_id=movie_id, score__isnull=False).aggregate(
+        avg=Avg("score"), votes=Count("id")
+    )
+    average = round(agg["avg"], 2) if agg["avg"] is not None else 0
+    Movie.objects.filter(pk=movie_id).update(average_rating=average, total_votes=agg["votes"])

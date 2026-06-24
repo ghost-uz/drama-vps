@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}Tranzaksiyalar tarixi - Drama.uz{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-10">
+
+    <!-- Sarlavha + joriy balans -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-black text-white">Tranzaksiyalar tarixi</h1>
+            <p class="text-gray-400 text-sm mt-1">Coin hisobingizdagi barcha harakatlar</p>
+        </div>
+        <div class="text-right">
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Joriy balans</p>
+            <p class="text-2xl font-black text-[#00cc4c]">{{ profile.balance }}
+                <span class="text-sm">Coin</span></p>
+        </div>
+    </div>
+
+    <!-- Ro'yxat -->
+    <div class="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
+        {% for txn in page_obj %}
+        <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/5 last:border-0">
+            <div class="min-w-0">
+                <p class="text-white font-bold text-sm">{{ txn.get_type_display }}</p>
+                {% if txn.description %}
+                <p class="text-gray-500 text-xs truncate">{{ txn.description }}</p>
+                {% endif %}
+                <p class="text-gray-600 text-xs mt-0.5">{{ txn.created_at|date:"d.m.Y H:i" }}</p>
+            </div>
+            <div class="text-right shrink-0">
+                {% if txn.amount >= 0 %}
+                <p class="text-[#00cc4c] font-black">+{{ txn.amount }}</p>
+                {% else %}
+                <p class="text-red-400 font-black">{{ txn.amount }}</p>
+                {% endif %}
+                <p class="text-gray-500 text-xs">Balans: {{ txn.balance_after }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-5 py-16 text-center">
+            <i class="fas fa-receipt text-4xl text-gray-700 mb-3"></i>
+            <p class="text-gray-400">Hozircha tranzaksiyalar yo'q.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Sahifalash -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex items-center justify-center gap-3 mt-6">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-bold transition-colors">
+            <i class="fas fa-chevron-left mr-1"></i> Oldingi
+        </a>
+        {% endif %}
+        <span class="text-gray-400 text-sm">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-bold transition-colors">
+            Keyingi <i class="fas fa-chevron-right ml-1"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="mt-8">
+        <a href="{% url 'users:profile' username=request.user.username %}"
+           class="text-gray-400 hover:text-white text-sm font-bold transition-colors">
+            <i class="fas fa-arrow-left mr-1"></i> Profilga qaytish
+        </a>
+    </div>
+
+</div>
+{% endblock content %}

@@ -6,4 +6,6 @@ class UsersConfig(AppConfig):
     name = "users"
 
     def ready(self):
-        pass  # Signallarni import qilish shart!
+        # Signal receiverlarini ulaydi: profil avto-yaratish + avatar tozalash.
+        # (@receiver faqat modul import qilinganda ulanadi.)
+        from . import signals  # noqa: F401

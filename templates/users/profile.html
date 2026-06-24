@@ -208,10 +208,11 @@
                               py-3 rounded-xl text-sm font-bold transition-colors">
                         <i class="fas fa-plus-circle mr-1"></i> To'ldirish
                     </a>
-                    <button class="px-5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl transition-colors"
-                            title="Tranzaksiyalar tarixi (Yaqinda)">
+                    <a href="{% url 'users:transactions' %}"
+                       class="px-5 flex items-center bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl transition-colors"
+                       title="Tranzaksiyalar tarixi">
                         <i class="fas fa-history"></i>
-                    </button>
+                    </a>
                 </div>
             </div>
 

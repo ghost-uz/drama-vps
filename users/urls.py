@@ -29,4 +29,5 @@ urlpatterns = [
     path("topup/crypto/", user_views.crypto_topup_view, name="crypto_topup"),
     path("subscription/", user_views.subscription_view, name="subscription"),
     path("buy-vip/", user_views.buy_premium, name="buy_premium"),
+    path("transactions/", user_views.transactions_view, name="transactions"),
 ]

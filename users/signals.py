@@ -1,10 +1,12 @@
 import logging
+from functools import partial
 
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
-from .models import Profile
+from .models import Profile, UserMovieList
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +53,17 @@ def delete_avatar_on_profile_delete(sender, instance, **kwargs):
                 storage.delete(instance.avatar.name)
         except Exception as e:
             logger.error(f"Profil o'chganda rasm o'chmadi: {e}")
+
+
+# 4. REYTINGNI QAYTA HISOBLASH (P1-T5)
+@receiver(post_save, sender=UserMovieList)
+@receiver(post_delete, sender=UserMovieList)
+def recompute_rating_on_score_change(sender, instance, **kwargs):
+    """Baho (UserMovieList.score) o'zgarganda Movie reytingini fon'da qayta hisoblaydi.
+
+    on_commit: worker commit qilingan ma'lumotni o'qiydi; .delay(): request bloklanmaydi.
+    """
+    from drama.tasks import recompute_movie_rating
+
+    movie_id = instance.movie_id
+    transaction.on_commit(partial(recompute_movie_rating.delay, movie_id))

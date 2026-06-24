@@ -7,7 +7,7 @@ from unfold.admin import ModelAdmin, StackedInline
 # MANA SHU QATORNI QO'SHING:
 from unfold.decorators import display
 
-from .models import CryptoTopUpRequest, Profile, TopUpRequest
+from .models import CoinTransaction, CryptoTopUpRequest, Profile, TopUpRequest
 
 
 class ProfileInline(StackedInline):
@@ -123,3 +123,32 @@ class CryptoTopUpRequestAdmin(ModelAdmin):
     def reject_requests(self, request, queryset):
         queryset.filter(status="pending").update(status="rejected")
         self.message_user(request, "Tanlangan so'rovlar rad etildi.")
+
+
+@admin.register(CoinTransaction)
+class CoinTransactionAdmin(ModelAdmin):
+    """Coin ledger — faqat o'qish uchun audit ko'rinishi (o'zgarmas yozuvlar)."""
+
+    list_display = ["created_at", "profile", "type", "amount", "balance_after", "reference"]
+    list_filter = ["type", "created_at"]
+    search_fields = ["profile__user__username", "reference", "description"]
+    list_select_related = ["profile__user"]
+    readonly_fields = [
+        "profile",
+        "amount",
+        "type",
+        "balance_after",
+        "description",
+        "reference",
+        "created_at",
+    ]
+    ordering = ["-created_at"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

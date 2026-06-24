@@ -6,6 +6,7 @@ from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -19,7 +20,8 @@ from .forms import (
     UserRegisterForm,
     UserUpdateForm,
 )
-from .models import CryptoTopUpRequest, TopUpRequest, UserMovieList
+from .models import CoinTransaction, CryptoTopUpRequest, TopUpRequest, UserMovieList
+from .services import wallet
 
 logger = logging.getLogger(__name__)
 
@@ -236,9 +238,15 @@ def buy_premium(request):
         VIP_PRICE_1_MONTH = 15
         profile = request.user.profile
 
-        if profile.balance >= VIP_PRICE_1_MONTH:
+        try:
             with transaction.atomic():
-                profile.balance -= VIP_PRICE_1_MONTH
+                # Ledger orqali debet — balans yetmasa InsufficientFundsError
+                wallet.debit(
+                    profile,
+                    VIP_PRICE_1_MONTH,
+                    CoinTransaction.Type.VIP,
+                    description="1 oylik VIP obuna",
+                )
 
                 now = timezone.now()
                 if profile.is_premium and profile.premium_until:
@@ -255,15 +263,33 @@ def buy_premium(request):
                     profile.premium_until = now + timedelta(days=30)
 
                 profile.is_premium = True
-                profile.save(update_fields=["balance", "is_premium", "premium_until"])
+                # balance allaqachon wallet.debit() ichida saqlangan
+                profile.save(update_fields=["is_premium", "premium_until"])
 
             messages.success(request, "Tabriklaymiz! VIP obuna muvaffaqiyatli xarid qilindi 👑")
-        else:
+        except wallet.InsufficientFundsError:
             messages.error(
                 request, f"Hisobingizda mablag' yetarli emas! VIP narxi: {VIP_PRICE_1_MONTH} Coin."
             )
 
     return redirect("users:profile", username=request.user.username)
+
+
+@login_required
+def transactions_view(request):
+    """Foydalanuvchining coin tranzaksiyalari tarixi (ledger)."""
+    qs = CoinTransaction.objects.filter(profile=request.user.profile)
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(
+        request,
+        "users/transactions.html",
+        {
+            "page_obj": page_obj,
+            "profile": request.user.profile,
+            "title": "Tranzaksiyalar tarixi",
+        },
+    )
 
 
 @login_required

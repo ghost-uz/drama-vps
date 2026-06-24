@@ -10,8 +10,8 @@ from PIL import Image
 
 from core.images import is_new_upload, optimize_to_webp
 from drama.models import Episode, Movie, Season
-from drama.tasks import optimize_image_task
-from users.models import WatchProgress
+from drama.tasks import optimize_image_task, recompute_movie_rating
+from users.models import UserMovieList, WatchProgress
 
 
 def _image_bytes(fmt="JPEG", size=(2000, 2000), color="red"):
@@ -227,3 +227,97 @@ def test_save_progress_requires_login(client):
     url = reverse("drama:save_watch_progress", args=[ep.id])
     resp = client.post(url, {"position_seconds": 10, "duration_seconds": 100})
     assert resp.status_code == 302  # login sahifasiga redirect
+
+
+# --- P1-T5: reyting birlashtirish (recompute_movie_rating + signal) ---
+
+
+def _rate(username, movie, score, status=2):
+    """User + UserMovieList yozuvi (score string yoki None)."""
+    user = User.objects.create_user(username=username, password="pass12345")
+    UserMovieList.objects.create(profile=user.profile, movie=movie, status=status, score=score)
+    return user
+
+
+@pytest.mark.django_db
+def test_recompute_sets_average_and_votes():
+    movie = Movie.objects.create(
+        title="Rate A", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    _rate("ra1", movie, "8.0")
+    _rate("ra2", movie, "6.0")
+    _rate("ra3", movie, "10.0")
+    recompute_movie_rating(movie.id)
+    movie.refresh_from_db()
+    assert movie.total_votes == 3
+    assert movie.average_rating == 8  # (8+6+10)/3
+
+
+@pytest.mark.django_db
+def test_recompute_ignores_null_scores():
+    movie = Movie.objects.create(
+        title="Rate B", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    _rate("rb1", movie, "7.0")
+    _rate("rb2", movie, None, status=3)  # "rejada", bahosiz
+    recompute_movie_rating(movie.id)
+    movie.refresh_from_db()
+    assert movie.total_votes == 1
+    assert movie.average_rating == 7
+
+
+@pytest.mark.django_db
+def test_recompute_no_scores_resets_to_zero():
+    movie = Movie.objects.create(
+        title="Rate C", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    Movie.objects.filter(pk=movie.id).update(average_rating=5, total_votes=3)
+    recompute_movie_rating(movie.id)
+    movie.refresh_from_db()
+    assert movie.total_votes == 0
+    assert movie.average_rating == 0
+
+
+@pytest.mark.django_db
+def test_average_rating_stores_ten_after_fix():
+    """max_digits=4 bug fix: 10.00 baho saqlanadi (avval 3 → overflow edi)."""
+    movie = Movie.objects.create(
+        title="Rate D", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    _rate("rd1", movie, "10.0")
+    recompute_movie_rating(movie.id)
+    movie.refresh_from_db()
+    assert movie.average_rating == 10
+    assert movie.total_votes == 1
+
+
+@pytest.mark.django_db
+def test_score_change_triggers_recompute_signal(django_capture_on_commit_callbacks):
+    movie = Movie.objects.create(
+        title="Rate E", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    user = User.objects.create_user(username="re1", password="pass12345")
+    with django_capture_on_commit_callbacks(execute=True) as callbacks:
+        UserMovieList.objects.create(profile=user.profile, movie=movie, status=2, score="9.0")
+    assert len(callbacks) >= 1
+    movie.refresh_from_db()
+    assert movie.total_votes == 1
+    assert movie.average_rating == 9
+
+
+@pytest.mark.django_db
+def test_backfill_migration_seeds_ratings():
+    import importlib
+
+    from django.apps import apps as global_apps
+
+    movie = Movie.objects.create(
+        title="Rate F", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    _rate("rf1", movie, "8.0")
+    Movie.objects.filter(pk=movie.id).update(average_rating=0, total_votes=0)
+    mig = importlib.import_module("drama.migrations.0020_backfill_movie_ratings")
+    mig.backfill_movie_ratings(global_apps, None)
+    movie.refresh_from_db()
+    assert movie.total_votes == 1
+    assert movie.average_rating == 8

@@ -10,7 +10,8 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView, ListView
 from django.views.generic.base import View
 
-from users.models import UserMovieList
+from users.models import CoinTransaction, UserMovieList
+from users.services import wallet
 
 from .forms import ReviewForm
 
@@ -542,34 +543,38 @@ def send_gift_to_actor(request, actor_id):
                     messages.error(request, "Noto'g'ri sovg'a tanlandi.")
                     return redirect(actor.get_absolute_url())
 
-                # 4. BALANSNI TEKSHIRISH VA TRANZAKSIYA
-                if profile.balance >= price:
-                    # Userdan pulni yechish
-                    profile.balance -= price
-                    profile.save(update_fields=["balance"])
-
-                    # Aktyorning sovg'alarini ko'paytirish
-                    current_gifts = actor.total_gifts or 0
-                    actor.total_gifts = current_gifts + price
-                    actor.save(update_fields=["total_gifts"])
-
-                    # JURNALGA YOZISH
-                    ActorGift.objects.create(
-                        user=request.user, actor=actor, gift_type=gift_type, price=price
+                # 4. BALANSNI TEKSHIRISH VA YECHISH (ledger orqali, atomik)
+                try:
+                    wallet.debit(
+                        profile,
+                        price,
+                        CoinTransaction.Type.GIFT,
+                        description=f"{actor.name} ga sovg'a ({gift_type})",
+                        reference=f"actor:{actor.id}",
                     )
-
-                    # Muvaffaqiyatli xabar
-                    gift_names = {"rose": "Gul 🌹", "coffee": "Qahva ☕", "crown": "Toj 👑"}
-                    messages.success(
-                        request,
-                        f"{actor.name} ga {gift_names[gift_type]} yubordingiz! U bundan juda xursand bo'ladi 🎉",
-                    )
-                else:
-                    # Pul yetmasa
+                except wallet.InsufficientFundsError:
                     messages.error(
                         request,
                         "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring.",
                     )
+                    return redirect(actor.get_absolute_url())
+
+                # Aktyorning sovg'alarini ko'paytirish
+                current_gifts = actor.total_gifts or 0
+                actor.total_gifts = current_gifts + price
+                actor.save(update_fields=["total_gifts"])
+
+                # JURNALGA YOZISH
+                ActorGift.objects.create(
+                    user=request.user, actor=actor, gift_type=gift_type, price=price
+                )
+
+                # Muvaffaqiyatli xabar
+                gift_names = {"rose": "Gul 🌹", "coffee": "Qahva ☕", "crown": "Toj 👑"}
+                messages.success(
+                    request,
+                    f"{actor.name} ga {gift_names[gift_type]} yubordingiz! U bundan juda xursand bo'ladi 🎉",
+                )
 
         except Actor.DoesNotExist:
             messages.error(request, "Aktyor topilmadi.")

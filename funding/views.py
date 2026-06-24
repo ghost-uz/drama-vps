@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 
+from users.models import CoinTransaction
+from users.services import wallet
+
 from .models import FundingContributor, FundingProject
 
 
@@ -33,31 +36,33 @@ def process_funding(request, project_id):
                 )
                 return redirect(project.movie.get_absolute_url())
 
-            with transaction.atomic():
-                from users.models import Profile
+            try:
+                with transaction.atomic():
+                    # Ledger orqali debet — profil qatorini o'zi qulflaydi (race-safe)
+                    wallet.debit(
+                        profile,
+                        amount,
+                        CoinTransaction.Type.FUNDING,
+                        description=f"{project.movie.title} loyihasiga hissa",
+                        reference=f"funding:{project.id}",
+                    )
 
-                locked_profile = Profile.objects.select_for_update().get(id=profile.id)
-                locked_project = FundingProject.objects.select_for_update().get(id=project.id)
-
-                if locked_profile.balance >= amount:
-                    locked_profile.balance -= amount
-                    locked_profile.save(update_fields=["balance"])
-
+                    locked_project = FundingProject.objects.select_for_update().get(id=project.id)
                     locked_project.collected_amount += amount
                     locked_project.save(update_fields=["collected_amount"])
 
                     FundingContributor.objects.create(
-                        project=locked_project, profile=locked_profile, amount_paid=amount
+                        project=locked_project, profile=profile, amount_paid=amount
                     )
                     messages.success(
                         request,
                         f"Muvaffaqiyatli! Loyihaga {amount} Coin hissa qo'shdingiz. Rahmat!",
                     )
-                else:
-                    messages.error(
-                        request,
-                        "Hisobingizda Coin yetarli emas. Iltimos, profile bo'limidan hisobingizni to'ldiring.",
-                    )
+            except wallet.InsufficientFundsError:
+                messages.error(
+                    request,
+                    "Hisobingizda Coin yetarli emas. Iltimos, profile bo'limidan hisobingizni to'ldiring.",
+                )
 
         except ValueError:
             messages.error(request, "Noto'g'ri summa kiritildi.")
