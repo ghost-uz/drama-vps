@@ -1,7 +1,11 @@
 """drama/api/ katalog API testlari [P2-T2]."""
 
+from datetime import timedelta
+
 import pytest
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from drama.models import Episode, Genre, Movie, Season
@@ -163,3 +167,106 @@ def test_search_throttle_returns_429(api):
     statuses = [api.get("/api/v1/movies/?search=x").status_code for _ in range(31)]
     assert 429 in statuses
     cache.clear()  # keyingi testlar uchun tozalash
+
+
+# --- P2-T4: video playback gating + signed URL ---
+
+
+@pytest.fixture
+def bunny(settings):
+    settings.BUNNY_STREAM_CDN_HOSTNAME = "vz-test.b-cdn.net"
+    settings.BUNNY_STREAM_LIBRARY_ID = "12345"
+    return settings
+
+
+def _episode(movie, num, **kwargs):
+    season, _ = Season.objects.get_or_create(movie=movie, number=1)
+    return Episode.objects.create(
+        movie=movie, season=season, title=f"E{num}", episode_number=num, **kwargs
+    )
+
+
+@pytest.mark.django_db
+def test_playback_free_episode_anon(api, bunny):
+    ep = _episode(_movie("Free"), 1, bunny_video_id="vid-1")
+    resp = api.get(f"/api/v1/episodes/{ep.id}/playback/")
+    assert resp.status_code == 200
+    assert "hls_url" in resp.data
+    assert resp.data["expires_in"] == 4 * 3600
+
+
+@pytest.mark.django_db
+def test_playback_vip_blocks_anon(api, bunny):
+    ep = _episode(_movie("VIP", is_vip=True), 11, bunny_video_id="vid-11")
+    resp = api.get(f"/api/v1/episodes/{ep.id}/playback/")
+    assert resp.status_code == 403
+    assert resp.data["restriction"] == "vip"
+
+
+@pytest.mark.django_db
+def test_playback_vip_allows_premium(api, bunny):
+    user = User.objects.create_user(username="prem", password="pass12345")
+    user.profile.is_premium = True
+    user.profile.premium_until = timezone.now() + timedelta(days=30)
+    user.profile.save()
+    ep = _episode(_movie("VIP", is_vip=True), 11, bunny_video_id="vid-11")
+    api.force_authenticate(user)
+    assert api.get(f"/api/v1/episodes/{ep.id}/playback/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_playback_superuser_bypasses(api, bunny):
+    su = User.objects.create_superuser(username="admin", password="pass12345")
+    ep = _episode(_movie("VIP", is_vip=True), 11, bunny_video_id="vid-11")
+    api.force_authenticate(su)
+    assert api.get(f"/api/v1/episodes/{ep.id}/playback/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_playback_funding_blocks_non_contributor(api, bunny):
+    from funding.models import FundingProject
+
+    movie = _movie("Fund")
+    FundingProject.objects.create(movie=movie, target_amount=1000)
+    ep = _episode(movie, 11, bunny_video_id="vid-11")
+    api.force_authenticate(User.objects.create_user(username="nc", password="pass12345"))
+    resp = api.get(f"/api/v1/episodes/{ep.id}/playback/")
+    assert resp.status_code == 403
+    assert resp.data["restriction"] == "funding"
+
+
+@pytest.mark.django_db
+def test_playback_funding_allows_contributor(api, bunny):
+    from funding.models import FundingContributor, FundingProject
+
+    movie = _movie("Fund")
+    project = FundingProject.objects.create(movie=movie, target_amount=1000)
+    ep = _episode(movie, 11, bunny_video_id="vid-11")
+    user = User.objects.create_user(username="contrib", password="pass12345")
+    FundingContributor.objects.create(project=project, profile=user.profile, amount_paid=100)
+    api.force_authenticate(user)
+    assert api.get(f"/api/v1/episodes/{ep.id}/playback/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_playback_no_video_returns_404(api, bunny):
+    ep = _episode(_movie("NoVid"), 1)  # bunny_video_id yo'q
+    assert api.get(f"/api/v1/episodes/{ep.id}/playback/").status_code == 404
+
+
+@pytest.mark.django_db
+def test_signed_url_includes_token(bunny):
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    from drama.bunny_stream import signed_hls_url
+
+    url = signed_hls_url("vid-1")
+    assert "token=" in url
+    assert "expires=" in url
+
+
+def test_signed_url_unconfigured_is_plain():
+    """Token kalitisiz (dev): imzosiz oddiy URL."""
+    from drama.bunny_stream import signed_hls_url
+
+    url = signed_hls_url("vid-1")
+    assert "token=" not in url

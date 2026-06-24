@@ -5,6 +5,10 @@ Barcha URL lar faqat Video ID va settings orqali dinamik yaratiladi.
 Ma'lumotlar bazasida faqat bunny_video_id saqlanadi.
 """
 
+import base64
+import hashlib
+import time
+
 from django.conf import settings
 
 
@@ -58,3 +62,25 @@ def get_all_urls(video_id: str) -> dict:
         "preview": preview_url(video_id),
         "embed": embed_url(video_id),
     }
+
+
+def _token_key() -> str:
+    return getattr(settings, "BUNNY_STREAM_TOKEN_KEY", "")
+
+
+def signed_hls_url(video_id: str, expiry_seconds: int = 4 * 3600) -> str:
+    """Token-himoyalangan HLS URL (Bunny CDN Token Authentication) [P2-T4].
+
+    Token = base64url(sha256(token_key + path + expires)); URL'ga ?token&expires
+    qo'shiladi va `expires` vaqtidan keyin Bunny CDN uni rad etadi.
+    Token sozlanmagan bo'lsa (dev/test), oddiy (imzosiz) HLS URL qaytaradi.
+    """
+    base = hls_url(video_id)
+    key = _token_key()
+    if not key:
+        return base  # dev/sozlanmagan: imzosiz
+    expires = int(time.time()) + expiry_seconds
+    path = f"/{video_id}/playlist.m3u8"
+    raw = hashlib.sha256(f"{key}{path}{expires}".encode()).digest()
+    token = base64.b64encode(raw).decode().replace("+", "-").replace("/", "_").replace("=", "")
+    return f"{base}?token={token}&expires={expires}"

@@ -226,34 +226,16 @@ class MovieDetailView(GenreYearMixin, DetailView):
         context["user_has_access"] = user_has_access
 
         # ==========================================
-        # VIP TEKSHIRUVI
+        # QULFLASH MANTIQI — yagona service (HTML + API bir manba) [P2-T4]
         # ==========================================
-        is_premium_user = False
-        if user.is_authenticated:
-            if user.is_superuser:
-                is_premium_user = True
-            elif hasattr(user, "profile"):
-                is_premium_user = getattr(user.profile, "is_currently_premium", False)
+        if active_episode:
+            from drama.services.playback import get_episode_access
 
-        # ==========================================
-        # 🌟 QULFLASH MANTIQI (RESTRICTION) - TUZATILDI 🌟
-        # ==========================================
-        is_restricted = False
-        restriction_type = None
-
-        # 1-10 qismlar tekin; 11+ qismdan himoya boshlanadi
-        if active_episode and active_episode.episode_number > 10:
-            # QOIDA 1: Agar serial Crowdfunding (Pul yig'ish) da bo'lsa
-            if funding_project:
-                if not user.is_authenticated or not user_has_access:
-                    is_restricted = True
-                    restriction_type = "funding"
-
-            # QOIDA 2: Agar serial VIP bo'lsa (va u Crowdfunding bo'lmasa)
-            elif movie.is_vip:
-                if not user.is_authenticated or not is_premium_user:
-                    is_restricted = True
-                    restriction_type = "vip"
+            allowed, restriction_type = get_episode_access(user, active_episode)
+            is_restricted = not allowed
+        else:
+            is_restricted = False
+            restriction_type = None
 
         context["is_restricted"] = is_restricted
         context["restriction_type"] = restriction_type

@@ -211,6 +211,10 @@ STORAGES = {
 BUNNY_STREAM_LIBRARY_ID = config("BUNNY_STREAM_LIBRARY_ID", default="")
 BUNNY_STREAM_CDN_HOSTNAME = config("BUNNY_STREAM_CDN_HOSTNAME", default="")
 BUNNY_STREAM_API_KEY = config("BUNNY_STREAM_API_KEY", default="")
+# CDN Token Authentication kaliti — signed/expiring playback URL uchun [P2-T4]
+BUNNY_STREAM_TOKEN_KEY = config("BUNNY_STREAM_TOKEN_KEY", default="")
+# Webhook autentifikatsiya sirri (encoding-tugadi signali) [P3-T2]
+BUNNY_WEBHOOK_SECRET = config("BUNNY_WEBHOOK_SECRET", default="")
 
 # -- CORS / CSRF (umumiy) --
 # Aniq origin ro'yxatlari muhitga xos (dev.py / prod.py).
@@ -294,6 +298,7 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
         "review": "10/hour",  # ScopedRateThrottle (Review yaratish spam himoyasi) [P2-T3]
         "search": "30/min",  # ScopedRateThrottle (qidiruv og'ir ILIKE so'rovi) [P2-T5]
+        "playback": "60/min",  # ScopedRateThrottle (video playback signed URL) [P2-T4]
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

@@ -5,13 +5,19 @@ Public katalog: MovieViewSet faqat Movie.objects.published() ni ko'rsatadi
 """
 
 from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
 
-from drama.models import Actor, Category, Genre, Movie, Review, Season, Tag
+from drama.bunny_stream import is_configured, signed_hls_url
+from drama.models import Actor, Category, Episode, Genre, Movie, Review, Season, Tag
+from drama.services.playback import get_episode_access
 from users.api.permissions import IsOwnerOrAdmin
 
 from .filters import MovieFilter
@@ -21,6 +27,7 @@ from .serializers import (
     GenreSerializer,
     MovieDetailSerializer,
     MovieListSerializer,
+    PlaybackSerializer,
     ReviewSerializer,
     TagSerializer,
 )
@@ -122,3 +129,40 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class EpisodePlaybackView(APIView):
+    """GET /api/v1/episodes/{id}/playback/ — gating + signed Bunny URL [P2-T4].
+
+    Gating yagona service (get_episode_access) orqali — HTML view bilan bir manba.
+    Ruxsat bo'lsa qisqa muddatli (4 soat) signed HLS URL; ruxsatsizga 403.
+    Bu pleyer (web+mobil) uchun yagona xavfsiz video manbai.
+    """
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "playback"
+
+    @extend_schema(
+        responses={
+            200: PlaybackSerializer,
+            403: OpenApiResponse(description="Ko'rish ruxsati yo'q (gating)"),
+            404: OpenApiResponse(description="Video mavjud emas"),
+        }
+    )
+    def get(self, request, pk):
+        episode = get_object_or_404(Episode.objects.select_related("movie"), pk=pk)
+        allowed, restriction = get_episode_access(request.user, episode)
+        if not allowed:
+            return Response(
+                {"detail": "Bu qismni ko'rish uchun ruxsat yo'q.", "restriction": restriction},
+                status=403,
+            )
+        if not episode.bunny_video_id or not is_configured():
+            return Response({"detail": "Video hozircha mavjud emas."}, status=404)
+        return Response(
+            {
+                "episode_id": episode.id,
+                "hls_url": signed_hls_url(episode.bunny_video_id),
+                "expires_in": 4 * 3600,
+            }
+        )

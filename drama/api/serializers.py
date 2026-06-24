@@ -121,3 +121,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ("id", "movie", "user", "username", "text", "parent", "created_at")
         read_only_fields = ("id", "user", "username", "created_at")
+
+
+class PlaybackSerializer(serializers.Serializer):
+    """Playback javobi (signed HLS URL) — OpenAPI hujjat uchun [P2-T4]."""
+
+    episode_id = serializers.IntegerField()
+    hls_url = serializers.URLField()
+    expires_in = serializers.IntegerField()
