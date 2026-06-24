@@ -147,3 +147,24 @@ def process_episode_upload(self, episode_id: int):
     Episode.objects.filter(pk=episode_id).update(
         upload_status=Episode.UploadStatus.READY, video_file=""
     )
+
+
+@shared_task
+def recompute_trending_tags() -> int:
+    """Trending teglarni qayta hisoblab keshga yozadi [P3-T4].
+
+    context_processor keshdan o'qiydi -> har request'da og'ir annotate-Count
+    so'rovi bajarilmaydi. 24 soat TTL (davriy task yangilaydi).
+    """
+    from django.core.cache import cache
+    from django.db.models import Count
+
+    from drama.models import Tag
+
+    tags = list(
+        Tag.objects.annotate(movie_count=Count("movies"))
+        .filter(movie_count__gt=0)
+        .order_by("-movie_count")[:10]
+    )
+    cache.set("trending_tags", tags, 60 * 60 * 24)
+    return len(tags)

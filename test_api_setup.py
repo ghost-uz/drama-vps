@@ -10,14 +10,18 @@ def api():
     return APIClient()
 
 
+@pytest.mark.django_db
 def test_schema_endpoint(api):
     assert api.get("/api/v1/schema/").status_code == 200
 
 
+@pytest.mark.django_db
 def test_swagger_docs(api):
+    # Swagger UI to'liq HTML -> context_processor (trending_tags) DB/keshdan o'qiydi
     assert api.get("/api/v1/docs/").status_code == 200
 
 
+@pytest.mark.django_db
 def test_redoc(api):
     assert api.get("/api/v1/redoc/").status_code == 200
 

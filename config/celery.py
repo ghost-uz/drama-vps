@@ -27,6 +27,21 @@ app.conf.beat_schedule = {
         "task": "drama.tasks.publish_scheduled_movies",
         "schedule": crontab(minute="*"),
     },
+    # Premium muddati tugaganlarni har soat o'chiradi [P3-T4]
+    "expire-premium": {
+        "task": "users.tasks.expire_premium",
+        "schedule": crontab(minute=0),
+    },
+    # Eski pending topuplarni har kuni 03:00 da 'rejected' qiladi [P3-T4]
+    "cleanup-stale-topups": {
+        "task": "users.tasks.cleanup_stale_topups",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    # Trending teglar keshini har 6 soatda yangilaydi [P3-T4]
+    "recompute-trending-tags": {
+        "task": "drama.tasks.recompute_trending_tags",
+        "schedule": crontab(minute=0, hour="*/6"),
+    },
 }
 
 

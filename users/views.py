@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 
-import requests
-from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -11,6 +9,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from core.tasks import notify_telegram_task
 from users.utils import follow, unfollow
 
 from .forms import (
@@ -25,33 +24,8 @@ from .services import wallet
 
 logger = logging.getLogger(__name__)
 
-# .env faylidan bir marta o'qiymiz (har so'rovda emas)
-_TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
-_TELEGRAM_ADMIN_CHAT = config("TELEGRAM_ADMIN_CHAT_ID", default="")
-
-
-def send_telegram_notification(message):
-    """Telegram bot orqali adminga xabar yuboruvchi yordamchi funksiya"""
-    BOT_TOKEN = _TELEGRAM_BOT_TOKEN
-    ADMIN_CHAT_ID = _TELEGRAM_ADMIN_CHAT
-
-    if not BOT_TOKEN or not ADMIN_CHAT_ID:
-        logger.warning("Telegram sozlamalari .env faylida topilmadi. Xabar yuborilmadi.")
-        return
-
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": ADMIN_CHAT_ID,
-        "text": message,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True,
-    }
-
-    try:
-        # timeout=3: telegram serveri qotib qolsa saytimiz kutib qolmasligi uchun
-        requests.post(url, data=payload, timeout=3)
-    except Exception as e:
-        logger.error(f"Telegramga xabar yuborishda xatolik: {e}")
+# Telegram bildirishnoma core/notifications.py + core/tasks.py'ga ko'chirildi [P3-T3];
+# view'lar notify_telegram_task.delay(...) ishlatadi (async — request bloklanmaydi).
 
 
 def register(request):
@@ -314,7 +288,7 @@ def topup_view(request):
                 f"💎 <b>Beriladigan Coin:</b> {topup.points} Coin\n\n"
                 f"👉 https://drama.uz/admin/users/topuprequest/"
             )
-            send_telegram_notification(msg)
+            notify_telegram_task.delay(msg)
 
             messages.success(
                 request, "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."
@@ -356,7 +330,7 @@ def crypto_topup_view(request):
                 f"🪙 <b>Beriladigan Coin:</b> {topup.points} Coin\n\n"
                 f"👉 https://drama.uz/admin/users/cryptotopuprequest/"
             )
-            send_telegram_notification(msg)
+            notify_telegram_task.delay(msg)
 
             messages.success(
                 request, "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."

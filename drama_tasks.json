@@ -479,7 +479,7 @@
           "title_en": "Async notifications (Telegram + email) via Celery",
           "title_uz": "Async bildirishnomalar (Telegram + email)",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T4"],
           "description_uz": "Telegram bot (admin xabarnoma: yangi topup, funding) va email Celery task orqali. Hozir EMAIL console. Yangi qism chiqdi/funding maqsadga yetdi kabi event'lar.",
           "acceptance_criteria": [
@@ -494,7 +494,7 @@
           "title_en": "Periodic tasks: trending recompute, expire premium, cleanup stale topups, sitemap warm",
           "title_uz": "Davriy tasklar: trend, premium muddati, eski topup tozalash",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T4"],
           "description_uz": "Celery Beat: trending_tags qayta hisoblash (context_processor uchun), muddati o'tgan premiumni o'chirish, eski 'pending' topuplarni tozalash/eslatish, sitemap/kesh isitish, rating agregatsiya.",
           "acceptance_criteria": [

@@ -9,6 +9,26 @@ from users.services import wallet
 from .models import FundingContributor, FundingProject
 
 
+def _notify_funding_contribution(project, profile, amount):
+    """Yangi funding hissasi -> admin Telegram (maqsadga yetsa qo'shimcha) [P3-T3]."""
+    from functools import partial
+
+    from django.db import transaction
+
+    from core.tasks import notify_telegram_task
+
+    msg = (
+        f"💰 <b>YANGI FUNDING HISSASI</b>\n\n"
+        f"🎬 <b>Loyiha:</b> {project.movie.title}\n"
+        f"👤 <b>Hissador:</b> @{profile.user.username}\n"
+        f"🪙 <b>Hissa:</b> {amount} Coin\n"
+        f"📊 <b>Yig'ildi:</b> {project.collected_amount}/{project.target_amount} Coin"
+    )
+    if project.collected_amount >= project.target_amount:
+        msg += "\n\n🎉 <b>MAQSADGA YETILDI!</b>"
+    transaction.on_commit(partial(notify_telegram_task.delay, msg))
+
+
 @login_required
 def process_funding(request, project_id):
     if request.method == "POST":
@@ -54,6 +74,7 @@ def process_funding(request, project_id):
                     FundingContributor.objects.create(
                         project=locked_project, profile=profile, amount_paid=amount
                     )
+                    _notify_funding_contribution(locked_project, profile, amount)
                     messages.success(
                         request,
                         f"Muvaffaqiyatli! Loyihaga {amount} Coin hissa qo'shdingiz. Rahmat!",

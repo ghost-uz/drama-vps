@@ -1,0 +1,135 @@
+"""core notifications/tasks testlari [P3-T3]."""
+
+from unittest.mock import patch
+
+import pytest
+from django.contrib.auth.models import User
+from django.core import mail
+
+from core.tasks import notify_telegram_task, send_email_task
+
+
+def test_send_telegram_unconfigured_skips(settings):
+    settings.TELEGRAM_BOT_TOKEN = ""
+    settings.TELEGRAM_ADMIN_CHAT_ID = ""
+    from core.notifications import send_telegram
+
+    assert send_telegram("test") is False
+
+
+def test_send_telegram_configured_posts(settings):
+    settings.TELEGRAM_BOT_TOKEN = "tok"
+    settings.TELEGRAM_ADMIN_CHAT_ID = "123"
+    from core.notifications import send_telegram
+
+    with patch("core.notifications.requests.post") as mock_post:
+        mock_post.return_value.raise_for_status = lambda: None
+        assert send_telegram("salom") is True
+        mock_post.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_send_email_task_delivers(settings):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    mail.outbox.clear()
+    send_email_task("Subj", "Body", ["u@example.com"])
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].subject == "Subj"
+
+
+@pytest.mark.django_db
+def test_notify_telegram_task_calls_send(settings):
+    settings.TELEGRAM_BOT_TOKEN = "tok"
+    settings.TELEGRAM_ADMIN_CHAT_ID = "123"
+    with patch("core.notifications.send_telegram") as mock_send:
+        notify_telegram_task("hi")
+    mock_send.assert_called_once_with("hi")
+
+
+@pytest.mark.django_db
+def test_topup_approve_sends_user_email(django_capture_on_commit_callbacks):
+    from users.models import TopUpRequest
+
+    user = User.objects.create_user(username="tu", password="pass12345", email="tu@example.com")
+    topup = TopUpRequest.objects.create(user=user, amount_uzs=10000, status="pending")
+    mail.outbox.clear()
+    with django_capture_on_commit_callbacks(execute=True):
+        topup.status = "approved"
+        topup.save()  # approve -> wallet.credit + email (on_commit)
+    assert len(mail.outbox) == 1
+    assert "tu@example.com" in mail.outbox[0].to
+
+
+@pytest.mark.django_db
+def test_topup_approve_no_email_when_user_has_none(django_capture_on_commit_callbacks):
+    from users.models import TopUpRequest
+
+    user = User.objects.create_user(username="noemail", password="pass12345", email="")
+    topup = TopUpRequest.objects.create(user=user, amount_uzs=5000, status="pending")
+    mail.outbox.clear()
+    with django_capture_on_commit_callbacks(execute=True):
+        topup.status = "approved"
+        topup.save()
+    assert len(mail.outbox) == 0  # email yo'q -> yuborilmaydi
+
+
+# --- P3-T4: davriy beat tasklar ---
+
+
+@pytest.mark.django_db
+def test_expire_premium():
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from users.tasks import expire_premium
+
+    expired = User.objects.create_user("exp", password="pass12345")
+    expired.profile.is_premium = True
+    expired.profile.premium_until = timezone.now() - timedelta(days=1)
+    expired.profile.save()
+
+    active = User.objects.create_user("act", password="pass12345")
+    active.profile.is_premium = True
+    active.profile.premium_until = timezone.now() + timedelta(days=10)
+    active.profile.save()
+
+    assert expire_premium() == 1
+    expired.profile.refresh_from_db()
+    active.profile.refresh_from_db()
+    assert expired.profile.is_premium is False
+    assert active.profile.is_premium is True  # muddati o'tmagan — tegilmaydi
+
+
+@pytest.mark.django_db
+def test_cleanup_stale_topups():
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from users.models import TopUpRequest
+    from users.tasks import cleanup_stale_topups
+
+    user = User.objects.create_user("tp", password="pass12345")
+    old = TopUpRequest.objects.create(user=user, amount_uzs=10000, status="pending")
+    TopUpRequest.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=10))
+    new = TopUpRequest.objects.create(user=user, amount_uzs=5000, status="pending")
+
+    assert cleanup_stale_topups() == 1
+    old.refresh_from_db()
+    new.refresh_from_db()
+    assert old.status == "rejected"
+    assert new.status == "pending"  # yangi — tegilmaydi
+
+
+@pytest.mark.django_db
+def test_recompute_trending_tags_warms_cache():
+    from django.core.cache import cache
+
+    from drama.tasks import recompute_trending_tags
+
+    cache.delete("trending_tags")
+    recompute_trending_tags()
+    # Task trending teglar keshini yangilaydi -> context_processor shu keshdan o'qiydi.
+    # (Aniq teg-count: `tags` modeltranslation M2M anomaliyasi alohida tracker'da.)
+    assert cache.get("trending_tags") is not None

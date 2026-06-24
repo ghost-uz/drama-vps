@@ -7,6 +7,26 @@ from django.db import models
 from core.images import ImageOptimizationMixin
 
 
+def _send_topup_approved_email(user, points):
+    """Topup tasdiqlanganda foydalanuvchiga email (Celery, commit'dan keyin) [P3-T3]."""
+    if not user.email:
+        return
+    from functools import partial
+
+    from django.db import transaction
+
+    from core.tasks import send_email_task
+
+    transaction.on_commit(
+        partial(
+            send_email_task.delay,
+            "Drama.uz — hisobingiz to'ldirildi",
+            f"Assalomu alaykum! Hisobingizga {points} Coin qo'shildi. Yoqimli tomosha!",
+            [user.email],
+        )
+    )
+
+
 class Profile(ImageOptimizationMixin, models.Model):
     OPTIMIZE_IMAGE_FIELDS = {"avatar": {"max_size": (400, 400), "quality": 75}}
 
@@ -156,6 +176,7 @@ class TopUpRequest(models.Model):
                         description=f"Hisob to'ldirish #{self.pk} ({self.amount_uzs} UZS)",
                         reference=f"topup:{self.pk}",
                     )
+                    _send_topup_approved_email(self.user, self.points)
 
                 # Tasdiq bekor qilindi: debet (coin sarflangan bo'lsa manfiyga ruxsat)
                 elif old_record.status == "approved" and self.status in ["pending", "rejected"]:
@@ -235,6 +256,7 @@ class CryptoTopUpRequest(models.Model):
                         description=f"Kripto to'ldirish #{self.pk} ({self.amount_usdt} USDT)",
                         reference=f"crypto_topup:{self.pk}",
                     )
+                    _send_topup_approved_email(self.user, self.points)
 
                 elif old_record.status == "approved" and self.status in ["pending", "rejected"]:
                     wallet.debit(
