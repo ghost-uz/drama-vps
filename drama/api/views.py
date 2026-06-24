@@ -5,7 +5,9 @@ Public katalog: MovieViewSet faqat Movie.objects.published() ni ko'rsatadi
 """
 
 from django.db.models import Prefetch
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import ScopedRateThrottle
 
@@ -26,7 +28,18 @@ from .serializers import (
 
 class MovieViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "slug"
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
+    search_fields = ["title", "original_title"]
+    ordering_fields = ["year", "average_rating", "created_at", "mdl_rank"]
+    ordering = ["-created_at"]  # default tartib
+
+    def get_throttles(self):
+        # Qidiruv (og'ir ILIKE) uchun alohida throttle byudjeti (search scope)
+        if self.action == "list" and self.request.query_params.get("search"):
+            self.throttle_scope = "search"
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         qs = Movie.objects.published().select_related("category")
@@ -39,8 +52,8 @@ class MovieViewSet(viewsets.ReadOnlyModelViewSet):
                 "actors",
                 Prefetch("seasons", queryset=Season.objects.prefetch_related("episodes")),
             )
-        # List: yengil, faqat category ko'rsatiladi
-        return qs.order_by("-created_at")
+        # List: yengil; tartib OrderingFilter (default -created_at) orqali
+        return qs
 
     def get_serializer_class(self):
         return MovieDetailSerializer if self.action == "retrieve" else MovieListSerializer
@@ -50,24 +63,32 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Genre.objects.all().order_by("name")
     serializer_class = GenreSerializer
     lookup_field = "slug"
+    filter_backends = [SearchFilter]
+    search_fields = ["name"]
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all().order_by("name")
     serializer_class = TagSerializer
     lookup_field = "slug"
+    filter_backends = [SearchFilter]
+    search_fields = ["name"]
 
 
 class ActorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Actor.objects.all().order_by("name")
     serializer_class = ActorSerializer
     lookup_field = "slug"
+    filter_backends = [SearchFilter]
+    search_fields = ["name", "original_name"]
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all().order_by("name")
     serializer_class = CategorySerializer
     lookup_field = "slug"
+    filter_backends = [SearchFilter]
+    search_fields = ["name"]
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

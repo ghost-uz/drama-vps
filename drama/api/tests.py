@@ -111,3 +111,55 @@ def test_genres_list(api):
     resp = api.get("/api/v1/genres/")
     assert resp.status_code == 200
     assert resp.data["count"] == 2
+
+
+# --- P2-T5: search, ordering, throttle ---
+
+
+@pytest.mark.django_db
+def test_search_finds_by_title(api):
+    _movie("Qishki Sevgi")
+    _movie("Yozgi Hikoya")
+    resp = api.get("/api/v1/movies/?search=qish")
+    assert resp.data["count"] == 1
+    assert resp.data["results"][0]["title"] == "Qishki Sevgi"
+
+
+@pytest.mark.django_db
+def test_ordering_by_year_asc(api):
+    _movie("Old", year=2010)
+    _movie("New", year=2024)
+    resp = api.get("/api/v1/movies/?ordering=year")
+    titles = [m["title"] for m in resp.data["results"]]
+    assert titles == ["Old", "New"]
+
+
+@pytest.mark.django_db
+def test_ordering_by_rating_desc(api):
+    low = _movie("Low")
+    high = _movie("High")
+    Movie.objects.filter(pk=low.pk).update(average_rating=5)
+    Movie.objects.filter(pk=high.pk).update(average_rating=9)
+    resp = api.get("/api/v1/movies/?ordering=-average_rating")
+    titles = [m["title"] for m in resp.data["results"]]
+    assert titles == ["High", "Low"]
+
+
+@pytest.mark.django_db
+def test_genre_search(api):
+    Genre.objects.create(name="Drama", slug="drama")
+    Genre.objects.create(name="Komediya", slug="komediya")
+    resp = api.get("/api/v1/genres/?search=dram")
+    assert resp.data["count"] == 1
+
+
+@pytest.mark.django_db
+def test_search_throttle_returns_429(api):
+    """search scope (30/min) limitidan oshganda 429 qaytadi."""
+    from django.core.cache import cache
+
+    cache.clear()  # throttle hisoblagichni reset
+    _movie("X")
+    statuses = [api.get("/api/v1/movies/?search=x").status_code for _ in range(31)]
+    assert 429 in statuses
+    cache.clear()  # keyingi testlar uchun tozalash

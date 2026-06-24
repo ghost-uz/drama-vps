@@ -293,6 +293,7 @@ REST_FRAMEWORK = {
         "anon": "100/hour",
         "user": "1000/hour",
         "review": "10/hour",  # ScopedRateThrottle (Review yaratish spam himoyasi) [P2-T3]
+        "search": "30/min",  # ScopedRateThrottle (qidiruv og'ir ILIKE so'rovi) [P2-T5]
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

@@ -425,7 +425,7 @@
           "title_en": "API throttling, filtering, search & versioning hardening",
           "title_uz": "API throttle, filter, qidiruv va versiyalashni mustahkamlash",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P2-T2"],
           "description_uz": "AnonRateThrottle/UserRateThrottle, ScopedThrottle (qidiruv/playback). django-filter to'liq. Search endpoint. Versiyalash strategiyasi hujjatlangan.",
           "acceptance_criteria": [
