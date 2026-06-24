@@ -339,7 +339,7 @@
           "title_en": "Custom AUTH_USER_MODEL decision & (optional) migration",
           "title_uz": "Maxsus User model qarori (ixtiyoriy migratsiya)",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Hozir Django User + Profile. Kelajakdagi moslashuvchanlik uchun custom User (AbstractUser) ni baholash. RISKLI bo'lgani uchun ehtiyotkorlik bilan; agar qilinsa — to'liq data migration rejasi. Aks holda Profile yetarli deb hujjatlashtirish.",
           "acceptance_criteria": [
@@ -361,7 +361,7 @@
           "title_en": "Install & configure DRF + drf-spectacular + JWT",
           "title_uz": "DRF + drf-spectacular + JWT o'rnatish va sozlash",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T7"],
           "description_uz": "DRF base sozlamalari, /api/v1/ namespace, drf-spectacular OpenAPI sxema + Swagger/Redoc UI. simplejwt token (access/refresh) endpointlari. Default pagination, throttle, renderer.",
           "acceptance_criteria": [
@@ -377,7 +377,7 @@
           "title_en": "Catalog API: movies, seasons, episodes, genres, tags, actors",
           "title_uz": "Katalog API: kinolar, fasllar, qismlar, janrlar, aktyorlar",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P2-T1", "P1-T2"],
           "description_uz": "ReadOnly viewset'lar: MovieViewSet (list/detail), seasons/episodes nested, genres, tags, actors. Serializerlar optimallashtirilgan (select/prefetch). Public, kesh-do'st. Filtering (django-filter): year, genre, country, status.",
           "acceptance_criteria": [
@@ -393,7 +393,7 @@
           "title_en": "User & interaction API: profile, watchlist, watch-progress, reviews",
           "title_uz": "Foydalanuvchi API: profil, ro'yxat, ko'rish progressi, izohlar",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P2-T1", "P1-T3"],
           "description_uz": "Authenticated endpointlar: profil olish/yangilash, UserMovieList CRUD, WatchProgress saqlash, Review yaratish/list. Permission (egasi yoki admin). Throttle.",
           "acceptance_criteria": [
@@ -1057,7 +1057,7 @@
           "description_uz": "sentry-sdk Django + Celery integratsiyasi, environment/release tegi, PII filtrlash, performance trace namunasi.",
           "acceptance_criteria": [
             "Xatolar Sentry'ga boradi (web va worker)",
-            "PII filtrlanган, release tracking",
+            "PII filtrlangan, release tracking",
             "Prod'da yoqilgan, dev'da o'chiq"
           ],
           "affected": ["config/settings/prod.py"]

@@ -31,6 +31,8 @@ urlpatterns = [
     ),
     # 3. App yo'llari (Namespace bilan)
     path("users/", include("users.urls", namespace="users")),
+    # 4. REST API (P2)
+    path("api/v1/", include("config.api_urls")),
     path("", include("drama.urls", namespace="drama")),
     path("funding/", include("funding.urls")),
 ]

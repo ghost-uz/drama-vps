@@ -9,6 +9,7 @@ Faol sozlama DJANGO_SETTINGS_MODULE orqali tanlanadi:
 """
 
 import mimetypes
+from datetime import timedelta
 from pathlib import Path
 
 from decouple import config
@@ -57,6 +58,11 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     "django_htmx",
     "django_celery_beat",
+    # REST API (P2)
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
+    "django_filters",
     # Loyiha ilovalari
     "core.apps.CoreConfig",
     "drama.apps.DramaConfig",
@@ -264,4 +270,44 @@ UNFOLD_SETTINGS = {
         "show_search": True,
         "show_all_applications": True,
     },
+}
+
+
+# -- REST API (DRF + simplejwt + drf-spectacular) [P2-T1] --
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ),
+    # Katalog public -> AllowAny default; himoyalangan endpointlar view-darajada IsAuthenticated.
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    # Asoslar; P2-T5 da scope'lar bilan mustahkamlanadi.
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/hour",
+        "user": "1000/hour",
+        "review": "10/hour",  # ScopedRateThrottle (Review yaratish spam himoyasi) [P2-T3]
+    },
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Drama.uz API",
+    "DESCRIPTION": "drama.uz striming platformasi REST API (mobil/SPA/integratsiyalar).",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
