@@ -41,7 +41,7 @@ class GenreYearMixin:
         years = cache.get("movie_years")
         if not years:
             years = list(
-                Movie.objects.filter(is_draft=False)
+                Movie.objects.published()
                 .values_list("year", flat=True)
                 .distinct()
                 .order_by("-year")
@@ -52,7 +52,7 @@ class GenreYearMixin:
         countries = cache.get("movie_countries")
         if not countries:
             countries = list(
-                Movie.objects.filter(is_draft=False)
+                Movie.objects.published()
                 .values_list("country", flat=True)
                 .distinct()
                 .order_by("country")
@@ -84,9 +84,11 @@ def robots_txt(request):
 def live_search(request):
     query = request.GET.get("q", "").strip()
     if len(query) > 1:
-        movies = Movie.objects.filter(
-            Q(title__icontains=query) | Q(original_title__icontains=query), is_draft=False
-        ).distinct()[:5]
+        movies = (
+            Movie.objects.published()
+            .filter(Q(title__icontains=query) | Q(original_title__icontains=query))
+            .distinct()[:5]
+        )
 
         results = [
             {
@@ -105,7 +107,7 @@ def live_search(request):
 class MoviesView(GenreYearMixin, ListView):
     model = Movie
     queryset = (
-        Movie.objects.filter(is_draft=False)
+        Movie.objects.published()
         .select_related("category")
         .prefetch_related("genres", "tags")
         .order_by("-id")
@@ -139,7 +141,7 @@ class TagDetailView(GenreYearMixin, ListView):
         # Tegni slug orqali topamiz
         self.tag = get_object_or_404(Tag, slug=self.kwargs.get("slug"))
         # Shu tegga tegishli barcha kinolarni -id bo'yicha saralab olamiz
-        return Movie.objects.filter(tags=self.tag, is_draft=False).order_by("-id")
+        return Movie.objects.published().filter(tags=self.tag).order_by("-id")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -155,7 +157,7 @@ class GenreDetailView(GenreYearMixin, ListView):
 
     def get_queryset(self):
         self.genre = get_object_or_404(Genre, slug=self.kwargs.get("slug"))
-        return Movie.objects.filter(genres=self.genre, is_draft=False)
+        return Movie.objects.published().filter(genres=self.genre)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -165,7 +167,7 @@ class GenreDetailView(GenreYearMixin, ListView):
 
 class MovieDetailView(GenreYearMixin, DetailView):
     model = Movie
-    queryset = Movie.objects.filter(is_draft=False)
+    queryset = Movie.objects.published()
     slug_field = "slug"
     template_name = "movies/movie_detail.html"
     context_object_name = "movie"
@@ -173,7 +175,7 @@ class MovieDetailView(GenreYearMixin, DetailView):
     def get_queryset(self):
         # Epizodlarni ham prefetch qilamiz (N+1 muammosini hal qiladi)
         return (
-            Movie.objects.filter(is_draft=False)
+            Movie.objects.published()
             .select_related("category")
             .prefetch_related(
                 "genres",
@@ -318,7 +320,8 @@ class MovieDetailView(GenreYearMixin, DetailView):
 
         movie_tags_ids = movie.tags.values_list("id", flat=True)
         similar_movies = (
-            Movie.objects.filter(tags__in=movie_tags_ids, is_draft=False)
+            Movie.objects.published()
+            .filter(tags__in=movie_tags_ids)
             .exclude(id=movie.id)
             .annotate(same_tags=Count("tags"))
             .order_by("-same_tags", "-mdl_rank")[:6]
@@ -417,7 +420,7 @@ class MovieReviewsView(GenreYearMixin, ListView):
 
     def get_queryset(self):
         # 1. Kinoni slug orqali topib olamiz
-        self.movie = get_object_or_404(Movie, slug=self.kwargs.get("slug"), is_draft=False)
+        self.movie = get_object_or_404(Movie.objects.published(), slug=self.kwargs.get("slug"))
 
         # 2. Shu kinoga tegishli, faqat asosiy izohlarni (parent=None) eng yangilaridan boshlab olamiz
         return (
@@ -482,7 +485,7 @@ class FilterMoviesView(GenreYearMixin, ListView):
         min_rating = self.request.GET.get("min_rating")
 
         queryset = (
-            Movie.objects.filter(is_draft=False)
+            Movie.objects.published()
             .select_related("category")
             .prefetch_related("genres", "tags")
             .order_by("-id")
@@ -513,7 +516,8 @@ class ActorView(GenreYearMixin, DetailView):
         actor = self.object
 
         all_movies = (
-            Movie.objects.filter(Q(main_actors=actor) | Q(actors=actor), is_draft=False)
+            Movie.objects.published()
+            .filter(Q(main_actors=actor) | Q(actors=actor))
             .distinct()
             .order_by("-year", "-created_at")
         )
@@ -593,9 +597,8 @@ class Search(GenreYearMixin, ListView):
         if not q:
             return Movie.objects.none()
         return (
-            Movie.objects.filter(
-                Q(title__icontains=q) | Q(original_title__icontains=q), is_draft=False
-            )
+            Movie.objects.published()
+            .filter(Q(title__icontains=q) | Q(original_title__icontains=q))
             .distinct()
             .order_by("-created_at")
         )

@@ -9,7 +9,7 @@ class MovieSitemap(Sitemap):
 
     def items(self):
         # Faqat qoralama bo'lmagan kinolarni chiqaramiz
-        return Movie.objects.filter(is_draft=False).order_by("-created_at")
+        return Movie.objects.published().order_by("-created_at")
 
     def lastmod(self, obj):
         # Oxirgi o'zgartirilgan vaqtini ko'rsatish

@@ -118,11 +118,9 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
         "get_mdl_rank",
         "get_internal_stats",
         "display_status",
-        "is_draft",
     )
-    list_filter = ("is_draft", "is_vip", "year", "category", "genres", "tags")
+    list_filter = ("status", "is_vip", "year", "category", "genres", "tags")
     search_fields = ("title", "original_title")
-    list_editable = ("is_draft",)
     list_full_width = True
     prepopulated_fields = {"slug": ("title",)}
 
@@ -139,7 +137,8 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
             {
                 "fields": (
                     ("title", "original_title"),
-                    ("slug", "is_vip", "is_draft"),
+                    ("slug", "is_vip"),
+                    ("status", "publish_at"),
                     "tagline",
                     "description",
                 )
@@ -208,9 +207,16 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
             )
         return "Rasm yo'q"
 
-    @display(description=_("Status"), label={True: "warning", False: "success"})
+    @display(
+        description=_("Holat"),
+        label={
+            "Qoralama": "warning",
+            "Rejalashtirilgan": "info",
+            "Chop etilgan": "success",
+        },
+    )
     def display_status(self, obj):
-        return "Qoralama" if obj.is_draft else "Saytda"
+        return obj.get_status_display()
 
     @display(description="MDL", label=True)
     def get_mdl_rank(self, obj):
@@ -218,11 +224,11 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
 
     @admin.action(description=_("Qoralamaga olish"))
     def unpublish_movies(self, request, queryset):
-        queryset.update(is_draft=True)
+        queryset.update(status=Movie.Status.DRAFT)
 
     @admin.action(description=_("Nashr etish"))
     def publish_movies(self, request, queryset):
-        queryset.update(is_draft=False)
+        queryset.update(status=Movie.Status.PUBLISHED)
 
 
 @admin.register(Season)

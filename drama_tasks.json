@@ -324,7 +324,7 @@
           "title_en": "Movie publish workflow (draft/scheduled/published) + constraints/indexes audit",
           "title_uz": "Kino holati workflow (qoralama/rejalashtirilgan/chop etilgan) + indeks audit",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "is_draft bool o'rniga status (draft/scheduled/published) + publish_at. Rejalashtirilgan chop etish Celery beat orqali. Barcha tez-tez filtrlangan maydonlarga indeks, CheckConstraint'lar.",
           "acceptance_criteria": [

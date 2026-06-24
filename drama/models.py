@@ -3,6 +3,7 @@ from datetime import date
 from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 
 from core.images import ImageOptimizationMixin
@@ -141,8 +142,43 @@ class TopSlider(ImageOptimizationMixin, models.Model):
 # --- Asosiy Film Modeli ---
 
 
+class MovieQuerySet(models.QuerySet):
+    """Movie ko'rinish invariantlarini bitta joyga jamlaydi (DRY + xavfsizlik).
+
+    Har bir view'da `filter(status=...)` ni qo'lda takrorlash o'rniga
+    `Movie.objects.published()` ishlatiladi — bittasini unutsa qoralama sizib
+    chiqishi xavfi yo'qoladi.
+    """
+
+    def published(self):
+        """Public saytda ko'rinadigan kinolar.
+
+        status=published YOKI (status=scheduled VA publish_at o'tib ketgan).
+        Ikkinchi shart — self-healing: Celery beat o'lib qolsa ham, vaqti
+        yetgan rejalashtirilgan kino public bo'lib ko'rinaveradi.
+        """
+        return self.filter(
+            models.Q(status=Movie.Status.PUBLISHED)
+            | models.Q(status=Movie.Status.SCHEDULED, publish_at__lte=timezone.now())
+        )
+
+    def drafts(self):
+        return self.filter(status=Movie.Status.DRAFT)
+
+    def due_for_publish(self):
+        """Beat task uchun: vaqti yetgan, hali 'scheduled' turgan kinolar."""
+        return self.filter(status=Movie.Status.SCHEDULED, publish_at__lte=timezone.now())
+
+
 class Movie(ImageOptimizationMixin, TimeStampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Qoralama"
+        SCHEDULED = "scheduled", "Rejalashtirilgan"
+        PUBLISHED = "published", "Chop etilgan"
+
     OPTIMIZE_IMAGE_FIELDS = {"poster": {"max_size": (1280, 1280), "quality": 80}}
+
+    objects = MovieQuerySet.as_manager()
 
     title = models.CharField("Film nomi (Qidiruv uchun)", max_length=255, db_index=True)
     original_title = models.CharField("Original nomi (Kdrama)", max_length=255, blank=True)
@@ -175,7 +211,18 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
         Category, on_delete=models.SET_NULL, null=True, related_name="movies"
     )
     slug = models.SlugField(max_length=160, unique=True)
-    is_draft = models.BooleanField("Qoralama (Draft)", default=False)
+    status = models.CharField(
+        "Holat",
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PUBLISHED,
+    )
+    publish_at = models.DateTimeField(
+        "Chop etish vaqti",
+        null=True,
+        blank=True,
+        help_text="'Rejalashtirilgan' bo'lsa: shu vaqtda avtomatik chop etiladi.",
+    )
     # Denormalization (Tezlik uchun)
     total_votes = models.PositiveIntegerField(default=0)
     # max_digits=4 (3 emas): 10.00 baho saqlanishi uchun (3 → maksimum 9.99 edi — bug).
@@ -186,11 +233,26 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
             models.Index(fields=["slug"]),
             models.Index(fields=["year"]),
             models.Index(fields=["created_at"]),
-            models.Index(fields=["is_draft"]),
-            models.Index(fields=["is_draft", "-created_at"]),
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["status", "publish_at"]),
+        ]
+        constraints = [
+            # scheduled bo'lsa publish_at majburiy (aks holda hech qachon chop etilmaydi)
+            models.CheckConstraint(
+                condition=~models.Q(status="scheduled") | models.Q(publish_at__isnull=False),
+                name="movie_scheduled_requires_publish_at",
+            ),
         ]
         verbose_name = "Kino"
         verbose_name_plural = "Kinolar"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.status == self.Status.SCHEDULED and not self.publish_at:
+            raise ValidationError(
+                {"publish_at": "Rejalashtirilgan kino uchun chop etish vaqti majburiy."}
+            )
 
     def save(self, *args, **kwargs):
         if not self.slug:

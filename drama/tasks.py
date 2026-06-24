@@ -1,8 +1,11 @@
 """drama app fon vazifalari — Celery autodiscover shu fayldan topadi."""
 
+import logging
 import os
 
 from celery import shared_task
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -78,3 +81,21 @@ def recompute_movie_rating(movie_id: int) -> None:
     )
     average = round(agg["avg"], 2) if agg["avg"] is not None else 0
     Movie.objects.filter(pk=movie_id).update(average_rating=average, total_votes=agg["votes"])
+
+
+@shared_task
+def publish_scheduled_movies() -> int:
+    """Vaqti yetgan rejalashtirilgan kinolarni 'published' ga o'tkazadi.
+
+    Celery beat har daqiqa chaqiradi (config/celery.py beat_schedule).
+    `Movie.objects.due_for_publish()` queryseti tayyor: status=scheduled VA
+    publish_at <= hozir bo'lgan kinolarni qaytaradi.
+    """
+    from drama.models import Movie
+
+    # BULK .update() — Movie.save() chaqirmaydi (rasm/reyting Celery task loop'i yo'q;
+    # optimize_image_task / recompute_movie_rating'dagi bir xil mulohaza).
+    count = Movie.objects.due_for_publish().update(status=Movie.Status.PUBLISHED)
+    if count:
+        logger.info("publish_scheduled_movies: %d kino chop etildi", count)
+    return count

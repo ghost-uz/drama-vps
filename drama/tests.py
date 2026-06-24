@@ -1,16 +1,23 @@
 """drama app testlari — P1-T1: rasm optimizatsiyasi (save() -> Celery)."""
 
 import io
+from datetime import timedelta
 
 import pytest
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 
 from core.images import is_new_upload, optimize_to_webp
 from drama.models import Episode, Movie, Season
-from drama.tasks import optimize_image_task, recompute_movie_rating
+from drama.tasks import (
+    optimize_image_task,
+    publish_scheduled_movies,
+    recompute_movie_rating,
+)
 from users.models import UserMovieList, WatchProgress
 
 
@@ -321,3 +328,113 @@ def test_backfill_migration_seeds_ratings():
     movie.refresh_from_db()
     assert movie.total_votes == 1
     assert movie.average_rating == 8
+
+
+# --- P1-T6: publish workflow (status/publish_at + manager + beat task) ---
+
+
+def _movie(title, status=Movie.Status.PUBLISHED, publish_at=None):
+    return Movie.objects.create(
+        title=title,
+        description="x",
+        country="KR",
+        poster=_uploaded("p.jpg"),
+        status=status,
+        publish_at=publish_at,
+    )
+
+
+@pytest.mark.django_db
+def test_published_includes_published_excludes_draft():
+    pub = _movie("Pub", status=Movie.Status.PUBLISHED)
+    draft = _movie("Draft", status=Movie.Status.DRAFT)
+    ids = set(Movie.objects.published().values_list("id", flat=True))
+    assert pub.id in ids
+    assert draft.id not in ids
+
+
+@pytest.mark.django_db
+def test_published_excludes_future_scheduled():
+    future = _movie(
+        "Future",
+        status=Movie.Status.SCHEDULED,
+        publish_at=timezone.now() + timedelta(hours=1),
+    )
+    ids = set(Movie.objects.published().values_list("id", flat=True))
+    assert future.id not in ids
+
+
+@pytest.mark.django_db
+def test_published_includes_past_scheduled_self_healing():
+    """Self-healing: beat o'tkazmagan bo'lsa ham, vaqti yetgan scheduled public ko'rinadi."""
+    past = _movie(
+        "Past",
+        status=Movie.Status.SCHEDULED,
+        publish_at=timezone.now() - timedelta(minutes=1),
+    )
+    ids = set(Movie.objects.published().values_list("id", flat=True))
+    assert past.id in ids
+
+
+@pytest.mark.django_db
+def test_due_for_publish_only_past_scheduled():
+    past = _movie(
+        "P", status=Movie.Status.SCHEDULED, publish_at=timezone.now() - timedelta(minutes=1)
+    )
+    future = _movie(
+        "F", status=Movie.Status.SCHEDULED, publish_at=timezone.now() + timedelta(hours=1)
+    )
+    pub = _movie("Pub", status=Movie.Status.PUBLISHED)
+    due_ids = set(Movie.objects.due_for_publish().values_list("id", flat=True))
+    assert due_ids == {past.id}
+    assert future.id not in due_ids
+    assert pub.id not in due_ids
+
+
+@pytest.mark.django_db
+def test_publish_scheduled_movies_task_promotes_only_due():
+    past = _movie(
+        "P", status=Movie.Status.SCHEDULED, publish_at=timezone.now() - timedelta(minutes=1)
+    )
+    future = _movie(
+        "F", status=Movie.Status.SCHEDULED, publish_at=timezone.now() + timedelta(hours=1)
+    )
+    count = publish_scheduled_movies()
+    assert count == 1
+    past.refresh_from_db()
+    future.refresh_from_db()
+    assert past.status == Movie.Status.PUBLISHED
+    assert future.status == Movie.Status.SCHEDULED  # kelajak tegilmaydi
+
+
+@pytest.mark.django_db
+def test_scheduled_without_publish_at_violates_constraint():
+    from django.db import IntegrityError, transaction
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Movie.objects.create(
+            title="Bad",
+            description="x",
+            country="KR",
+            poster=_uploaded("p.jpg"),
+            status=Movie.Status.SCHEDULED,
+            publish_at=None,
+        )
+
+
+@pytest.mark.django_db
+def test_scheduled_with_publish_at_allowed():
+    m = _movie(
+        "Good", status=Movie.Status.SCHEDULED, publish_at=timezone.now() + timedelta(hours=2)
+    )
+    assert m.pk is not None
+
+
+def test_clean_rejects_scheduled_without_publish_at():
+    movie = Movie(title="x", status=Movie.Status.SCHEDULED, publish_at=None)
+    with pytest.raises(ValidationError):
+        movie.clean()
+
+
+def test_clean_allows_draft_without_publish_at():
+    Movie(title="x", status=Movie.Status.DRAFT, publish_at=None).clean()  # xato ko'tarmaydi
