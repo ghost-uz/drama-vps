@@ -1,5 +1,5 @@
 # users/models.py
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -10,7 +10,9 @@ from core.images import ImageOptimizationMixin
 class Profile(ImageOptimizationMixin, models.Model):
     OPTIMIZE_IMAGE_FIELDS = {"avatar": {"max_size": (400, 400), "quality": 75}}
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
+    )
     # ✅ Faqat bitta M2M yetarli (following orqali followers ni ham olamiz)
     following = models.ManyToManyField(
         "self",
@@ -97,7 +99,9 @@ class TopUpRequest(models.Model):
         ("rejected", "Rad etildi"),
     )
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="topup_requests")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="topup_requests"
+    )
     amount_uzs = models.PositiveIntegerField(verbose_name="To'lov summasi (UZS)")
     points = models.PositiveIntegerField(verbose_name="Beriladigan Pointlar", blank=True, null=True)
     receipt_image = models.ImageField(upload_to="receipts/%Y/%m/", verbose_name="To'lov cheki")
@@ -176,7 +180,9 @@ class CryptoTopUpRequest(models.Model):
 
     USDT_TO_COIN = 12  # 1 USDT = 12 Coin
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="crypto_topup_requests")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="crypto_topup_requests"
+    )
     amount_usdt = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="To'lov summasi (USDT)"
     )
@@ -246,7 +252,9 @@ class CryptoTopUpRequest(models.Model):
 class WatchProgress(models.Model):
     """Foydalanuvchining qism bo'yicha ko'rish progressi ('davom ettirish')."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="watch_progress")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="watch_progress"
+    )
     episode = models.ForeignKey(
         "drama.Episode", on_delete=models.CASCADE, related_name="watch_progress"
     )

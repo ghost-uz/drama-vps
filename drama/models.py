@@ -1,6 +1,6 @@
 from datetime import date
 
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -347,7 +347,9 @@ class Rating(models.Model):
 
 
 class Review(TimeStampedModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
+    )
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="reviews")
     text = models.TextField("Izoh matni", max_length=5000)
     parent = models.ForeignKey(
@@ -362,7 +364,10 @@ class ActorGift(models.Model):
         ("crown", "Toj 👑"),
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="sent_gifts", verbose_name="Foydalanuvchi"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sent_gifts",
+        verbose_name="Foydalanuvchi",
     )
     actor = models.ForeignKey(
         Actor, on_delete=models.CASCADE, related_name="received_gifts", verbose_name="Aktyor"
