@@ -123,13 +123,24 @@ def test_cleanup_stale_topups():
 
 
 @pytest.mark.django_db
-def test_recompute_trending_tags_warms_cache():
+def test_recompute_trending_tags():
     from django.core.cache import cache
+    from django.core.files.uploadedfile import SimpleUploadedFile
 
+    from drama.models import Movie, Tag
     from drama.tasks import recompute_trending_tags
 
     cache.delete("trending_tags")
-    recompute_trending_tags()
-    # Task trending teglar keshini yangilaydi -> context_processor shu keshdan o'qiydi.
-    # (Aniq teg-count: `tags` modeltranslation M2M anomaliyasi alohida tracker'da.)
-    assert cache.get("trending_tags") is not None
+    tag = Tag.objects.create(name="Drama", slug="drama")
+    movie = Movie.objects.create(
+        title="M",
+        description="x",
+        country="KR",
+        poster=SimpleUploadedFile("p.jpg", b"x", content_type="image/jpeg"),
+    )
+    movie.tags.add(tag)
+    # M2M fix: 'tags' endi modeltranslation'siz -> Count("movies") to'g'ri ishlaydi
+    count = recompute_trending_tags()
+    assert count == 1
+    cached = cache.get("trending_tags")
+    assert cached is not None and len(cached) == 1

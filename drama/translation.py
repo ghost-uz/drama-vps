@@ -15,8 +15,10 @@ class GenreTranslationOptions(TranslationOptions):
 
 @register(Movie)
 class MovieTranslationOptions(TranslationOptions):
-    # 'keywords' bu ro'yxatda bo'lishi shart!
-    fields = ("title", "description", "tagline", "tags")
+    # 'tags' (M2M) OLIB TASHLANDI: modeltranslation M2M'ni qo'llab-quvvatlamaydi —
+    # tags_uz/tags_en bir xil related_name='movies' bilan reverse accessor'ni buzgan,
+    # trending_tags Count("movies") doim 0 bo'lgan. Teg tilga bog'liq emas.
+    fields = ("title", "description", "tagline")
 
 
 @register(Actor)
