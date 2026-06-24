@@ -286,6 +286,13 @@ class Season(models.Model):
 class Episode(ImageOptimizationMixin, TimeStampedModel):
     OPTIMIZE_IMAGE_FIELDS = {"thumbnail": {"max_size": (1280, 1280), "quality": 80}}
 
+    class UploadStatus(models.TextChoices):
+        NONE = "none", "Yo'q"
+        UPLOADING = "uploading", "Yuklanmoqda"
+        PROCESSING = "processing", "Qayta ishlanmoqda (encoding)"
+        READY = "ready", "Tayyor"
+        FAILED = "failed", "Xato"
+
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="episodes")
     # Backward-compat: movie SAQLANADI (eski view/admin movie.episodes ishlatadi).
     # season null=True — data migration (0018) mavjud episodelarni "Season 1"ga bog'laydi.
@@ -295,6 +302,15 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
     title = models.CharField("Qism nomi", max_length=150)
     episode_number = models.PositiveIntegerField("Qism raqami")
     bunny_video_id = models.CharField("Bunny Stream Video ID", max_length=100, blank=True)
+    video_file = models.FileField(
+        "Video fayl (Bunny'ga avtomatik yuklanadi)",
+        upload_to="episode_uploads/",
+        blank=True,
+        null=True,
+    )
+    upload_status = models.CharField(
+        "Yuklash holati", max_length=12, choices=UploadStatus.choices, default=UploadStatus.NONE
+    )
     video_embed_code = models.TextField("Video HTML kodi (Eski / Embed)", blank=True)
     thumbnail = models.ImageField("Qism uchun rasm", upload_to="episodes/", blank=True, null=True)
 
@@ -304,6 +320,23 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
         ordering = ["episode_number"]
         verbose_name = "Qism"
         verbose_name_plural = "Qismlar"
+
+    def save(self, *args, **kwargs):
+        from functools import partial
+
+        from django.db import transaction
+
+        from core.images import is_new_upload
+
+        new_video = is_new_upload(self.video_file)
+        if new_video:
+            self.upload_status = self.UploadStatus.UPLOADING
+        # super().save() ImageOptimizationMixin orqali thumbnail'ni fon (Celery)da siqadi
+        super().save(*args, **kwargs)
+        if new_video:
+            from drama.tasks import process_episode_upload
+
+            transaction.on_commit(partial(process_episode_upload.delay, self.pk))
 
     def __str__(self):
         return f"{self.movie.title} - {self.episode_number}-qism"

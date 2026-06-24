@@ -53,7 +53,16 @@ class EpisodeInline(TabularInline):
     model = Episode
     extra = 1
     tab = True
-    fields = ("season", "episode_number", "title", "bunny_video_id", "video_embed_code")
+    fields = (
+        "season",
+        "episode_number",
+        "title",
+        "video_file",
+        "upload_status",
+        "bunny_video_id",
+        "video_embed_code",
+    )
+    readonly_fields = ("upload_status", "bunny_video_id")
     sortable_field_name = "episode_number"
 
 

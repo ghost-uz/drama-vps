@@ -409,7 +409,7 @@
           "title_en": "Secure video playback API (signed Bunny URLs, gating in API)",
           "title_uz": "Xavfsiz video pleyback API (signed Bunny URL, gating)",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P2-T1", "P4-T1"],
           "description_uz": "GET /api/v1/episodes/{id}/playback/ — VIP/funding/free gating tekshiradi, ruxsat bo'lsa qisqa muddatli token-himoyalangan Bunny URL qaytaradi. Ruxsatsiz 403. Bu pleyer (web+mobil) uchun yagona xavfsiz manba.",
           "acceptance_criteria": [
@@ -448,7 +448,7 @@
           "title_en": "Bunny Stream upload pipeline (create video, TUS upload, status poll)",
           "title_uz": "Bunny Stream upload pipeline (avtomatik yuklash)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T4"],
           "description_uz": "Admin video fayl yuklaganda: Bunny API'da video yaratish (GUID olish), TUS/PUT bilan yuklash, encoding statusini poll qilish — barchasi Celery'da. Tugagach Episode.bunny_video_id avtomatik to'ladi. Qo'lda GUID nusxalash yo'qoladi.",
           "acceptance_criteria": [
@@ -464,7 +464,7 @@
           "title_en": "Bunny webhook handler (encoding finished, thumbnail ready)",
           "title_uz": "Bunny webhook handler (encoding tugadi signali)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P3-T1"],
           "description_uz": "Bunny Stream webhook qabul qiluvchi endpoint: video encoding tugaganda statusni yangilaydi, kesh tozalaydi, kerak bo'lsa admin'ga xabar. Imzo/secret bilan tekshiriladi.",
           "acceptance_criteria": [

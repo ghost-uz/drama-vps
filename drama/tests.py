@@ -1,6 +1,7 @@
 """drama app testlari — P1-T1: rasm optimizatsiyasi (save() -> Celery)."""
 
 import io
+import json
 from datetime import timedelta
 
 import pytest
@@ -15,6 +16,7 @@ from core.images import is_new_upload, optimize_to_webp
 from drama.models import Episode, Movie, Season
 from drama.tasks import (
     optimize_image_task,
+    process_episode_upload,
     publish_scheduled_movies,
     recompute_movie_rating,
 )
@@ -438,3 +440,141 @@ def test_clean_rejects_scheduled_without_publish_at():
 
 def test_clean_allows_draft_without_publish_at():
     Movie(title="x", status=Movie.Status.DRAFT, publish_at=None).clean()  # xato ko'tarmaydi
+
+
+# --- P3-T1: Bunny upload pipeline ---
+
+
+def _episode_with_video(title="UpMovie"):
+    movie = Movie.objects.create(
+        title=title, description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    season = Season.objects.create(movie=movie, number=1)
+    return Episode.objects.create(
+        movie=movie,
+        season=season,
+        title="E1",
+        episode_number=1,
+        video_file=SimpleUploadedFile("v.mp4", b"video-bytes"),
+    )
+
+
+@pytest.mark.django_db
+def test_episode_upload_success(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from drama.services import bunny_upload
+
+    ep = _episode_with_video("UpOk")
+    monkeypatch.setattr(bunny_upload, "create_video", lambda title: "guid-123")
+    monkeypatch.setattr(bunny_upload, "upload_video", MagicMock())
+    monkeypatch.setattr(bunny_upload, "get_status", lambda guid: 4)  # Finished
+    process_episode_upload(ep.id)
+    ep.refresh_from_db()
+    assert ep.bunny_video_id == "guid-123"
+    assert ep.upload_status == Episode.UploadStatus.READY
+    assert not ep.video_file  # vaqtinchalik fayl tozalandi
+
+
+@pytest.mark.django_db
+def test_episode_upload_failed(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from drama.services import bunny_upload
+
+    ep = _episode_with_video("UpErr")
+    monkeypatch.setattr(bunny_upload, "create_video", lambda title: "guid-err")
+    monkeypatch.setattr(bunny_upload, "upload_video", MagicMock())
+    monkeypatch.setattr(bunny_upload, "get_status", lambda guid: 5)  # Error
+    process_episode_upload(ep.id)
+    ep.refresh_from_db()
+    assert ep.upload_status == Episode.UploadStatus.FAILED
+
+
+@pytest.mark.django_db
+def test_episode_save_triggers_upload_task(django_capture_on_commit_callbacks, monkeypatch):
+    from unittest.mock import MagicMock
+
+    movie = Movie.objects.create(
+        title="Trig", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    season = Season.objects.create(movie=movie, number=1)
+    task_mock = MagicMock()
+    monkeypatch.setattr("drama.tasks.process_episode_upload.delay", task_mock)
+    with django_capture_on_commit_callbacks(execute=True):
+        Episode.objects.create(
+            movie=movie,
+            season=season,
+            title="E1",
+            episode_number=1,
+            video_file=SimpleUploadedFile("v.mp4", b"video-bytes"),
+        )
+    task_mock.assert_called_once()
+
+
+# --- P3-T2: Bunny webhook handler ---
+
+
+def _ep_for_webhook(guid, num=1):
+    movie = Movie.objects.create(
+        title=f"W{guid}", description="x", country="KR", poster=_uploaded("p.jpg")
+    )
+    season = Season.objects.create(movie=movie, number=1)
+    return Episode.objects.create(
+        movie=movie,
+        season=season,
+        title="E1",
+        episode_number=num,
+        bunny_video_id=guid,
+        upload_status="processing",
+    )
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_finished_sets_ready(client, settings):
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    ep = _ep_for_webhook("guid-ok")
+    resp = client.post(
+        "/webhooks/bunny/?secret=test-secret",
+        data=json.dumps({"VideoGuid": "guid-ok", "Status": 4}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    ep.refresh_from_db()
+    assert ep.upload_status == Episode.UploadStatus.READY
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_error_sets_failed(client, settings):
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    ep = _ep_for_webhook("guid-err")
+    resp = client.post(
+        "/webhooks/bunny/?secret=test-secret",
+        data=json.dumps({"VideoGuid": "guid-err", "Status": 5}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    ep.refresh_from_db()
+    assert ep.upload_status == Episode.UploadStatus.FAILED
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_wrong_secret_403(client, settings):
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    resp = client.post(
+        "/webhooks/bunny/?secret=WRONG",
+        data=json.dumps({"VideoGuid": "g", "Status": 4}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_no_secret_403(client, settings):
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    resp = client.post(
+        "/webhooks/bunny/",
+        data=json.dumps({"VideoGuid": "g", "Status": 4}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 403

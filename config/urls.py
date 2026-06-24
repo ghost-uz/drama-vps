@@ -8,6 +8,7 @@ from django.urls import include, path
 from core.health import healthz, readyz
 from drama.sitemaps import ActorSitemap, CategorySitemap, GenreSitemap, MovieSitemap
 from drama.views import robots_txt
+from drama.webhooks import bunny_webhook
 
 # Sitemap turlarini ro'yxatga olamiz
 sitemaps = {
@@ -33,6 +34,8 @@ urlpatterns = [
     path("users/", include("users.urls", namespace="users")),
     # 4. REST API (P2)
     path("api/v1/", include("config.api_urls")),
+    # 5. Tashqi webhook'lar (P3)
+    path("webhooks/bunny/", bunny_webhook, name="bunny_webhook"),
     path("", include("drama.urls", namespace="drama")),
     path("funding/", include("funding.urls")),
 ]

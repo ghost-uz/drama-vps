@@ -99,3 +99,51 @@ def publish_scheduled_movies() -> int:
     if count:
         logger.info("publish_scheduled_movies: %d kino chop etildi", count)
     return count
+
+
+@shared_task(bind=True, max_retries=20, default_retry_delay=30)
+def process_episode_upload(self, episode_id: int):
+    """Episode.video_file'ni Bunny'ga yuklaydi va encoding'ni kuzatadi [P3-T1].
+
+    1-bosqich (GUID yo'q): Bunny'da video yaratadi + faylni yuklaydi.
+    2-bosqich (poll): encoding statusini tekshiradi -> tugaguncha retry(countdown).
+    Tugagach bunny_video_id qoladi, upload_status=ready, vaqtinchalik fayl o'chadi.
+    """
+    from drama.models import Episode
+    from drama.services import bunny_upload
+
+    try:
+        ep = Episode.objects.get(pk=episode_id)
+    except Episode.DoesNotExist:
+        return
+    if not ep.video_file:
+        return
+
+    try:
+        # 1. GUID hali yo'q -> Bunny'da yaratish + faylni yuklash (bir marta)
+        if not ep.bunny_video_id:
+            guid = bunny_upload.create_video(ep.title)
+            with ep.video_file.open("rb") as fh:
+                bunny_upload.upload_video(guid, fh.read())
+            Episode.objects.filter(pk=episode_id).update(
+                bunny_video_id=guid, upload_status=Episode.UploadStatus.PROCESSING
+            )
+            ep.bunny_video_id = guid
+
+        # 2. Encoding statusini tekshirish
+        status = bunny_upload.get_status(ep.bunny_video_id)
+    except Exception as exc:
+        logger.warning("process_episode_upload(%s) xato: %s", episode_id, exc)
+        raise self.retry(exc=exc) from exc
+
+    if status >= bunny_upload.STATUS_ERROR:
+        Episode.objects.filter(pk=episode_id).update(upload_status=Episode.UploadStatus.FAILED)
+        return
+    if status < bunny_upload.STATUS_FINISHED:
+        raise self.retry(countdown=30)  # hali encoding tugamagan
+
+    # Tugadi: vaqtinchalik (lokal) faylni tozalab, ready holatga o'tkazamiz
+    ep.video_file.delete(save=False)
+    Episode.objects.filter(pk=episode_id).update(
+        upload_status=Episode.UploadStatus.READY, video_file=""
+    )
