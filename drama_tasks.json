@@ -569,7 +569,7 @@
           "title_en": "Integrate Alpine.js + production Tailwind build pipeline",
           "title_uz": "Alpine.js integratsiya + Tailwind production build",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Alpine.js qo'shish (modal, dropdown, tab, pleyer boshqaruvi). Tailwind production build (purge/minify), output.css optimallashtirilgan. base.html da to'g'ri yuklash, defer.",
           "acceptance_criteria": [
@@ -584,7 +584,7 @@
           "title_en": "Advanced HLS player (hls.js, quality switch, resume, autoplay next)",
           "title_uz": "Ilg'or HLS pleyer (sifat almashtirish, davom ettirish, keyingi qism)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P2-T4", "P1-T3"],
           "description_uz": "hls.js asosida adaptiv pleyer: sifat tanlash, davom ettirish (WatchProgress), tugaganda keyingi qism avtomatik, klaviatura boshqaruvi, mobil. Playback URL'ni xavfsiz API'dan oladi.",
           "acceptance_criteria": [
@@ -616,7 +616,7 @@
           "title_en": "SEO: JSON-LD (VideoObject, TVSeries, BreadcrumbList), OG/Twitter, hreflang",
           "title_uz": "SEO: JSON-LD structured data, Open Graph, hreflang",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Har kino/qism sahifasiga JSON-LD (VideoObject/TVSeries), BreadcrumbList; Open Graph + Twitter Card; uz/en uchun hreflang; canonical; meta title/description (modeltranslation keywords mavjud). Google rich results uchun.",
           "acceptance_criteria": [

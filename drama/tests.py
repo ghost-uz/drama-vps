@@ -655,3 +655,147 @@ def test_check_bunny_security_warns_no_referrer_blocked(monkeypatch, settings):
     out = _run_check(monkeypatch, settings, responses)
     assert "Block no-referrer" in out
     assert "Barcha tekshiruvlar toza" in out  # warning muammo hisoblanmaydi
+
+
+# --- P5-T4: SEO structured data (JSON-LD, canonical, hreflang) ---
+
+
+def _jsonld_blocks(html):
+    """Sahifadagi barcha ld+json bloklarini PARSE qiladi — sintaksis buzuq bo'lsa fail."""
+    import re
+
+    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S)
+    assert blocks, "ld+json blok topilmadi"
+    return [json.loads(b) for b in blocks]
+
+
+@pytest.mark.django_db
+def test_movie_detail_jsonld_rich_and_quote_safe(client):
+    """Qo'shtirnoqli sarlavha JSONni buzmaydi (eski qo'lda-shablon xavfi) + to'liq graf."""
+    from drama.factories import EpisodeFactory, GenreFactory, MovieFactory
+
+    movie = MovieFactory(title='Drama "Alpha" seriali', year=2024)
+    movie.genres.add(GenreFactory())
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vid-1")
+    html = client.get(movie.get_absolute_url()).content.decode()
+    graph = next(p for p in _jsonld_blocks(html) if "@graph" in p)["@graph"]
+    types = {item["@type"] for item in graph}
+    assert {"TVSeries", "TVEpisode", "VideoObject", "BreadcrumbList"} <= types
+    series = next(i for i in graph if i["@type"] == "TVSeries")
+    assert series["name"] == movie.title  # &quot; emas — asl qo'shtirnoq qaytadi
+    video = next(i for i in graph if i["@type"] == "VideoObject")
+    assert video["uploadDate"] and video["thumbnailUrl"] and video["embedUrl"]
+
+
+@pytest.mark.django_db
+def test_film_without_episodes_is_movie_type(client):
+    """Epizodsiz yakka film: Movie tipi + video Movie'ning o'zidan."""
+    from drama.factories import MovieFactory
+
+    movie = MovieFactory(bunny_video_id="film-1")
+    html = client.get(movie.get_absolute_url()).content.decode()
+    graph = next(p for p in _jsonld_blocks(html) if "@graph" in p)["@graph"]
+    types = {item["@type"] for item in graph}
+    assert "Movie" in types
+    assert "TVEpisode" not in types
+    assert "VideoObject" in types
+
+
+@pytest.mark.django_db
+def test_head_canonical_and_hreflang(client):
+    from drama.factories import EpisodeFactory, MovieFactory
+
+    movie = MovieFactory()
+    EpisodeFactory(movie=movie, episode_number=1)
+    html = client.get(movie.get_absolute_url()).content.decode()
+    assert f'rel="canonical" href="http://testserver{movie.get_absolute_url()}"' in html
+    assert 'hreflang="uz"' in html
+    assert 'hreflang="x-default"' in html
+    assert 'hreflang="en"' not in html  # en URL'lar yo'q — chiqmasligi SHART
+
+
+@pytest.mark.django_db
+def test_genre_page_unique_title(client):
+    """Ro'yxat sahifalari view'dagi `title` kontekstidan unikal <title> oladi."""
+    from drama.factories import GenreFactory, MovieFactory
+
+    genre = GenreFactory(name="Romantika", slug="romantika")
+    MovieFactory().genres.add(genre)
+    html = client.get(f"/janr/{genre.slug}/").content.decode()
+    assert "<title>Romantika janridagi kinolar - Drama.uz</title>" in html
+
+
+# --- P5-T2: pleyer (player.js, resume, avto-keyingi, API refresh) ---
+
+
+def _reels_data(html):
+    import re
+
+    m = re.search(r'<script id="reelsData" type="application/json">(.*?)</script>', html, re.S)
+    assert m, "reelsData topilmadi"
+    return json.loads(m.group(1))
+
+
+@pytest.mark.django_db
+def test_movie_detail_uses_external_player(client):
+    """Inline pleyer static/js/player.js ga ko'chirilgan; hls.js vendorlangan."""
+    from drama.factories import EpisodeFactory, MovieFactory
+
+    movie = MovieFactory()
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vid-1")
+    html = client.get(movie.get_absolute_url()).content.decode()
+    assert "js/player.js" in html
+    assert "js/vendor/hls.min.js" in html
+    assert "cdn.jsdelivr.net/npm/hls.js" not in html
+    assert "SWIPE NAVIGATION" not in html  # inline blok chiqarilgan
+
+
+@pytest.mark.django_db
+def test_reels_data_player_fields_anonymous(client):
+    from drama.factories import EpisodeFactory, MovieFactory
+
+    movie = MovieFactory()
+    ep = EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vid-1")
+    data = _reels_data(client.get(movie.get_absolute_url()).content.decode())
+    assert data["episodeId"] == ep.id
+    assert data["resumePos"] == 0  # anonimda resume yo'q
+    assert data["playbackApi"] == f"/api/v1/episodes/{ep.id}/playback/"
+    assert data["progressUrl"].endswith(f"episode/{ep.id}/progress/")
+
+
+@pytest.mark.django_db
+def test_resume_position_for_authenticated(client):
+    from drama.factories import EpisodeFactory, MovieFactory
+    from users.factories import UserFactory
+
+    user = UserFactory()
+    movie = MovieFactory()
+    ep = EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vid-1")
+    WatchProgress.objects.create(user=user, episode=ep, position_seconds=120, duration_seconds=600)
+    client.force_login(user)
+    data = _reels_data(client.get(movie.get_absolute_url()).content.decode())
+    assert data["resumePos"] == 120
+
+
+@pytest.mark.django_db
+def test_completed_episode_not_resumed(client):
+    """Ko'rib tugatilgan qism boshidan boshlanadi (resume 0)."""
+    from drama.factories import EpisodeFactory, MovieFactory
+    from users.factories import UserFactory
+
+    user = UserFactory()
+    movie = MovieFactory()
+    ep = EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vid-1")
+    WatchProgress.objects.create(
+        user=user, episode=ep, position_seconds=590, duration_seconds=600, completed=True
+    )
+    client.force_login(user)
+    data = _reels_data(client.get(movie.get_absolute_url()).content.decode())
+    assert data["resumePos"] == 0
+
+
+def test_player_static_assets_exist():
+    from django.contrib.staticfiles import finders
+
+    assert finders.find("js/player.js")
+    assert finders.find("js/vendor/hls.min.js")

@@ -157,7 +157,8 @@ class GenreDetailView(GenreYearMixin, ListView):
 
     def get_queryset(self):
         self.genre = get_object_or_404(Genre, slug=self.kwargs.get("slug"))
-        return Movie.objects.published().filter(genres=self.genre)
+        # order_by'siz pagination beqaror edi (UnorderedObjectListWarning) [P5-T4]
+        return Movie.objects.published().filter(genres=self.genre).order_by("-created_at")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -311,6 +312,21 @@ class MovieDetailView(GenreYearMixin, DetailView):
         )
 
         context["similar_movies"] = similar_movies
+
+        # SEO structured data [P5-T4] — xavfsiz JSON-LD (drama/seo.py)
+        from drama.seo import movie_jsonld
+
+        context["seo_jsonld"] = movie_jsonld(self.request, movie, active_episode)
+
+        # Pleyer: davom ettirish pozitsiyasi (WatchProgress, P1-T3) [P5-T2]
+        resume_position = 0
+        if active_episode and user.is_authenticated:
+            from users.models import WatchProgress
+
+            progress = WatchProgress.objects.filter(user=user, episode=active_episode).first()
+            if progress and not progress.completed:
+                resume_position = progress.position_seconds
+        context["resume_position"] = resume_position
         return context
 
     def parse_video_links(self, source_text):
