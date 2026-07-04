@@ -67,3 +67,24 @@ ignore_errors = true
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = "--strict-markers"
+# Eslatma: test DB sqlite ":memory:" (config/settings/test.py) — eng tez variant,
+# --reuse-db shunda ma'nosiz. Coverage gate CI'da: `pytest --cov` (P13-T1).
+
+# --- coverage (P11-T1) ---
+[tool.coverage.run]
+source = ["config", "core", "drama", "users", "funding"]
+omit = [
+    "*/migrations/*",
+    "*/tests.py",
+    "*/factories.py",
+    "config/wsgi.py",
+    "config/asgi.py",
+    "config/settings/dev.py",
+    "config/settings/prod.py",
+]
+
+[tool.coverage.report]
+precision = 1
+# Joriy o'lchov 75.3% (2026-07-04, 124 test) — gate biroz pastroq qo'yilgan;
+# vaqt o'tishi bilan KO'TARILADI (maqsad: 80+). Pasaytirish taqiqlanadi.
+fail_under = 73

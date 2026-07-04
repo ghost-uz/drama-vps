@@ -4,26 +4,16 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
-from rest_framework.test import APIClient
 
+from drama.factories import EpisodeFactory, MovieFactory
 from drama.models import Episode, Genre, Movie, Season
 
-
-@pytest.fixture
-def api():
-    return APIClient()
-
-
-def _uploaded(name="p.jpg"):
-    return SimpleUploadedFile(name, b"fake-image-bytes", content_type="image/jpeg")
+# `api` va `bunny` fixture'lar endi loyiha-darajali conftest.py da [P11-T1]
 
 
 def _movie(title, **kwargs):
-    defaults = {"description": "x", "country": "KR", "poster": _uploaded()}
-    defaults.update(kwargs)
-    return Movie.objects.create(title=title, **defaults)
+    return MovieFactory(title=title, **kwargs)
 
 
 @pytest.mark.django_db
@@ -172,18 +162,8 @@ def test_search_throttle_returns_429(api):
 # --- P2-T4: video playback gating + signed URL ---
 
 
-@pytest.fixture
-def bunny(settings):
-    settings.BUNNY_STREAM_CDN_HOSTNAME = "vz-test.b-cdn.net"
-    settings.BUNNY_STREAM_LIBRARY_ID = "12345"
-    return settings
-
-
 def _episode(movie, num, **kwargs):
-    season, _ = Season.objects.get_or_create(movie=movie, number=1)
-    return Episode.objects.create(
-        movie=movie, season=season, title=f"E{num}", episode_number=num, **kwargs
-    )
+    return EpisodeFactory(movie=movie, episode_number=num, **kwargs)
 
 
 @pytest.mark.django_db

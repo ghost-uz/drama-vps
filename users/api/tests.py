@@ -1,30 +1,21 @@
 """users/api/ va Review API testlari [P2-T3]."""
 
 import pytest
-from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
-from rest_framework.test import APIClient
 
-from drama.models import Episode, Movie, Review, Season
+from drama.factories import MovieFactory
+from drama.models import Episode, Review, Season
+from users.factories import UserFactory
 from users.models import UserMovieList, WatchProgress
 
-
-@pytest.fixture
-def api():
-    return APIClient()
+# `api` fixture endi loyiha-darajali conftest.py da [P11-T1]
 
 
 def _user(username="u1"):
-    return User.objects.create_user(username=username, password="pass12345")
+    return UserFactory(username=username)
 
 
 def _movie(title="M"):
-    return Movie.objects.create(
-        title=title,
-        description="x",
-        country="KR",
-        poster=SimpleUploadedFile("p.jpg", b"x", content_type="image/jpeg"),
-    )
+    return MovieFactory(title=title)
 
 
 # --- Profil (me) ---

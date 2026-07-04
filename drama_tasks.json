@@ -901,7 +901,7 @@
           "title_en": "Security headers & CSP (fix X_FRAME_OPTIONS=ALLOWALL)",
           "title_uz": "Xavfsizlik headerlari va CSP (ALLOWALL ni tuzatish)",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T1"],
           "description_uz": "X_FRAME_OPTIONS='ALLOWALL' xavfli — faqat Telegram uchun aniq ruxsat. django-csp bilan Content-Security-Policy, Permissions-Policy, Referrer-Policy. Telegram WebView mosligi saqlanadi.",
           "acceptance_criteria": [
@@ -985,7 +985,7 @@
           "title_en": "pytest + pytest-django + factory_boy setup, coverage gate",
           "title_uz": "pytest + factory_boy sozlash, coverage gate",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T7"],
           "description_uz": "pytest infratuzilma, conftest, factory_boy fabrikalari (Movie, Episode, User, Profile, FundingProject...), coverage konfiguratsiya, test settings (tez).",
           "acceptance_criteria": [
