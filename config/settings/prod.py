@@ -70,6 +70,11 @@ GS_CREDENTIALS_FILE = config(  # noqa: F405
 )
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(GS_CREDENTIALS_FILE)
 
+# Static/media obyektlarga cache header — collectstatic/yuklashda GCS'ga yoziladi,
+# cdn.drama.uz shu bilan xizmat qiladi (1 kun; fayl nomlari hash'lanmagani uchun
+# "immutable" EMAS) [P5-T1]
+GS_OBJECT_PARAMETERS = {"cache_control": "public, max-age=86400"}
+
 STATIC_URL = f"https://{GS_CUSTOM_DOMAIN}/static/"  # noqa: F405
 MEDIA_URL = f"https://{GS_CUSTOM_DOMAIN}/media/"  # noqa: F405
 

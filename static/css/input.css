@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Alpine.js: init bo'lguncha x-show elementlar ko'rinmasin [P5-T1] */
+[x-cloak] {
+  display: none !important;
+}

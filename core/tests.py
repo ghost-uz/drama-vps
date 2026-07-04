@@ -175,3 +175,44 @@ def test_security_headers_modernized(client):
     assert resp["Referrer-Policy"] == "strict-origin-when-cross-origin"
     assert resp["Permissions-Policy"].startswith("camera=()")
     assert resp["Cross-Origin-Opener-Policy"] == "same-origin-allow-popups"
+
+
+# --- P5-T1: frontend build (Tailwind production + vendorlangan Alpine/htmx) ---
+
+
+def test_no_play_cdn_or_unpkg_in_templates():
+    """Play CDN (dev-vosita!) va unpkg prod shablonlardan butunlay chiqarilgan."""
+    from pathlib import Path
+
+    from django.conf import settings
+
+    for html in (Path(settings.BASE_DIR) / "templates").rglob("*.html"):
+        text = html.read_text(encoding="utf-8", errors="ignore")
+        assert "cdn.tailwindcss.com" not in text, html.name
+        assert "unpkg.com" not in text, html.name
+
+
+def test_csp_dropped_unused_script_hosts(client):
+    """Endi ishlatilmaydigan hostlar CSP script-src'dan olib tashlangan."""
+    csp = client.get("/healthz")["Content-Security-Policy"]
+    assert "unpkg.com" not in csp
+    assert "cdn.tailwindcss.com" not in csp
+
+
+def test_vendored_assets_exist():
+    from django.contrib.staticfiles import finders
+
+    assert finders.find("css/output.css")
+    assert finders.find("js/app.js")
+    assert finders.find("js/vendor/alpine-csp.min.js")
+    assert finders.find("js/vendor/htmx.min.js")
+
+
+@pytest.mark.django_db
+def test_index_uses_built_assets(client):
+    """Bosh sahifa build qilingan CSS + vendorlangan JS'ni ishlatadi (CDN emas)."""
+    html = client.get("/").content.decode()
+    assert "css/output.css" in html
+    assert "js/vendor/alpine-csp.min.js" in html
+    assert "js/vendor/htmx.min.js" in html
+    assert 'x-data="searchBar"' in html  # Alpine komponenti ulangan

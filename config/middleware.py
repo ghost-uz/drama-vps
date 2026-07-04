@@ -34,12 +34,11 @@ class SecurityHeadersMiddleware:
                 "default-src 'self';",
                 # Skriptlar: o'zimiz + CDN'lar + Yandex Metrika.
                 # 'unsafe-inline' — inline handler'lar refaktor bo'lguncha (docstring).
-                # unpkg.com + cdn.tailwindcss.com: base-users.html shulardan yuklaydi.
+                # unpkg/tailwindcss OLIB TASHLANDI [P5-T1] — htmx/Alpine/Tailwind endi
+                # vendorlangan/build qilingan ('self'); jsdelivr: swiper+hls.js uchun.
                 "script-src 'self' 'unsafe-inline'"
                 " cdn.jsdelivr.net"
                 " cdnjs.cloudflare.com"
-                " unpkg.com"
-                " cdn.tailwindcss.com"
                 " mc.yandex.ru"
                 " mc.yandex.com;",
                 # Stillar: o'zimiz + Google Fonts + FA + jsdelivr + inline stillar

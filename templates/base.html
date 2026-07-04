@@ -18,7 +18,10 @@
     <meta name="robots" content="{% block robots %}index, follow, max-image-preview:large{% endblock %}">
     <meta name="author" content="Drama.Uz">
 
-    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
+    {# hreflang [P5-T4]: faqat uz + x-default — en uchun alohida URL yo'q (i18n_patterns yo'q); en'ni bir xil URLga ko'rsatish duplicate-signal bo'lardi #}
+    <link rel="alternate" hreflang="uz" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    <link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
 
     <meta property="og:site_name" content="Drama.Uz">
     <meta property="og:locale" content="uz_UZ">
@@ -134,7 +137,10 @@
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12"></script>
+    {# Vendorlangan JS [P5-T1]: bitta htmx versiyasi + Alpine CSP build (unsafe-eval'siz) #}
+    <script src="{% static 'js/vendor/htmx.min.js' %}" defer></script>
+    <script src="{% static 'js/app.js' %}" defer></script>
+    <script src="{% static 'js/vendor/alpine-csp.min.js' %}" defer></script>
 
     <script type="application/ld+json">
     {
@@ -200,7 +206,7 @@
 
     <div id="preloader"><div class="spinner"></div></div>
 
-    <header class="sticky top-0 z-[100] glass-header">
+    <header class="sticky top-0 z-[100] glass-header" x-data="searchBar">
         <div class="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-8 py-3 md:py-4">
 
             <a href="/" class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00cc4c] to-[#00ff62] tracking-tighter hover:scale-105 transition-transform" aria-label="Drama.uz Bosh sahifa">
@@ -219,7 +225,7 @@
                     <div id="live-search-results" class="search-results-dropdown hidden"></div>
                 </form>
 
-                <button id="mobile-search-btn" aria-label="Qidiruvni ochish" class="md:hidden text-gray-300 hover:text-[#00cc4c] p-2 transition-colors">
+                <button @click="toggle" aria-label="Qidiruvni ochish" class="md:hidden text-gray-300 hover:text-[#00cc4c] p-2 transition-colors">
                     <i class="fas fa-search text-xl"></i>
                 </button>
 
@@ -235,9 +241,10 @@
             </div>
         </div>
 
-        <div id="mobile-search-bar" class="hidden md:hidden bg-[#0a0a0a] border-t border-white/5 p-4 absolute w-full shadow-2xl">
+        {# Alpine (searchBar komponenti, static/js/app.js) boshqaradi [P5-T1] #}
+        <div x-show="open" x-cloak @click.outside="close" class="md:hidden bg-[#0a0a0a] border-t border-white/5 p-4 absolute w-full shadow-2xl">
             <form action="{% url 'drama:search' %}" method="GET" class="relative" role="search">
-                <input type="text" name="q" id="mobile-live-search" autocomplete="off" placeholder="Nima ko'ramiz?"
+                <input type="text" name="q" id="mobile-live-search" x-ref="input" autocomplete="off" placeholder="Nima ko'ramiz?"
                        aria-label="Kino qidirish"
                        class="w-full bg-white/10 text-white px-5 py-3 rounded-xl text-sm outline-none focus:border-[#00cc4c] border border-transparent transition-colors">
                 <button type="submit" aria-label="Qidirish" class="absolute right-4 top-3.5 text-[#00cc4c]">
@@ -475,18 +482,7 @@
                 }, { passive: true });
             }
 
-            const mBtn = document.getElementById('mobile-search-btn');
-            const mBar = document.getElementById('mobile-search-bar');
-            if(mBtn && mBar) {
-                mBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    mBar.classList.toggle('hidden');
-                    if(!mBar.classList.contains('hidden')) {
-                        const mInput = document.getElementById('mobile-live-search');
-                        if(mInput) mInput.focus();
-                    }
-                };
-            }
+            /* Mobil qidiruv toggle endi Alpine'da (searchBar, static/js/app.js) [P5-T1] */
 
             function setupLiveSearch(inputId, resultsId) {
                 const input = document.getElementById(inputId);
