@@ -533,7 +533,7 @@
           "title_en": "Referer/hotlink protection & allowed-origins config",
           "title_uz": "Referer/hotlink himoyasi sozlamasi",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P4-T1"],
           "description_uz": "Bunny pull zone'da referer cheklash (faqat drama.uz), hotlink himoyasi. Hujjatlashtirish va sozlama tekshiruvi.",
           "acceptance_criteria": [

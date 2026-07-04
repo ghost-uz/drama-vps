@@ -8,6 +8,8 @@ import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -578,3 +580,78 @@ def test_bunny_webhook_no_secret_403(client, settings):
         content_type="application/json",
     )
     assert resp.status_code == 403
+
+
+# --- P4-T2: check_bunny_security buyrug'i (CDN mock bilan) ---
+
+
+class _FakeResponse:
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _fake_cdn(responses):
+    """(imzoli?, yot-referer?, referer-bor?) holatiga qarab status qaytaradi."""
+
+    def fake_get(url, headers=None, timeout=None, stream=None):
+        referer = (headers or {}).get("Referer", "")
+        key = ("token=" in url, "evil" in referer, bool(referer))
+        return _FakeResponse(responses[key])
+
+    return fake_get
+
+
+# Holatlar: (imzoli, yot referer, referer bor) -> status
+_SECURE_CDN = {
+    (False, False, False): 403,  # imzosiz -> rad
+    (True, False, True): 200,  # imzoli + to'g'ri referer -> OK
+    (True, True, True): 403,  # imzoli + yot referer -> rad (hotlink)
+    (True, False, False): 200,  # imzoli, referersiz -> OK (mobil)
+}
+
+
+def _run_check(monkeypatch, settings, responses, *args):
+    settings.BUNNY_STREAM_CDN_HOSTNAME = "vz-test.b-cdn.net"
+    settings.BUNNY_STREAM_LIBRARY_ID = "12345"
+    settings.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    from drama.management.commands import check_bunny_security as cmd
+
+    monkeypatch.setattr(cmd.requests, "get", _fake_cdn(responses))
+    out = io.StringIO()
+    call_command("check_bunny_security", "vid-1", *args, stdout=out)
+    return out.getvalue()
+
+
+def test_check_bunny_security_all_clean(monkeypatch, settings):
+    out = _run_check(monkeypatch, settings, _SECURE_CDN)
+    assert "Barcha tekshiruvlar toza" in out
+
+
+def test_check_bunny_security_detects_token_auth_off(monkeypatch, settings):
+    """Imzosiz URL 200 = panelda token auth yoqilmagan — aniqlanishi shart."""
+    responses = {**_SECURE_CDN, (False, False, False): 200}
+    out = _run_check(monkeypatch, settings, responses)
+    assert "CDN token authentication" in out
+    with pytest.raises(CommandError):
+        _run_check(monkeypatch, settings, responses, "--strict")
+
+
+def test_check_bunny_security_detects_open_referer(monkeypatch, settings):
+    """Yot referer 200 = hotlink ochiq — aniqlanishi shart."""
+    responses = {**_SECURE_CDN, (True, True, True): 200}
+    out = _run_check(monkeypatch, settings, responses)
+    assert "Allowed Referrers" in out
+
+
+def test_check_bunny_security_warns_no_referrer_blocked(monkeypatch, settings):
+    """Referersiz 403 — muammo EMAS, lekin mobil-pleyer ogohlantirishi chiqadi."""
+    responses = {**_SECURE_CDN, (True, False, False): 403}
+    out = _run_check(monkeypatch, settings, responses)
+    assert "Block no-referrer" in out
+    assert "Barcha tekshiruvlar toza" in out  # warning muammo hisoblanmaydi

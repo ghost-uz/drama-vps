@@ -54,7 +54,38 @@ Tipik nomuvofiqliklar:
 Token muddati (`BUNNY_TOKEN_EXPIRY_SECONDS`, default 4 soat) qisqaligi odatda
 yetarli himoya; IP-binding faqat ommaviy link-sizish kuzatilganda yoqilsin.
 
-## Referer/hotlink himoyasi (P4-T2 — keyinroq)
+## Referer/hotlink himoyasi (P4-T2)
 
-Bunny pull zone'da "Allowed referrers" (drama.uz) sozlash rejalashtirilgan —
-alohida task, bu runbook o'shanda to'ldiriladi.
+Token auth linkni MUDDAT bilan cheklaydi; referer cheklovi esa muddati hali
+tugamagan imzoli linkni ham boshqa sayt ichiga embed qilishdan to'sadi
+(hotlink). Referer'ni soxtalash oson — bu yolg'iz himoya emas, token auth
+ustiga qo'shimcha qatlam.
+
+Panel (Stream → Library → Security):
+
+1. **Allowed Referrers** ga qo'shing: `drama.uz`, `*.drama.uz` (staging
+   bo'lsa uni ham). Ro'yxat bo'sh = istalgan sayt embed qila oladi.
+   Bu ro'yxat CDN (vz-\*.b-cdn.net) va iframe embed'ga birga amal qiladi.
+2. **Blocked Referrers** odatda kerak emas (allowlist yetarli).
+3. **"Block no-referrer requests"ni YOQMANG** — mobil ilova/native pleyer,
+   maxfiylik-rejim brauzerlar va ba'zi Telegram WebView holatlari Referer
+   YUBORMAYDI; yoqilsa ular 403 oladi. Asosiy himoya token auth bo'lib
+   qolaveradi.
+
+### Sozlamani tekshirish
+
+Jonli tekshiruv (mavjud video GUID bilan, istalgan mashinadan):
+
+    python manage.py check_bunny_security <video_guid>
+    python manage.py check_bunny_security <video_guid> --strict   # CI/cron: muammoda exit 1
+
+Buyruq hisoboti: (1) imzosiz URL rad etiladimi — token auth; (2) imzolangan
+URL 200mi — kalit mosligi; (3) yot referer (evil.example) bloklanadimi —
+hotlink; (4) referersiz so'rov holati — mobil pleyer ta'siri (axborot).
+
+Qo'lda curl bilan:
+
+    # yot referer -> 403 kutiladi
+    curl -s -o /dev/null -w "%{http_code}" -e "https://evil.example/" "<imzoli-hls-url>"
+    # to'g'ri referer -> 200 kutiladi
+    curl -s -o /dev/null -w "%{http_code}" -e "https://drama.uz/" "<imzoli-hls-url>"
