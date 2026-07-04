@@ -547,7 +547,7 @@
           "title_en": "Optional DRM (MediaCage) evaluation & toggle for VIP content",
           "title_uz": "Ixtiyoriy DRM (MediaCage) baholash — VIP kontent uchun",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P4-T1"],
           "description_uz": "VIP/premium kontent uchun Bunny DRM (MediaCage) imkoniyatini baholash va kerak bo'lsa yoqish. Xarajat/murakkablik tahlili.",
           "acceptance_criteria": [
