@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_title %}{% if title %}{{ title }} - Drama.uz{% else %}Katalog — barcha dramalar - Drama.uz{% endif %}{% endblock %}
+{% block meta_description %}{% if title %}{{ title }} — Drama.uz{% else %}Janr, yil va davlat bo'yicha filtrlab, o'zbek tilidagi dramalarni toping — Drama.uz katalogi{% endif %}{% endblock %}
+
 {% block content %}
 <div class="max-w-[1600px] mx-auto px-4 md:px-8 py-10">
     <div class="flex flex-col lg:flex-row gap-8">

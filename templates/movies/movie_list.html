@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_title %}{% if title %}{{ title }} - Drama.uz{% else %}Barcha dramalar - Drama.uz{% endif %}{% endblock %}
+{% block meta_description %}{% if title %}{{ title }} — o'zbek tilida, yuqori sifatda: Drama.uz{% else %}Barcha koreys va osiyo dramalari o'zbek tilida — Drama.uz katalogi{% endif %}{% endblock %}
+
 {% block content %}
 <div class="max-w-[1600px] mx-auto px-4 md:px-8 py-6">
 
