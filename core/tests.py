@@ -144,3 +144,34 @@ def test_recompute_trending_tags():
     assert count == 1
     cached = cache.get("trending_tags")
     assert cached is not None and len(cached) == 1
+
+
+# --- P10-T1: xavfsizlik headerlari (config/middleware.SecurityHeadersMiddleware) ---
+
+
+def test_csp_frame_ancestors_allowlist(client):
+    """ALLOWALL o'rniga aniq allowlist: o'zimiz + Telegram Web (Mini App iframe)."""
+    resp = client.get("/healthz")
+    csp = resp["Content-Security-Policy"]
+    assert "frame-ancestors 'self' https://web.telegram.org" in csp
+    assert "default-src 'self';" in csp
+
+
+def test_csp_no_unsafe_eval(client):
+    """hx-on addEventListener'ga almashtirilgach eval'ga ehtiyoj qolmadi."""
+    csp = client.get("/healthz")["Content-Security-Policy"]
+    assert "'unsafe-eval'" not in csp
+
+
+def test_x_frame_options_not_allowall(client):
+    """Nostandart ALLOWALL (brauzer e'tiborsiz qoldirardi) endi yo'q."""
+    resp = client.get("/healthz")
+    assert resp["X-Frame-Options"].upper() in {"DENY", "SAMEORIGIN"}
+
+
+def test_security_headers_modernized(client):
+    resp = client.get("/healthz")
+    assert "X-XSS-Protection" not in resp  # deprecated — ataylab yuborilmaydi
+    assert resp["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert resp["Permissions-Policy"].startswith("camera=()")
+    assert resp["Cross-Origin-Opener-Policy"] == "same-origin-allow-popups"

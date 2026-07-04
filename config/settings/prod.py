@@ -23,12 +23,13 @@ SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 31536000  # 1 yil
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
-SECURE_BROWSER_XSS_FILTER = True
+# SECURE_BROWSER_XSS_FILTER Django 4.0 da olib tashlangan (o'lik sozlama edi) [P10-T1]
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Telegram WebView / Mini App iframe uchun.
-# NOTE: P10-T1 da CSP frame-ancestors bilan aniqlashtiriladi (ALLOWALL = clickjacking xavfi).
-X_FRAME_OPTIONS = "ALLOWALL"
+# Clickjacking [P10-T1]: eski brauzerlar uchun fallback. Zamonaviy brauzerlar
+# CSP frame-ancestors'ni ustun ko'radi — Telegram Web allowlist o'sha yerda
+# (config/middleware.py); Telegram mobil/desktop nativ WebView (iframe emas).
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # -- Cookie (Telegram WebView cross-site uchun) --
 CSRF_COOKIE_SAMESITE = "None"

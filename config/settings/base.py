@@ -85,6 +85,10 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
+# COOP: popup orqali auth (Telegram/Google login) ishlashi uchun qat'iy
+# "same-origin" emas, "allow-popups" [P10-T1]
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 APPEND_SLASH = True

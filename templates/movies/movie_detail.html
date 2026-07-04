@@ -1048,7 +1048,6 @@ body > main {
                   hx-post="{% url 'drama:add_review' movie.id %}"
                   hx-target="#rCommentList"
                   hx-swap="afterbegin"
-                  hx-on::after-request="this.reset();"
                   class="r-comment-form">
                 {% csrf_token %}
                 <input type="hidden" name="parent" value="">
@@ -1059,6 +1058,13 @@ body > main {
                 </button>
             </form>
         </div>
+        <script>
+            /* hx-on::after-request o'rniga — hx-on htmx'da new Function talab
+               qiladi, CSP endi 'unsafe-eval'siz [P10-T1] */
+            document.getElementById('rCommentForm').addEventListener('htmx:afterRequest', function (e) {
+                if (e.target === this) this.reset();
+            });
+        </script>
         {% else %}
         <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
             <a href="{% url 'users:login' %}"
