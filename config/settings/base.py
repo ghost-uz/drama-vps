@@ -213,6 +213,11 @@ BUNNY_STREAM_CDN_HOSTNAME = config("BUNNY_STREAM_CDN_HOSTNAME", default="")
 BUNNY_STREAM_API_KEY = config("BUNNY_STREAM_API_KEY", default="")
 # CDN Token Authentication kaliti — signed/expiring playback URL uchun [P2-T4]
 BUNNY_STREAM_TOKEN_KEY = config("BUNNY_STREAM_TOKEN_KEY", default="")
+# Imzolangan URL amal qilish muddati (sekund) [P4-T1]
+BUNNY_TOKEN_EXPIRY_SECONDS = config("BUNNY_TOKEN_EXPIRY_SECONDS", default=4 * 3600, cast=int)
+# Token'ni mijoz IP'siga bog'lash — EHTIYOT: IPv4/IPv6 yoki proxy nomuvofiqligi
+# videoni 403 qiladi; faqat docs/ops/bunny.md o'qib yoqing [P4-T1]
+BUNNY_TOKEN_BIND_IP = config("BUNNY_TOKEN_BIND_IP", default=False, cast=bool)
 # Webhook autentifikatsiya sirri (encoding-tugadi signali) [P3-T2]
 BUNNY_WEBHOOK_SECRET = config("BUNNY_WEBHOOK_SECRET", default="")
 

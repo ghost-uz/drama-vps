@@ -517,7 +517,7 @@
           "title_en": "Token-authenticated (signed, expiring) Bunny URLs",
           "title_uz": "Token-himoyalangan (signed, muddatli) Bunny URL",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Bunny 'Token Authentication' yoqish va URL imzolash (security key + expiry + path/IP). bunny_stream.py ni signed URL beradigan qilib yangilash. Endi CDN linkni bilgan har kim emas, faqat ruxsatli foydalanuvchi ko'radi.",
           "acceptance_criteria": [

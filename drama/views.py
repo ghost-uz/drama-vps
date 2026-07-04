@@ -255,7 +255,7 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 }
             )
         else:
-            from drama.bunny_stream import get_all_urls, is_configured
+            from drama.bunny_stream import get_all_urls, is_configured, token_user_ip
 
             # Aktiv epizod yoki filmning Bunny Video ID sini aniqlaymiz
             vid = None
@@ -265,7 +265,8 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 vid = movie.bunny_video_id
 
             if vid and is_configured():
-                urls = get_all_urls(vid)
+                # [P4-T1] HTML pleyer ham imzolangan URL oladi (API bilan bir xil)
+                urls = get_all_urls(vid, user_ip=token_user_ip(self.request))
                 context.update(
                     {
                         "use_bunny": True,

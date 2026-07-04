@@ -270,3 +270,105 @@ def test_signed_url_unconfigured_is_plain():
 
     url = signed_hls_url("vid-1")
     assert "token=" not in url
+
+
+# --- P4-T1: to'liq imzolangan URL qamrovi (token_path, IP, embed, HTML view) ---
+
+
+def test_hls_url_signed_with_token_path(bunny):
+    """Papka (token_path) imzolanadi — HLS segmentlari ham shu token bilan o'tadi."""
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    from drama.bunny_stream import hls_url
+
+    url = hls_url("vid-1")
+    assert url.startswith("https://vz-test.b-cdn.net/vid-1/playlist.m3u8?")
+    assert "token=" in url
+    assert "token_path=%2Fvid-1%2F" in url
+    assert "expires=" in url
+
+
+def test_hls_token_matches_reference_algorithm(bunny, monkeypatch):
+    """Imzo Bunny rasmiy formulasi bilan bit-ma-bit mos (regressiya qulfi)."""
+    import base64
+    import hashlib
+    import time
+
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    bunny.BUNNY_TOKEN_EXPIRY_SECONDS = 4 * 3600
+    monkeypatch.setattr(time, "time", lambda: 1_750_000_000)
+    from drama.bunny_stream import hls_url
+
+    url = hls_url("vid-1")
+    expires = 1_750_000_000 + 4 * 3600
+    hashable = f"secret-key/vid-1/{expires}token_path=/vid-1/"
+    expected = (
+        base64.b64encode(hashlib.sha256(hashable.encode()).digest())
+        .decode()
+        .replace("+", "-")
+        .replace("/", "_")
+        .replace("=", "")
+    )
+    assert f"token={expected}" in url
+    assert f"expires={expires}" in url
+
+
+def test_get_all_urls_every_url_signed(bunny):
+    """HTML pleyer ishlatadigan BARCHA URL'lar (hls/mp4/thumb/preview/embed) imzoli."""
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    from drama.bunny_stream import get_all_urls
+
+    urls = get_all_urls("vid-1")
+    assert urls
+    assert all("token=" in u for u in urls.values())
+
+
+def test_ip_binding_changes_token(bunny, monkeypatch):
+    """user_ip imzoga kiradi — boshqa IP'dan olingan token ishlamaydi."""
+    import time
+
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    monkeypatch.setattr(time, "time", lambda: 1_750_000_000)
+    from drama.bunny_stream import hls_url
+
+    assert hls_url("vid-1", user_ip="1.2.3.4") != hls_url("vid-1")
+
+
+def test_token_user_ip_only_when_enabled(bunny, rf):
+    """IP bog'lash default O'CHIQ (proxy/IPv6 nomuvofiqligi videoni sindirmasin)."""
+    from drama.bunny_stream import token_user_ip
+
+    request = rf.get("/", HTTP_CF_CONNECTING_IP="7.7.7.7")
+    assert token_user_ip(request) == ""
+    bunny.BUNNY_TOKEN_BIND_IP = True
+    assert token_user_ip(request) == "7.7.7.7"
+
+
+def test_embed_url_uses_hex_token(bunny, monkeypatch):
+    """Embed pleyer boshqa format kutadi: SHA256_HEX(key + video_id + expires)."""
+    import hashlib
+    import time
+
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    bunny.BUNNY_TOKEN_EXPIRY_SECONDS = 4 * 3600
+    monkeypatch.setattr(time, "time", lambda: 1_750_000_000)
+    from drama.bunny_stream import embed_url
+
+    expires = 1_750_000_000 + 4 * 3600
+    expected = hashlib.sha256(f"secret-keyvid-1{expires}".encode()).hexdigest()
+    assert embed_url("vid-1") == (
+        f"https://iframe.mediadelivery.net/embed/12345/vid-1?token={expected}&expires={expires}"
+    )
+
+
+@pytest.mark.django_db
+def test_movie_detail_html_player_signed(client, bunny):
+    """HTML pleyer konteksti imzolangan URL oladi — asosiy ochiq-URL sizishi yopildi."""
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    movie = _movie("Signed Serial")
+    _episode(movie, 1, bunny_video_id="vid-9")
+    resp = client.get(f"/{movie.slug}/")
+    assert resp.status_code == 200
+    assert "token=" in resp.context["video_hls"]
+    assert "token_path=%2Fvid-9%2F" in resp.context["video_hls"]
+    assert "token=" in resp.context["video_720"]
+    assert "token=" in resp.context["video_thumbnail"]

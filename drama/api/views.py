@@ -15,7 +15,12 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from drama.bunny_stream import is_configured, signed_hls_url
+from drama.bunny_stream import (
+    is_configured,
+    signed_hls_url,
+    token_expiry_seconds,
+    token_user_ip,
+)
 from drama.models import Actor, Category, Episode, Genre, Movie, Review, Season, Tag
 from drama.services.playback import get_episode_access
 from users.api.permissions import IsOwnerOrAdmin
@@ -162,7 +167,7 @@ class EpisodePlaybackView(APIView):
         return Response(
             {
                 "episode_id": episode.id,
-                "hls_url": signed_hls_url(episode.bunny_video_id),
-                "expires_in": 4 * 3600,
+                "hls_url": signed_hls_url(episode.bunny_video_id, user_ip=token_user_ip(request)),
+                "expires_in": token_expiry_seconds(),
             }
         )
