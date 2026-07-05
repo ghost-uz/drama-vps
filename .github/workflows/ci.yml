@@ -1,0 +1,104 @@
+# ==============================================================================
+# Drama.uz — CI (P13-T1)
+#
+# Har push (main) va har PR'da 4 parallel job:
+#   lint                — pre-commit (ruff lint+format, mypy core, gigiyena)
+#                         lokal hook'lar bilan AYNAN bir xil konfiguratsiya.
+#   test                — pytest (sqlite :memory:, tez) + coverage gate
+#                         (pyproject fail_under=73) + OpenAPI sxema validatsiyasi.
+#   migrations-postgres — migratsiyalar REAL postgres'da qo'llanadi + drift check
+#                         (sqlite testlar ushlamaydigan postgres-xatolarni topadi).
+#   docker-build        — production image quriladi (push'siz).
+#
+# "Yashil bo'lmasa merge bloklanadi" uchun (bir martalik, GitHub UI):
+#   Settings -> Branches -> Add branch protection rule (main) ->
+#   Require status checks to pass -> lint, test, migrations-postgres,
+#   docker-build ni belgilang. Batafsil: docs/ops/ci.md
+# ==============================================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+      - name: Bog'liqliklar
+        run: pip install -r requirements/dev.txt
+      - name: pre-commit (barcha fayllar)
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+      - name: Bog'liqliklar
+        run: pip install -r requirements/dev.txt
+      - name: pytest + coverage gate (fail_under pyproject'da)
+        run: pytest --cov -q
+      - name: OpenAPI sxema validatsiyasi (drf-spectacular)
+        run: python manage.py spectacular --validate --file /dev/null
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+
+  migrations-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: drama_ci
+          POSTGRES_USER: drama_ci
+          POSTGRES_PASSWORD: drama_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U drama_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DB_NAME: drama_ci
+      DB_USER: drama_ci
+      DB_PASSWORD: drama_ci
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+      - name: Bog'liqliklar
+        run: pip install -r requirements/dev.txt
+      - name: Migratsiyalar postgres'da toza qo'llanadi
+        run: python manage.py migrate --no-input
+      - name: Model-migratsiya drift yo'q
+        run: python manage.py makemigrations --check --dry-run
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production image build (push'siz)
+        run: docker build -t drama-web:ci .

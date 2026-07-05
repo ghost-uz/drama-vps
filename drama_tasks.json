@@ -1090,7 +1090,7 @@
           "title_en": "CI pipeline: lint, type-check, test, build (GitHub Actions)",
           "title_uz": "CI pipeline: lint, mypy, test, build",
           "priority": "P0",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T8", "P11-T1"],
           "description_uz": "GitHub Actions: ruff+mypy, pytest (postgres+redis service), coverage gate, Docker build, drf-spectacular sxema validatsiya. PR'da majburiy.",
           "acceptance_criteria": [
