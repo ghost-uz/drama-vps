@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from core.images import ImageOptimizationMixin
+from core.validators import ImageFileValidator, VideoFileValidator
 
 
 def movie_poster_path(instance, filename):
@@ -96,7 +97,7 @@ class Actor(ImageOptimizationMixin, models.Model):
     name = models.CharField("Ism Familiya", max_length=150)
     original_name = models.CharField("Asl ismi (Native)", max_length=150, blank=True)
     description = models.TextField("Biografiya", blank=True)
-    image = models.ImageField("Rasmi", upload_to="actors/")
+    image = models.ImageField("Rasmi", upload_to="actors/", validators=[ImageFileValidator()])
     birth_date = models.DateField("Tug'ilgan sanasi", default=date.today)
     birth_place = models.CharField("Tug'ilgan joyi", max_length=100, blank=True)
     gender = models.CharField("Jinsi", max_length=10, choices=GENDER_CHOICES, default="male")
@@ -132,7 +133,9 @@ class TopSlider(ImageOptimizationMixin, models.Model):
 
     name = models.CharField("Slayder nomi", max_length=100, null=True)
     rank = models.CharField("Rank matni", max_length=50)
-    image = models.ImageField("Slayder rasmi", upload_to="sliders/")
+    image = models.ImageField(
+        "Slayder rasmi", upload_to="sliders/", validators=[ImageFileValidator()]
+    )
     target_url = models.URLField("Yo'naltiriluvchi URL", blank=True)
 
     def __str__(self):
@@ -192,7 +195,7 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
     is_vip = models.BooleanField(default=False)
     tagline = models.CharField("Slogan", max_length=255, blank=True)
     description = models.TextField("Tavsif")
-    poster = models.ImageField("Rasmi", upload_to="movies/")
+    poster = models.ImageField("Rasmi", upload_to="movies/", validators=[ImageFileValidator()])
     # Karta o'lchami (srcset) — optimize_image_task avtomatik to'ldiradi [P5-T5]
     poster_card = models.ImageField(
         "Poster (karta, 342px)", upload_to="movies/cards/", blank=True, null=True, editable=False
@@ -318,12 +321,19 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
         upload_to="episode_uploads/",
         blank=True,
         null=True,
+        validators=[VideoFileValidator(max_mb=500)],
     )
     upload_status = models.CharField(
         "Yuklash holati", max_length=12, choices=UploadStatus.choices, default=UploadStatus.NONE
     )
     video_embed_code = models.TextField("Video HTML kodi (Eski / Embed)", blank=True)
-    thumbnail = models.ImageField("Qism uchun rasm", upload_to="episodes/", blank=True, null=True)
+    thumbnail = models.ImageField(
+        "Qism uchun rasm",
+        upload_to="episodes/",
+        blank=True,
+        null=True,
+        validators=[ImageFileValidator()],
+    )
 
     class Meta:
         # FIX: Bir serialda bir xil qism raqami bo'lishini oldini olish
@@ -358,7 +368,7 @@ class MovieShots(ImageOptimizationMixin, models.Model):
 
     title = models.CharField("Sarlavha", max_length=100)
     description = models.TextField("Tavsif", blank=True)
-    image = models.ImageField("Rasm", upload_to="movie_shots/")
+    image = models.ImageField("Rasm", upload_to="movie_shots/", validators=[ImageFileValidator()])
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="shots")
 
     def __str__(self):

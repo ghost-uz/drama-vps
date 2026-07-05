@@ -367,3 +367,39 @@ def test_funding_contribution_grants_access(client):
     project = FundingProject.objects.create(movie=movie, target_amount=1000)
     client.post(reverse("funding:process", args=[project.id]), {"amount": "60"})
     assert project.has_access(user.profile) is True
+
+
+# --- P10-T3: fayl yuklash validatsiyasi (forma-darajali integratsiya) ---
+
+
+def test_topup_form_rejects_fake_image():
+    """HTML fayl .jpg niqobida — forma rad etadi, xato maydonga bog'lanadi."""
+    from users.forms import TopUpRequestForm
+
+    fake = SimpleUploadedFile("chek.jpg", b"<html>xss</html>", content_type="image/jpeg")
+    form = TopUpRequestForm({"amount_uzs": 10000}, {"receipt_image": fake})
+    assert not form.is_valid()
+    assert "receipt_image" in form.errors
+
+
+def test_topup_form_accepts_real_jpeg():
+    from users.forms import TopUpRequestForm
+
+    form = TopUpRequestForm({"amount_uzs": 10000}, {"receipt_image": _image("chek.jpg")})
+    assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+def test_topup_receipt_stored_under_random_name(client):
+    """Chek asl nomini yo'qotadi: receipts/YYYY/MM/<uuid>.jpg (maxfiylik)."""
+    import re
+
+    user = _user()
+    client.force_login(user)
+    client.post(
+        reverse("users:topup"),
+        {"amount_uzs": 5000, "receipt_image": _image("passport skan.jpg")},
+    )
+    topup = TopUpRequest.objects.get(user=user)
+    assert re.fullmatch(r"receipts/\d{4}/\d{2}/[0-9a-f]{32}\.jpg", topup.receipt_image.name)
+    assert "passport" not in topup.receipt_image.name

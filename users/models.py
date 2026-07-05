@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from core.images import ImageOptimizationMixin
+from core.validators import ImageFileValidator, RandomFileName
 
 
 def _send_topup_approved_email(user, points):
@@ -41,7 +42,11 @@ class Profile(ImageOptimizationMixin, models.Model):
         blank=True,
     )
     avatar = models.ImageField(
-        default="profile_pics/default.jpg", upload_to="profile_pics", null=True, blank=True
+        default="profile_pics/default.jpg",
+        upload_to=RandomFileName("profile_pics"),
+        null=True,
+        blank=True,
+        validators=[ImageFileValidator(max_mb=5)],
     )
     bio = models.TextField(max_length=500, null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
@@ -124,7 +129,11 @@ class TopUpRequest(models.Model):
     )
     amount_uzs = models.PositiveIntegerField(verbose_name="To'lov summasi (UZS)")
     points = models.PositiveIntegerField(verbose_name="Beriladigan Pointlar", blank=True, null=True)
-    receipt_image = models.ImageField(upload_to="receipts/%Y/%m/", verbose_name="To'lov cheki")
+    receipt_image = models.ImageField(
+        upload_to=RandomFileName("receipts"),
+        verbose_name="To'lov cheki",
+        validators=[ImageFileValidator(max_mb=10)],
+    )
     status = models.CharField(
         max_length=15, choices=STATUS_CHOICES, default="pending", verbose_name="Holati"
     )
@@ -209,7 +218,9 @@ class CryptoTopUpRequest(models.Model):
     )
     points = models.PositiveIntegerField(verbose_name="Beriladigan Coinlar", blank=True, null=True)
     receipt_image = models.ImageField(
-        upload_to="crypto_receipts/%Y/%m/", verbose_name="To'lov skrinshotı"
+        upload_to=RandomFileName("crypto_receipts"),
+        verbose_name="To'lov skrinshotı",
+        validators=[ImageFileValidator(max_mb=10)],
     )
     status = models.CharField(
         max_length=15, choices=STATUS_CHOICES, default="pending", verbose_name="Holati"

@@ -932,7 +932,7 @@
           "title_en": "File upload validation (type, size, image bomb, malware)",
           "title_uz": "Fayl yuklash validatsiyasi (tur, hajm, image-bomb)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Avatar/poster/chek/video yuklashda: MIME va kengaytma tekshiruvi (haqiqiy content), hajm chegarasi, dekompressiya-bomba himoyasi (PIL), nomlarni tozalash. Chek rasmlari xavfsiz saqlanadi.",
           "acceptance_criteria": [
