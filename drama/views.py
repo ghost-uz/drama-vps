@@ -115,12 +115,10 @@ def live_search(request):
 # 3. ASOSIY VIEWLAR (Klasslar)
 class MoviesView(GenreYearMixin, ListView):
     model = Movie
-    queryset = (
-        Movie.objects.published()
-        .select_related("category")
-        .prefetch_related("genres", "tags")
-        .order_by("-id")
-    )
+    # [P9-T2] Karta faqat poster/title/yil/davlat/qism-soni ko'rsatadi:
+    # select_related(category) + prefetch(genres, tags) ISHLATILMAY turib
+    # har sahifada 2 ta bekor so'rov qo'shayotgan edi — olib tashlandi.
+    queryset = Movie.objects.published().with_card_data().order_by("-id")
     template_name = "index.html"  # MANA SHU YERNI O'ZGARTIRING
     context_object_name = "movies"
     paginate_by = 12
@@ -149,8 +147,14 @@ class TagDetailView(GenreYearMixin, ListView):
     def get_queryset(self):
         # Tegni slug orqali topamiz
         self.tag = get_object_or_404(Tag, slug=self.kwargs.get("slug"))
-        # Shu tegga tegishli barcha kinolarni -id bo'yicha saralab olamiz
-        return Movie.objects.published().filter(tags=self.tag).order_by("-id")
+        # select_related(category): shablon kategoriya nomini ko'rsatadi [P9-T2]
+        return (
+            Movie.objects.published()
+            .filter(tags=self.tag)
+            .select_related("category")
+            .with_card_data()
+            .order_by("-id")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -167,7 +171,13 @@ class GenreDetailView(GenreYearMixin, ListView):
     def get_queryset(self):
         self.genre = get_object_or_404(Genre, slug=self.kwargs.get("slug"))
         # order_by'siz pagination beqaror edi (UnorderedObjectListWarning) [P5-T4]
-        return Movie.objects.published().filter(genres=self.genre).order_by("-created_at")
+        return (
+            Movie.objects.published()
+            .filter(genres=self.genre)
+            .select_related("category")
+            .with_card_data()
+            .order_by("-created_at")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -184,9 +194,12 @@ class MovieDetailView(GenreYearMixin, DetailView):
 
     def get_queryset(self):
         # Epizodlarni ham prefetch qilamiz (N+1 muammosini hal qiladi)
+        # [P9-T2] funding_project (reverse O2O) select_related — getattr'dagi
+        # alohida so'rov yo'qoladi; review'larga user__profile (avatar) va
+        # replies (admin javoblari) prefetch — komment N+1 yopiladi.
         return (
             Movie.objects.published()
-            .select_related("category")
+            .select_related("category", "funding_project")
             .prefetch_related(
                 "genres",
                 "main_actors",
@@ -197,7 +210,13 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 Prefetch(
                     "reviews",
                     queryset=Review.objects.filter(parent=None)
-                    .select_related("user")
+                    .select_related("user", "user__profile")
+                    .prefetch_related(
+                        Prefetch(
+                            "replies",
+                            queryset=Review.objects.select_related("user").order_by("id"),
+                        )
+                    )
                     .order_by("-id"),
                 )
             )
@@ -208,19 +227,26 @@ class MovieDetailView(GenreYearMixin, DetailView):
         # FIX: self.get_object() ikkinchi DB so'rovini bajaradi.
         # DetailView.get() self.object ni set qiladi, uni ishlatamiz.
         movie = self.object
-        episodes = movie.episodes.all().order_by("episode_number")
+        # [P9-T2] prefetch keshi Meta.ordering (episode_number) bilan keladi;
+        # .order_by()/.filter() prefetch ustida YANGI so'rov ochardi — endi
+        # aktiv/keyingi qism Python'da tanlanadi (0 qo'shimcha so'rov).
+        episodes = list(movie.episodes.all())
         context["episodes"] = episodes
 
         req_ep_num = self.request.GET.get("episode")
-        active_episode = (
-            episodes.filter(episode_number=req_ep_num).first() if req_ep_num else episodes.first()
-        )
+        if req_ep_num:
+            active_episode = next(
+                (e for e in episodes if str(e.episode_number) == req_ep_num), None
+            )
+        else:
+            active_episode = episodes[0] if episodes else None
         context["active_episode"] = active_episode
 
         if active_episode:
-            context["next_episode"] = episodes.filter(
-                episode_number__gt=active_episode.episode_number
-            ).first()
+            context["next_episode"] = next(
+                (e for e in episodes if e.episode_number > active_episode.episode_number),
+                None,
+            )
 
         user = self.request.user
 
@@ -326,7 +352,9 @@ class MovieDetailView(GenreYearMixin, DetailView):
             )
 
         similar_ids = get_or_set_catalog(f"similar:{movie.pk}", _similar_ids)
-        similar_map = {m.pk: m for m in Movie.objects.published().filter(id__in=similar_ids)}
+        similar_map = {
+            m.pk: m for m in Movie.objects.published().with_card_data().filter(id__in=similar_ids)
+        }
         context["similar_movies"] = [similar_map[i] for i in similar_ids if i in similar_map]
 
         # SEO structured data [P5-T4] — xavfsiz JSON-LD (drama/seo.py)
@@ -438,9 +466,13 @@ class MovieReviewsView(GenreYearMixin, ListView):
         self.movie = get_object_or_404(Movie.objects.published(), slug=self.kwargs.get("slug"))
 
         # 2. Shu kinoga tegishli, faqat asosiy izohlarni (parent=None) eng yangilaridan boshlab olamiz
+        # [P9-T2] user__profile (avatar) + replies prefetch — komment N+1 yo'q
         return (
             Review.objects.filter(movie=self.movie, parent=None)
-            .select_related("user")
+            .select_related("user", "user__profile")
+            .prefetch_related(
+                Prefetch("replies", queryset=Review.objects.select_related("user").order_by("id"))
+            )
             .order_by("-id")
         )
 
@@ -502,12 +534,9 @@ class FilterMoviesView(GenreYearMixin, ListView):
         country = self.request.GET.get("country")
         min_rating = self.request.GET.get("min_rating")
 
-        queryset = (
-            Movie.objects.published()
-            .select_related("category")
-            .prefetch_related("genres", "tags")
-            .order_by("-id")
-        )
+        # [P9-T2] Karta kategoriya/janr ko'rsatmaydi — select/prefetch bekor edi;
+        # with_card_data() qism-soni annotatsiyasini beradi.
+        queryset = Movie.objects.published().with_card_data().order_by("-id")
 
         # Filtrlar mantiqi
         if year:
@@ -533,7 +562,9 @@ class ActorView(GenreYearMixin, DetailView):
         # FIX: self.get_object() o'rniga self.object (qo'shimcha DB so'rovini oldini olish)
         actor = self.object
 
-        all_movies = (
+        # [P9-T2] list(): shablon to'liq iteratsiya qiladi — alohida COUNT
+        # so'rovi o'rniga len() (2 so'rov -> 1).
+        all_movies = list(
             Movie.objects.published()
             .filter(Q(main_actors=actor) | Q(actors=actor))
             .distinct()
@@ -541,7 +572,7 @@ class ActorView(GenreYearMixin, DetailView):
         )
 
         context["all_movies"] = all_movies
-        context["all_movies_count"] = all_movies.count()
+        context["all_movies_count"] = len(all_movies)
         return context
 
 
@@ -619,6 +650,7 @@ class Search(GenreYearMixin, ListView):
             Movie.objects.published()
             .filter(Q(title__icontains=q) | Q(original_title__icontains=q))
             .distinct()
+            .with_card_data()
             .order_by("-created_at")
         )
 

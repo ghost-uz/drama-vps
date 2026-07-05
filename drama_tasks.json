@@ -847,7 +847,7 @@
           "title_en": "Caching strategy: per-view, fragment, low-level + invalidation signals",
           "title_uz": "Keshlash strategiyasi: view, fragment, low-level + invalidatsiya",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T3"],
           "description_uz": "Bosh sahifa, katalog, detail uchun kesh (anonim uchun agressiv). Template fragment cache. Movie/Episode o'zgarganda post_save signal bilan tegishli keshni invalidatsiya (hozir 86400s muddat — eskirgan ma'lumot xavfi).",
           "acceptance_criteria": [
@@ -863,7 +863,7 @@
           "title_en": "DB query optimization audit (select/prefetch, indexes, assertNumQueries)",
           "title_uz": "DB so'rov optimizatsiyasi audit (N+1, indeks)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Barcha asosiy view/API'da select_related/prefetch_related auditi, N+1 yo'q qilish, indekslarni EXPLAIN bilan tekshirish. Testlarda assertNumQueries. django-debug-toolbar (dev).",
           "acceptance_criteria": [

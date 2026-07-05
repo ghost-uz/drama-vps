@@ -59,6 +59,13 @@ urlpatterns = [
 # Media fayllar uchun (Faqat DEBUG rejimida)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # debug-toolbar [P9-T2]: faqat dev'da o'rnatilgan (import-guard)
+    try:
+        from debug_toolbar.toolbar import debug_toolbar_urls
+
+        urlpatterns += debug_toolbar_urls()
+    except ImportError:
+        pass
 
 # 404 Xatolik uchun handler
 handler404 = "drama.views.error_404"

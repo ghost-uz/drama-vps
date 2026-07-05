@@ -40,9 +40,12 @@
                         </div>
                     </div>
 
+                    {# Category'da 'title' YO'Q ('name') — badge hamisha bo'sh chiqardi [P9-T2 latent-bug fix] #}
+                    {% if movie.category %}
                     <div class="absolute bottom-2 left-2 text-[11px] font-medium bg-black/50 backdrop-blur-md px-2 py-0.5 rounded text-gray-200">
-                        {{ movie.category.title }}
+                        {{ movie.category.name }}
                     </div>
+                    {% endif %}
 
                 </div>
 

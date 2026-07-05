@@ -182,6 +182,16 @@ class MovieQuerySet(models.QuerySet):
         """Beat task uchun: vaqti yetgan, hali 'scheduled' turgan kinolar."""
         return self.filter(status=Movie.Status.SCHEDULED, publish_at__lte=timezone.now())
 
+    def with_card_data(self):
+        """Karta (movies_card.html) uchun qismlar soni — N+1'siz [P9-T2].
+
+        Shablondagi `movie.episodes.count` har karta uchun 3 ta COUNT so'rovi
+        edi; annotation bitta LEFT JOIN bilan keladi. distinct=True — filtr
+        JOIN'lari (masalan, bir nechta janr) qatorlarni ko'paytirganda ham son
+        to'g'ri qoladi.
+        """
+        return self.annotate(live_episode_count=models.Count("episodes", distinct=True))
+
 
 class Movie(ImageOptimizationMixin, TimeStampedModel):
     class Status(models.TextChoices):
@@ -270,6 +280,8 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
             models.Index(fields=["created_at"]),
             models.Index(fields=["status", "-created_at"]),
             models.Index(fields=["status", "publish_at"]),
+            # Explore filtri va davlatlar ro'yxati (distinct) uchun [P9-T2]
+            models.Index(fields=["country"]),
         ]
         constraints = [
             # scheduled bo'lsa publish_at majburiy (aks holda hech qachon chop etilmaydi)
@@ -437,6 +449,10 @@ class Review(TimeStampedModel):
     parent = models.ForeignKey(
         "self", on_delete=models.SET_NULL, blank=True, null=True, related_name="replies"
     )
+
+    class Meta:
+        # Detail/fikrlar sahifasi: filter(movie=..., parent=None) [P9-T2]
+        indexes = [models.Index(fields=["movie", "parent"])]
 
 
 class ActorGift(models.Model):

@@ -28,11 +28,12 @@
 
         <div class="absolute bottom-2 left-2 right-2">
             <p class="text-white text-[10px] md:text-xs font-medium drop-shadow-md truncate">
-                {% if movie.episodes.count > 0 %}
-                    {% if movie.episodes.count == movie.episodes_count %}
+                {# live_episode_count = with_card_data() annotation — .count N+1 emas [P9-T2] #}
+                {% if movie.live_episode_count > 0 %}
+                    {% if movie.live_episode_count == movie.episodes_count %}
                         {{ movie.episodes_count }} qism
                     {% else %}
-                        {{ movie.episodes.count }}-qism
+                        {{ movie.live_episode_count }}-qism
                     {% endif %}
                 {% else %}
                     Tez kunda

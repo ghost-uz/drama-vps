@@ -34,3 +34,14 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Logging — o'qiladigan konsol formati
 LOGGING = build_logging(debug=True, json_logs=False)
+
+# django-debug-toolbar [P9-T2] — dev.txt'da bor edi, endi ulandi.
+# Import-guard: paket yo'q muhitda (masalan, prod image'da dev settings
+# tasodifan tanlansa) sozlamalar yiqilmaydi. INTERNAL_IPS yuqorida.
+try:
+    import debug_toolbar  # noqa: F401
+
+    INSTALLED_APPS += ["debug_toolbar"]  # noqa: F405
+    MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware", *MIDDLEWARE]  # noqa: F405
+except ImportError:
+    pass

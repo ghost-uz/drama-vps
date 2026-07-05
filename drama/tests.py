@@ -15,7 +15,7 @@ from django.utils import timezone
 from PIL import Image
 
 from core.images import is_new_upload, optimize_to_webp
-from drama.models import Episode, Movie, Season, Tag, TopSlider, UploadStatus
+from drama.models import Episode, Movie, Review, Season, Tag, TopSlider, UploadStatus
 from drama.tasks import (
     optimize_image_task,
     process_episode_upload,
@@ -1290,3 +1290,106 @@ def test_personalization_stays_live_with_caches(client):
     auth = client.get("/")
     progresses = list(auth.context["continue_watching"])
     assert len(progresses) == 1 and progresses[0].position_seconds == 42
+
+
+# --- P9-T2: DB so'rov auditi — N+1 yo'q, so'rov soni doimiy ---
+
+
+def _movie_with_episodes(title, ep_count=2, year=2024):
+    movie = Movie.objects.create(
+        title=title, description="x", country="KR", year=year, poster=_uploaded()
+    )
+    season = Season.objects.create(movie=movie, number=1)
+    for n in range(1, ep_count + 1):
+        Episode.objects.create(movie=movie, season=season, title=f"E{n}", episode_number=n)
+    return movie
+
+
+@pytest.mark.django_db
+def test_index_query_count_constant(client, django_assert_num_queries):
+    """Bosh sahifa: 8 karta x 2 epizod — so'rovlar soni kartaga bog'liq EMAS.
+
+    Oldin har karta `episodes.count` uchun 3 tagacha COUNT so'rovi berardi;
+    endi with_card_data() annotatsiyasi bilan: paginator COUNT + kartalar
+    SELECT = 2 (kesh issiq holatda; birinchi GET keshni isitadi).
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    for i in range(8):
+        _movie_with_episodes(f"Idx Kino {i}")
+    client.get("/")  # katalog data + fragment keshlarini isitadi
+    with django_assert_num_queries(2):
+        resp = client.get("/")
+    assert resp.status_code == 200
+    assert b"Idx Kino 7" in resp.content
+    assert b"2-qism" in resp.content  # annotatsiya kartada ishlayapti
+
+
+@pytest.mark.django_db
+def test_explore_query_count_constant(client, django_assert_num_queries):
+    from django.core.cache import cache
+
+    cache.clear()
+    for i in range(6):
+        _movie_with_episodes(f"Exp Kino {i}")
+    client.get(reverse("drama:explore"))
+    with django_assert_num_queries(2):
+        resp = client.get(reverse("drama:explore"))
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_detail_query_count_constant_as_content_grows(client, django_assert_num_queries):
+    """Detail: reviewlar (avatar/javoblari bilan) ko'paysa ham so'rov soni O'ZGARMAYDI.
+
+    Kutilgan (issiq kesh, anonim): 1 movie(+category+funding join) +
+    prefetchlar (episodes/genres/main_actors/tags/reviews/replies) + 1
+    similar pk-fetch = 8. Oldin har review profile (avatar) va replies
+    uchun alohida so'rov ochardi.
+    """
+    from django.core.cache import cache
+
+    movie = _movie_with_episodes("Detail Kino", ep_count=3)
+    author = User.objects.create_user(username="sharh_user", password="pass12345")
+    admin_u = User.objects.create_superuser("sharh_admin", "a@d.uz", "pass12345")
+    for i in range(2):
+        r = Review.objects.create(user=author, movie=movie, text=f"Fikr {i}")
+        Review.objects.create(user=admin_u, movie=movie, text=f"Javob {i}", parent=r)
+
+    cache.clear()
+    url = movie.get_absolute_url()
+    client.get(url)  # kesh isitish (catalog + similar ID'lar)
+    with django_assert_num_queries(8):
+        client.get(url)
+
+    # Kontent o'sadi: +3 review (har biri javobli). Review katalog modeli EMAS
+    # -> kesh versiyasi o'zgarmaydi, so'rovlar soni ham o'sha-o'sha qolsin.
+    for i in range(3):
+        r = Review.objects.create(user=author, movie=movie, text=f"Yangi fikr {i}")
+        Review.objects.create(user=admin_u, movie=movie, text=f"Yangi javob {i}", parent=r)
+    with django_assert_num_queries(8):
+        resp = client.get(url)
+    assert b"Yangi fikr 2" in resp.content
+
+
+@pytest.mark.django_db
+def test_movie_reviews_page_no_comment_n_plus_one(client, django_assert_num_queries):
+    """Fikrlar sahifasi: 10 review + javoblar — so'rov soni doimiy."""
+    from django.core.cache import cache
+
+    movie = _movie_with_episodes("Fikrlar Kino", ep_count=1)
+    author = User.objects.create_user(username="fikr_user", password="pass12345")
+    admin_u = User.objects.create_superuser("fikr_admin", "f@d.uz", "pass12345")
+    for i in range(10):
+        r = Review.objects.create(user=author, movie=movie, text=f"Fikr {i}")
+        if i % 2 == 0:
+            Review.objects.create(user=admin_u, movie=movie, text=f"Javob {i}", parent=r)
+
+    cache.clear()
+    url = reverse("drama:movie_reviews", kwargs={"slug": movie.slug})
+    client.get(url)
+    # 1 movie lookup + paginator COUNT + reviews SELECT + replies prefetch = 4
+    with django_assert_num_queries(4):
+        resp = client.get(url)
+    assert resp.status_code == 200
