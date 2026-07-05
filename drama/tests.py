@@ -817,3 +817,79 @@ def test_live_search_rate_limited_429(client):
     assert resp.status_code == 429
     assert resp.json()["detail"]
     cache.clear()
+
+
+# --- P11-T2: gating service unit testlari (to'g'ridan, API qatlamisiz) ---
+
+
+@pytest.mark.django_db
+def test_gating_free_limit_boundary():
+    """10-qism tekin chegara, 11-qism VIP'da yopiq (FREE_EPISODE_LIMIT invarianti)."""
+    from django.contrib.auth.models import AnonymousUser
+
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.services.playback import FREE_EPISODE_LIMIT, get_episode_access
+
+    movie = MovieFactory(is_vip=True)
+    ep10 = EpisodeFactory(movie=movie, episode_number=FREE_EPISODE_LIMIT)
+    ep11 = EpisodeFactory(movie=movie, episode_number=FREE_EPISODE_LIMIT + 1)
+    anon = AnonymousUser()
+    assert get_episode_access(anon, ep10) == (True, None)
+    assert get_episode_access(anon, ep11) == (False, "vip")
+
+
+@pytest.mark.django_db
+def test_gating_plain_11plus_is_free():
+    """11+ lekin VIP ham, funding ham emas -> tekin (hujjatlangan qoida)."""
+    from django.contrib.auth.models import AnonymousUser
+
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.services.playback import get_episode_access
+
+    ep = EpisodeFactory(movie=MovieFactory(is_vip=False), episode_number=25)
+    assert get_episode_access(AnonymousUser(), ep) == (True, None)
+
+
+@pytest.mark.django_db
+def test_gating_expired_premium_blocked():
+    """Muddati o'tgan premium VIP qismni OCHMAYDI (is_currently_premium=False)."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.services.playback import get_episode_access
+    from users.factories import UserFactory
+
+    user = UserFactory()
+    user.profile.is_premium = True
+    user.profile.premium_until = timezone.now() - timedelta(days=1)
+    user.profile.save()
+    ep = EpisodeFactory(movie=MovieFactory(is_vip=True), episode_number=11)
+    assert get_episode_access(user, ep) == (False, "vip")
+
+
+@pytest.mark.django_db
+def test_gating_funding_takes_precedence_over_vip():
+    """Funding loyihali kino: VIP premium ham YORDAM BERMAYDI — faqat hissa ochadi."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.services.playback import get_episode_access
+    from funding.factories import FundingContributorFactory, FundingProjectFactory
+    from users.factories import UserFactory
+
+    movie = MovieFactory(is_vip=True)
+    project = FundingProjectFactory(movie=movie)
+    ep = EpisodeFactory(movie=movie, episode_number=11)
+
+    premium_user = UserFactory()
+    premium_user.profile.is_premium = True
+    premium_user.profile.premium_until = timezone.now() + timedelta(days=30)
+    premium_user.profile.save()
+    assert get_episode_access(premium_user, ep) == (False, "funding")
+
+    FundingContributorFactory(project=project, profile=premium_user.profile)
+    assert get_episode_access(premium_user, ep) == (True, None)

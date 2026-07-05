@@ -268,3 +268,102 @@ def test_register_rate_limited_429():
         client.post(url, {})
     assert client.post(url, {}).status_code == 429
     cache.clear()
+
+
+# --- P11-T2: double-credit himoya, premium muddati, funding atomiklik ---
+
+
+@pytest.mark.django_db
+def test_topup_double_approve_credits_once():
+    """Acceptance (double-credit): approved holida qayta save KREDIT BERMAYDI.
+
+    Guard: old.status=='pending' AND new=='approved' — crypto topup'da ham
+    aynan shu pattern (users/models.py CryptoTopUpRequest.save).
+    """
+    user = _user(balance=0)
+    req = TopUpRequest.objects.create(user=user, amount_uzs=5000, receipt_image=_image("r.jpg"))
+    req.status = "approved"
+    req.save()
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 5
+
+    req.save()  # approved -> approved (admin qayta saqladi)
+    req.status = "approved"
+    req.save()
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 5  # o'zgarmadi
+    assert CoinTransaction.objects.filter(profile=user.profile, type="topup").count() == 1
+
+
+@pytest.mark.django_db
+def test_is_currently_premium_expired_is_false():
+    """premium_until o'tgan bo'lsa is_premium=True bo'lsa ham premium EMAS."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    user = _user()
+    profile = user.profile
+    profile.is_premium = True
+    profile.premium_until = timezone.now() - timedelta(days=1)
+    profile.save()
+    assert profile.is_currently_premium is False
+
+
+@pytest.mark.django_db
+def test_is_currently_premium_none_until_stays_true():
+    """premium_until=None + is_premium=True -> muddatsiz premium (hujjatlangan)."""
+    user = _user()
+    profile = user.profile
+    profile.is_premium = True
+    profile.premium_until = None
+    profile.save()
+    assert profile.is_currently_premium is True
+
+
+@pytest.mark.django_db
+def test_funding_insufficient_is_atomic(client):
+    """Coin yetmasa HECH NARSA o'zgarmaydi: contributor/collected/balans/ledger."""
+    user = _user(balance=10)
+    client.force_login(user)
+    movie = Movie.objects.create(
+        title="Fund Atom", description="d", country="KR", poster=_image("p.jpg")
+    )
+    project = FundingProject.objects.create(movie=movie, target_amount=1000)
+    resp = client.post(reverse("funding:process", args=[project.id]), {"amount": "60"})
+    assert resp.status_code == 302
+    user.profile.refresh_from_db()
+    project.refresh_from_db()
+    assert user.profile.balance == 10
+    assert project.collected_amount == 0
+    assert project.contributors.count() == 0
+    assert not CoinTransaction.objects.filter(profile=user.profile, type="funding").exists()
+
+
+@pytest.mark.django_db
+def test_funding_below_minimum_rejected(client):
+    """min_fund_amount (default 50) dan kichik hissa rad — hech narsa yozilmaydi."""
+    user = _user(balance=200)
+    client.force_login(user)
+    movie = Movie.objects.create(
+        title="Fund Min", description="d", country="KR", poster=_image("p.jpg")
+    )
+    project = FundingProject.objects.create(movie=movie, target_amount=1000)
+    client.post(reverse("funding:process", args=[project.id]), {"amount": "10"})
+    user.profile.refresh_from_db()
+    project.refresh_from_db()
+    assert user.profile.balance == 200
+    assert project.contributors.count() == 0
+
+
+@pytest.mark.django_db
+def test_funding_contribution_grants_access(client):
+    """Hissa qo'shgan foydalanuvchi darhol has_access oladi (gating kaliti)."""
+    user = _user(balance=200)
+    client.force_login(user)
+    movie = Movie.objects.create(
+        title="Fund Access", description="d", country="KR", poster=_image("p.jpg")
+    )
+    project = FundingProject.objects.create(movie=movie, target_amount=1000)
+    client.post(reverse("funding:process", args=[project.id]), {"amount": "60"})
+    assert project.has_access(user.profile) is True

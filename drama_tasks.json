@@ -1000,7 +1000,7 @@
           "title_en": "Unit tests: models, services (wallet, playback gating, funding)",
           "title_uz": "Unit testlar: modellar, servislar (wallet, gating, funding)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P11-T1"],
           "description_uz": "Kritik mantiq: Coin wallet (credit/debit/race), VIP/funding gating, crowdfunding hissa, premium muddati, rating agregatsiya, image task. Edge case'lar.",
           "acceptance_criteria": [
