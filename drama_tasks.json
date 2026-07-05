@@ -917,7 +917,7 @@
           "title_en": "Rate limiting (login, API, search, reviews, gifts)",
           "title_uz": "Rate limiting (login, API, qidiruv, izoh, sovg'a)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T3"],
           "description_uz": "django-ratelimit (web) + DRF throttle (API). Login, ro'yxatdan o'tish, qidiruv, izoh, sovg'a yuborish, topup'ni cheklash. Abuse himoyasi.",
           "acceptance_criteria": [

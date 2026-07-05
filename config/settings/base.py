@@ -75,6 +75,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # ENG TEPADA bo'lishi shart
     "django.middleware.security.SecurityMiddleware",
     "config.middleware.SecurityHeadersMiddleware",
+    "config.middleware.RatelimitTo429Middleware",  # Ratelimited -> 429 [P10-T2]
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -209,6 +210,22 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
+}
+
+# -- RATE LIMIT (web/HTML view'lar) [P10-T2] --
+# Markazlashgan tezliklar — core/ratelimit.py `rate` callable shu yerdan o'qiydi.
+# REST API tezliklari ALOHIDA: REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].
+# Hisoblagichlar default cache'da (dev/prod = Redis, test = LocMem).
+RATELIMIT_RATES = {
+    "login": "10/m",  # brute-force himoya (IP bo'yicha)
+    "register": "5/h",  # IP bo'yicha
+    "review": "10/h",  # API "review" scope bilan bir xil
+    "gift": "20/h",
+    "premium": "10/h",
+    "topup": "10/h",  # oddiy + kripto BITTA chelak
+    "funding": "20/h",
+    "live_search": "30/m",  # API "search" scope bilan bir xil
+    "watch_progress": "30/m",  # pleyer ~6/min yuboradi — keng zaxira
 }
 
 # -- BUNNY STREAM CDN --

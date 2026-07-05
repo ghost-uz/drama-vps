@@ -2,7 +2,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
+from django_ratelimit.decorators import ratelimit
 
+from core.ratelimit import rate, user_or_ip_key
 from users.models import CoinTransaction
 from users.services import wallet
 
@@ -30,6 +32,7 @@ def _notify_funding_contribution(project, profile, amount):
 
 
 @login_required
+@ratelimit(key=user_or_ip_key, rate=rate, group="funding", method="POST", block=True)
 def process_funding(request, project_id):
     if request.method == "POST":
         project = get_object_or_404(FundingProject, id=project_id)

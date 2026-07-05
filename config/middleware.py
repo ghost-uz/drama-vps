@@ -1,4 +1,30 @@
 from django.conf import settings
+from django.http import JsonResponse
+from django_ratelimit.exceptions import Ratelimited
+
+
+class RatelimitTo429Middleware:
+    """django_ratelimit `Ratelimited` -> 429 Too Many Requests [P10-T2].
+
+    Default'da PermissionDenied avlodi sifatida 403 bo'lib ketardi — klient
+    "ruxsat yo'q" deb chalg'iydi; to'g'ri semantika 429 + Retry-After.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        if isinstance(exception, Ratelimited):
+            response = JsonResponse(
+                {"detail": "So'rovlar juda ko'p. Birozdan so'ng qayta urinib ko'ring."},
+                status=429,
+            )
+            response["Retry-After"] = "60"
+            return response
+        return None
 
 
 class SecurityHeadersMiddleware:

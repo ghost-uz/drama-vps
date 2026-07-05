@@ -217,3 +217,54 @@ def test_opening_balance_migration_backfills_only_nonzero():
     assert txn.amount == 120
     assert txn.balance_after == 120
     assert not CoinTransaction.objects.filter(profile=poor.profile).exists()
+
+
+# --- P10-T2: rate limiting (web) ---
+
+
+@pytest.mark.django_db
+def test_login_rate_limited_429():
+    """Login brute-force: limitdan keyin 429 + Retry-After (403 EMAS)."""
+    from django.core.cache import cache
+    from django.test import Client
+    from django.urls import reverse
+
+    cache.clear()
+    client = Client()
+    url = reverse("users:login")
+    for _ in range(10):  # settings.RATELIMIT_RATES["login"] = 10/m
+        client.post(url, {"username": "yoq", "password": "notogri"})
+    resp = client.post(url, {"username": "yoq", "password": "notogri"})
+    assert resp.status_code == 429
+    assert resp["Retry-After"] == "60"
+    assert "detail" in resp.json()
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_login_get_not_limited():
+    """GET (forma ochish) cheklanmaydi — faqat POST urinishlar sanaladi."""
+    from django.core.cache import cache
+    from django.test import Client
+    from django.urls import reverse
+
+    cache.clear()
+    client = Client()
+    for _ in range(15):
+        assert client.get(reverse("users:login")).status_code == 200
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_register_rate_limited_429():
+    from django.core.cache import cache
+    from django.test import Client
+    from django.urls import reverse
+
+    cache.clear()
+    client = Client()
+    url = reverse("users:register")
+    for _ in range(5):  # settings.RATELIMIT_RATES["register"] = 5/h
+        client.post(url, {})
+    assert client.post(url, {}).status_code == 429
+    cache.clear()

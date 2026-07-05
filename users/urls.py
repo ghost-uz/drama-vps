@@ -1,6 +1,9 @@
 # users/urls.py
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from django_ratelimit.decorators import ratelimit
+
+from core.ratelimit import ip_key, rate
 
 from . import views as user_views
 from .views import followers_view, following_view
@@ -17,7 +20,14 @@ urlpatterns = [
     path("user/<str:username>/followers/", followers_view, name="followers"),
     path("user/<str:username>/following/", following_view, name="following"),
     # Auth
-    path("login/", auth_views.LoginView.as_view(template_name="users/login.html"), name="login"),
+    # Login brute-force himoyasi: POST 10/daqiqa/IP [P10-T2]
+    path(
+        "login/",
+        ratelimit(key=ip_key, rate=rate, group="login", method="POST", block=True)(
+            auth_views.LoginView.as_view(template_name="users/login.html")
+        ),
+        name="login",
+    ),
     path(
         "logout/", auth_views.LogoutView.as_view(template_name="users/logout.html"), name="logout"
     ),

@@ -6,10 +6,13 @@ from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView, ListView
 from django.views.generic.base import View
+from django_ratelimit.decorators import ratelimit
 
+from core.ratelimit import ip_key, rate, user_or_ip_key
 from users.models import CoinTransaction, UserMovieList
 from users.services import wallet
 
@@ -81,6 +84,7 @@ def robots_txt(request):
     return HttpResponse("\n".join(lines), content_type="text/plain")
 
 
+@ratelimit(key=ip_key, rate=rate, group="live_search", method="GET", block=True)
 def live_search(request):
     query = request.GET.get("q", "").strip()
     if len(query) > 1:
@@ -437,6 +441,9 @@ class MovieReviewsView(GenreYearMixin, ListView):
 
 
 class AddReview(View):
+    @method_decorator(
+        ratelimit(key=user_or_ip_key, rate=rate, group="review", method="POST", block=True)
+    )
     def post(self, request, pk):
         if not request.user.is_authenticated:
             return HttpResponse("Ruxsat berilmagan", status=401)
@@ -528,6 +535,7 @@ class ActorView(GenreYearMixin, DetailView):
 
 # Yaxshilangan va mustahkamlangan send_gift_to_actor funksiyasi
 @login_required
+@ratelimit(key=user_or_ip_key, rate=rate, group="gift", method="POST", block=True)
 def send_gift_to_actor(request, actor_id):
     if request.method == "POST":
         try:
@@ -611,6 +619,7 @@ class Search(GenreYearMixin, ListView):
 
 @login_required
 @require_POST
+@ratelimit(key=user_or_ip_key, rate=rate, group="watch_progress", method="POST", block=True)
 def save_watch_progress(request, episode_id):
     """Pleyer pozitsiyasini saqlaydi (P1-T3).
 

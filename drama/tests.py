@@ -799,3 +799,21 @@ def test_player_static_assets_exist():
 
     assert finders.find("js/player.js")
     assert finders.find("js/vendor/hls.min.js")
+
+
+# --- P10-T2: rate limiting (web) ---
+
+
+@pytest.mark.django_db
+def test_live_search_rate_limited_429(client):
+    """Jonli qidiruv limitdan keyin 429 JSON (API search scope bilan bir xil tezlik)."""
+    from django.core.cache import cache
+
+    cache.clear()
+    url = reverse("drama:live_search")
+    for _ in range(30):  # settings.RATELIMIT_RATES["live_search"] = 30/m
+        client.get(url, {"q": "dr"})
+    resp = client.get(url, {"q": "dr"})
+    assert resp.status_code == 429
+    assert resp.json()["detail"]
+    cache.clear()

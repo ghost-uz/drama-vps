@@ -8,7 +8,9 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django_ratelimit.decorators import ratelimit
 
+from core.ratelimit import ip_key, rate, user_or_ip_key
 from core.tasks import notify_telegram_task
 from users.utils import follow, unfollow
 
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 # view'lar notify_telegram_task.delay(...) ishlatadi (async — request bloklanmaydi).
 
 
+@ratelimit(key=ip_key, rate=rate, group="register", method="POST", block=True)
 def register(request):
     if request.user.is_authenticated:
         # FIX: 'drama:home' mavjud emas → to'g'ri name 'drama:movie_list'
@@ -207,6 +210,7 @@ def subscription_view(request):
 
 
 @login_required
+@ratelimit(key=user_or_ip_key, rate=rate, group="premium", method="POST", block=True)
 def buy_premium(request):
     if request.method == "POST":
         VIP_PRICE_1_MONTH = 15
@@ -267,6 +271,7 @@ def transactions_view(request):
 
 
 @login_required
+@ratelimit(key=user_or_ip_key, rate=rate, group="topup", method="POST", block=True)
 def topup_view(request):
     pending_request = TopUpRequest.objects.filter(user=request.user, status="pending").first()
 
@@ -309,6 +314,7 @@ def topup_view(request):
 
 
 @login_required
+@ratelimit(key=user_or_ip_key, rate=rate, group="topup", method="POST", block=True)
 def crypto_topup_view(request):
     pending_request = CryptoTopUpRequest.objects.filter(user=request.user, status="pending").first()
 

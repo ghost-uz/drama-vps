@@ -17,6 +17,8 @@ from urllib.parse import quote
 
 from django.conf import settings
 
+from core.http import client_ip
+
 
 def _cdn_host() -> str:
     return getattr(settings, "BUNNY_STREAM_CDN_HOSTNAME", "")
@@ -49,12 +51,7 @@ def token_user_ip(request) -> str:
     """
     if not getattr(settings, "BUNNY_TOKEN_BIND_IP", False):
         return ""
-    forwarded = request.headers.get("cf-connecting-ip") or request.headers.get(
-        "x-forwarded-for", ""
-    )
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "")
+    return client_ip(request)  # umumiy CF-aware helper [P10-T2]
 
 
 def _sign_token(signature_path: str, expires: int, user_ip: str, parameter_data: str) -> str:
