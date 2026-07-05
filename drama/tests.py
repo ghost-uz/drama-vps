@@ -15,7 +15,7 @@ from django.utils import timezone
 from PIL import Image
 
 from core.images import is_new_upload, optimize_to_webp
-from drama.models import Episode, Movie, Season, UploadStatus
+from drama.models import Episode, Movie, Season, Tag, TopSlider, UploadStatus
 from drama.tasks import (
     optimize_image_task,
     process_episode_upload,
@@ -125,8 +125,10 @@ def test_mixin_schedules_task_on_save(django_capture_on_commit_callbacks):
 def test_mixin_no_task_without_image(django_capture_on_commit_callbacks):
     with django_capture_on_commit_callbacks(execute=True) as callbacks:
         Movie.objects.create(title="NoImg", description="x", country="KR")
-    # Rasm yo'q — task rejalashtirilmaydi
-    assert len(callbacks) == 0
+    # Rasm yo'q — optimize task rejalashtirilmaydi. Yagona callback [P9-T1]
+    # katalog signalining trending-recompute'i (Movie save -> har doim).
+    assert len(callbacks) == 1
+    assert "recompute_trending_tags" in repr(callbacks[0])
 
 
 # --- P1-T2: Season modeli ---
@@ -1104,3 +1106,187 @@ def test_admin_episode_changelist_renders(client):
     _episode_with_video("ListEp")
     resp = client.get(reverse("admin:drama_episode_changelist"))
     assert resp.status_code == 200
+
+
+# --- P9-T1: katalog keshi — versiyalangan kalitlar + invalidatsiya ---
+
+
+@pytest.mark.django_db
+def test_catalog_key_changes_on_bump():
+    from django.core.cache import cache
+
+    from drama.cache import bump_catalog_version, catalog_key
+
+    cache.clear()
+    key_before = catalog_key("years")
+    bump_catalog_version()
+    key_after = catalog_key("years")
+    assert key_before != key_after
+    assert key_after.startswith("catalog:v")
+
+
+@pytest.mark.django_db
+def test_movie_save_bumps_catalog_version():
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+
+    cache.clear()
+    before = catalog_version()
+    Movie.objects.create(title="BumpKino", description="x", country="KR", poster=_uploaded())
+    assert catalog_version() > before
+
+
+@pytest.mark.django_db
+def test_tags_m2m_change_bumps_catalog_version():
+    """movie.tags.add post_save chaqirmaydi — m2m_changed signal qamraydi."""
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+
+    movie = Movie.objects.create(title="M2mKino", description="x", country="KR", poster=_uploaded())
+    tag = Tag.objects.create(name="Sirli", slug="sirli-m2m")
+    cache.clear()
+    before = catalog_version()
+    movie.tags.add(tag)
+    assert catalog_version() > before
+
+
+@pytest.mark.django_db
+def test_explore_filters_update_immediately_on_new_movie(client):
+    """Acceptance: kontent o'zgarsa filtr ro'yxatlari DARHOL yangilanadi.
+
+    Yangi yilli kino qo'shilishi bump orqali ham data-kesh, ham fragment-kesh
+    kalitini almashtiradi — 86400s TTL kutilmaydi.
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    Movie.objects.create(
+        title="Eski Yil Kino", description="x", country="KR", year=2001, poster=_uploaded()
+    )
+    resp1 = client.get(reverse("drama:explore"))
+    assert b"2001" in resp1.content
+    assert b"2031" not in resp1.content
+
+    Movie.objects.create(
+        title="Yangi Yil Kino", description="x", country="KR", year=2031, poster=_uploaded()
+    )
+    resp2 = client.get(reverse("drama:explore"))
+    assert b"2031" in resp2.content
+
+
+@pytest.mark.django_db
+def test_home_slider_fragment_invalidated_on_slider_save(client):
+    """Slayder fragment-keshi catalog_ver kalitli — yangi slayder darhol chiqadi."""
+    from django.core.cache import cache
+
+    cache.clear()
+    TopSlider.objects.create(name="Slayder Birinchi", rank="1", image=_uploaded("s1.jpg"))
+    resp1 = client.get("/")
+    assert b"Slayder Birinchi" in resp1.content
+
+    TopSlider.objects.create(name="Slayder Ikkinchi", rank="2", image=_uploaded("s2.jpg"))
+    resp2 = client.get("/")
+    assert b"Slayder Ikkinchi" in resp2.content
+
+
+@pytest.mark.django_db
+def test_similar_movies_cached_and_refreshed(client):
+    """similar ID'lar versiyalangan keshda; yangi mos kino bump'dan keyin chiqadi."""
+    from django.core.cache import cache
+
+    cache.clear()
+    tag = Tag.objects.create(name="Tarixiy", slug="tarixiy-sim")
+    main = Movie.objects.create(
+        title="Bosh Kino Sim", description="x", country="KR", poster=_uploaded()
+    )
+    other = Movie.objects.create(
+        title="Oxshash Kino Bir", description="x", country="KR", poster=_uploaded()
+    )
+    main.tags.add(tag)
+    other.tags.add(tag)
+
+    # similar_movies hozircha shablonda render qilinmaydi (P8-T2 ulaydi) —
+    # kesh semantikasi view kontekstida tekshiriladi.
+    resp1 = client.get(main.get_absolute_url())
+    assert [m.title for m in resp1.context["similar_movies"]] == ["Oxshash Kino Bir"]
+
+    third = Movie.objects.create(
+        title="Oxshash Kino Ikki", description="x", country="KR", poster=_uploaded()
+    )
+    third.tags.add(tag)  # m2m bump -> keyingi so'rovda similar qayta hisoblanadi
+    resp2 = client.get(main.get_absolute_url())
+    titles = {m.title for m in resp2.context["similar_movies"]}
+    assert titles == {"Oxshash Kino Bir", "Oxshash Kino Ikki"}
+
+
+@pytest.mark.django_db
+def test_publish_task_bumps_catalog_version():
+    """publish_scheduled_movies bulk .update() ishlatadi — qo'lda bump majburiy."""
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+
+    Movie.objects.create(
+        title="Rejalangan Kino",
+        description="x",
+        country="KR",
+        poster=_uploaded(),
+        status=Movie.Status.SCHEDULED,
+        publish_at=timezone.now() - timedelta(minutes=1),
+    )
+    cache.clear()
+    before = catalog_version()
+    assert publish_scheduled_movies() == 1
+    assert catalog_version() > before
+    # Hech narsa chop etilmasa versiya tegilmaydi
+    stable = catalog_version()
+    assert publish_scheduled_movies() == 0
+    assert catalog_version() == stable
+
+
+@pytest.mark.django_db
+def test_webhook_ready_bumps_catalog_version(client, settings):
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+
+    settings.BUNNY_WEBHOOK_SECRET = "sec"
+    ep = _episode_with_video("HookBump")
+    Episode.objects.filter(pk=ep.pk).update(bunny_video_id="guid-bump", upload_status="processing")
+    cache.clear()
+    before = catalog_version()
+    resp = client.post(
+        "/webhooks/bunny/?secret=sec",
+        json.dumps({"VideoGuid": "guid-bump", "Status": 4}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert catalog_version() > before
+
+
+@pytest.mark.django_db
+def test_personalization_stays_live_with_caches(client):
+    """Acceptance: login foydalanuvchi kontenti keshga aralashmaydi.
+
+    Sahifa to'liq keshlanmaydi — faqat global bo'laklar; shaxsiy karusel
+    (continue_watching) har request'da jonli hisoblanadi.
+    """
+    from django.core.cache import cache
+
+    from users.models import WatchProgress
+
+    cache.clear()
+    # Anonim tashrif fragment/data keshlarni isitadi
+    anon = client.get("/")
+    assert anon.status_code == 200
+    assert "continue_watching" not in anon.context
+
+    user = User.objects.create_user(username="kesh_user", password="pass12345")
+    ep = _episode_with_video("KeshSerial")
+    WatchProgress.objects.create(user=user, episode=ep, position_seconds=42, duration_seconds=100)
+    client.force_login(user)
+    auth = client.get("/")
+    progresses = list(auth.context["continue_watching"])
+    assert len(progresses) == 1 and progresses[0].position_seconds == 42

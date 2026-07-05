@@ -127,10 +127,10 @@ def test_recompute_trending_tags():
     from django.core.cache import cache
     from django.core.files.uploadedfile import SimpleUploadedFile
 
+    from drama.cache import catalog_key
     from drama.models import Movie, Tag
     from drama.tasks import recompute_trending_tags
 
-    cache.delete("trending_tags")
     tag = Tag.objects.create(name="Drama", slug="drama")
     movie = Movie.objects.create(
         title="M",
@@ -142,7 +142,8 @@ def test_recompute_trending_tags():
     # M2M fix: 'tags' endi modeltranslation'siz -> Count("movies") to'g'ri ishlaydi
     count = recompute_trending_tags()
     assert count == 1
-    cached = cache.get("trending_tags")
+    # Kalit versiyalangan [P9-T1] — barcha yozish/o'qish shu helper orqali
+    cached = cache.get(catalog_key("trending_tags"))
     assert cached is not None and len(cached) == 1
 
 

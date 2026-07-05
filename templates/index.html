@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load cache %}
 
 {% block slayder %}
 <style>
@@ -31,6 +32,8 @@
     }
 </style>
 
+{# Global blok — foydalanuvchi ma'lumotisiz; kalitda catalog_ver: kontent o'zgarsa signal bump -> yangi fragment [P9-T1] #}
+{% cache 21600 home_sliders catalog_ver %}
 <section class="swiper hero-swiper" id="heroSlider">
     <div class="swiper-wrapper">
         {% for slider in top_sliders %}
@@ -63,6 +66,7 @@
     <div class="swiper-pagination"></div>
     {% endif %}
 </section>
+{% endcache %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

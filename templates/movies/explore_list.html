@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load cache %}
 
 {% block page_title %}{% if title %}{{ title }} - Drama.uz{% else %}Katalog — barcha dramalar - Drama.uz{% endif %}{% endblock %}
 {% block meta_description %}{% if title %}{{ title }} — Drama.uz{% else %}Janr, yil va davlat bo'yicha filtrlab, o'zbek tilidagi dramalarni toping — Drama.uz katalogi{% endif %}{% endblock %}
@@ -11,6 +12,8 @@
             <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 sticky top-24">
                 <h3 class="text-lg font-black uppercase italic tracking-tighter mb-6 text-[#00cc4c]">Filtrlar</h3>
 
+                {# Global filtrlar (GET forma, CSRF'siz, user-ma'lumotsiz) — catalog_ver bump'ida yangilanadi [P9-T1] #}
+                {% cache 21600 explore_filters catalog_ver %}
                 <form hx-get="{% url 'drama:explore' %}"
                       hx-target="#movie-grid"
                       hx-trigger="change"
@@ -63,6 +66,7 @@
                         </div>
                     </div>
                 </form>
+                {% endcache %}
             </div>
         </aside>
 

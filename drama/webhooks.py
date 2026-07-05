@@ -10,7 +10,6 @@ import json
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -55,8 +54,11 @@ def bunny_webhook(request):
     updated = Episode.objects.filter(bunny_video_id=guid).update(upload_status=new_status)
     updated += Movie.objects.filter(bunny_video_id=guid).update(upload_status=new_status)
     if updated and new_status == UploadStatus.READY:
-        # Yangi kontent tayyor -> katalog filtr keshini yangilaymiz
-        cache.delete_many(["movie_years", "movie_countries"])
+        # Yangi kontent tayyor -> katalog keshini yangilaymiz.
+        # .update() signal chaqirmaydi -> qo'lda bump [P9-T1]
+        from drama.cache import bump_catalog_version
+
+        bump_catalog_version()
     logger.info(
         "bunny_webhook: guid=%s status=%s -> %s (%d obyekt)", guid, status_code, new_status, updated
     )

@@ -1,7 +1,6 @@
 # views.py
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpResponse, JsonResponse
@@ -16,6 +15,7 @@ from core.ratelimit import ip_key, rate, user_or_ip_key
 from users.models import CoinTransaction, UserMovieList
 from users.services import wallet
 
+from .cache import catalog_version, get_or_set_catalog
 from .forms import ReviewForm
 
 # Tag modelini ham qo'shdik!
@@ -33,35 +33,39 @@ from .models import (
 
 # 1. MIXINS (Hamma Viewlardan tepada bo'lishi shart)
 class GenreYearMixin:
+    """Katalog filtr-ma'lumotlari — versiyalangan kesh [P9-T1].
+
+    Kalitlar catalog:v{n}:* — Movie/Genre/... o'zgarganda signal versiyani
+    bump qiladi, ro'yxatlar DARHOL yangilanadi (oldin 86400s eskirish edi).
+    """
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Keshdan olish yoki bazadan o'qib keshga yozish
-        context["genres"] = cache.get_or_set("all_genres", Genre.objects.all(), 86400)
-        context["categories"] = cache.get_or_set("all_categories", Category.objects.all(), 86400)
-
-        # Murakkab so'rovlarni keshda saqlash serverni juda yengillashtiradi
-        years = cache.get("movie_years")
-        if not years:
-            years = list(
+        context["genres"] = get_or_set_catalog("genres", lambda: list(Genre.objects.all()))
+        context["categories"] = get_or_set_catalog(
+            "categories", lambda: list(Category.objects.all())
+        )
+        context["years"] = get_or_set_catalog(
+            "years",
+            lambda: list(
                 Movie.objects.published()
                 .values_list("year", flat=True)
                 .distinct()
                 .order_by("-year")
-            )
-            cache.set("movie_years", years, 86400)
-        context["years"] = years
-
-        countries = cache.get("movie_countries")
-        if not countries:
-            countries = list(
+            ),
+        )
+        context["countries"] = get_or_set_catalog(
+            "countries",
+            lambda: list(
                 Movie.objects.published()
                 .values_list("country", flat=True)
                 .distinct()
                 .order_by("country")
-            )
-            cache.set("movie_countries", countries, 86400)
-        context["countries"] = countries
+            ),
+        )
+        # Fragment-kesh kaliti uchun ({% cache ... catalog_ver %}) [P9-T1]
+        context["catalog_ver"] = catalog_version()
 
         return context
 
@@ -307,16 +311,23 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 profile=user.profile, movie=movie
             ).first()
 
-        movie_tags_ids = movie.tags.values_list("id", flat=True)
-        similar_movies = (
-            Movie.objects.published()
-            .filter(tags__in=movie_tags_ids)
-            .exclude(id=movie.id)
-            .annotate(same_tags=Count("tags"))
-            .order_by("-same_tags", "-mdl_rank")[:6]
-        )
+        # O'xshash kinolar — og'ir annotate-Count so'rovi. ID'lar versiyalangan
+        # keshda; obyektlar arzon pk-so'rov bilan YANGI olinadi (reyting/poster
+        # .update() bilan o'zgarsa ham kartada eskirmaydi) [P9-T1]
+        def _similar_ids():
+            movie_tags_ids = movie.tags.values_list("id", flat=True)
+            return list(
+                Movie.objects.published()
+                .filter(tags__in=movie_tags_ids)
+                .exclude(id=movie.id)
+                .annotate(same_tags=Count("tags"))
+                .order_by("-same_tags", "-mdl_rank")
+                .values_list("id", flat=True)[:6]
+            )
 
-        context["similar_movies"] = similar_movies
+        similar_ids = get_or_set_catalog(f"similar:{movie.pk}", _similar_ids)
+        similar_map = {m.pk: m for m in Movie.objects.published().filter(id__in=similar_ids)}
+        context["similar_movies"] = [similar_map[i] for i in similar_ids if i in similar_map]
 
         # SEO structured data [P5-T4] — xavfsiz JSON-LD (drama/seo.py)
         from drama.seo import movie_jsonld

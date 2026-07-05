@@ -318,11 +318,17 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
 
     @admin.action(description=_("Qoralamaga olish"))
     def unpublish_movies(self, request, queryset):
+        from drama.cache import bump_catalog_version
+
         queryset.update(status=Movie.Status.DRAFT)
+        bump_catalog_version()  # .update() signal chaqirmaydi [P9-T1]
 
     @admin.action(description=_("Nashr etish"))
     def publish_movies(self, request, queryset):
+        from drama.cache import bump_catalog_version
+
         queryset.update(status=Movie.Status.PUBLISHED)
+        bump_catalog_version()  # .update() signal chaqirmaydi [P9-T1]
 
 
 @admin.register(Episode)

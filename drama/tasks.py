@@ -54,6 +54,11 @@ def optimize_image_task(self, app_label, model_name, pk, field_name, max_size, q
             if new_name != old_name:
                 # .update() model.save()/signal CHAQIRMAYDI — cheksiz qayta-siqish loop'i yo'q
                 model.objects.filter(pk=pk).update(**{field_name: new_name})
+                # Rasm nomi almashdi — keshlangan fragment/obyektlarda eski
+                # (endi o'chiriladigan) URL qolmasin [P9-T1]
+                from drama.cache import bump_catalog_version
+
+                bump_catalog_version()
                 try:
                     field.storage.delete(old_name)  # eski (siqilmagan) faylni tozalaymiz
                 except Exception:
@@ -80,6 +85,9 @@ def optimize_image_task(self, app_label, model_name, pk, field_name, max_size, q
             base = os.path.splitext(os.path.basename(field.name))[0]
             card_field.save(f"{base}_card.webp", card_content, save=False)
             model.objects.filter(pk=pk).update(**{card_cfg["field"]: card_field.name})
+            from drama.cache import bump_catalog_version
+
+            bump_catalog_version()
         except Exception as exc:
             raise self.retry(exc=exc) from exc
 
@@ -118,6 +126,10 @@ def publish_scheduled_movies() -> int:
     # optimize_image_task / recompute_movie_rating'dagi bir xil mulohaza).
     count = Movie.objects.due_for_publish().update(status=Movie.Status.PUBLISHED)
     if count:
+        # .update() signal chaqirmaydi -> katalog keshini qo'lda bump [P9-T1]
+        from drama.cache import bump_catalog_version
+
+        bump_catalog_version()
         logger.info("publish_scheduled_movies: %d kino chop etildi", count)
     return count
 
@@ -193,11 +205,13 @@ def recompute_trending_tags() -> int:
     """Trending teglarni qayta hisoblab keshga yozadi [P3-T4].
 
     context_processor keshdan o'qiydi -> har request'da og'ir annotate-Count
-    so'rovi bajarilmaydi. 24 soat TTL (davriy task yangilaydi).
+    so'rovi bajarilmaydi. Kalit versiyalangan [P9-T1]: Movie/Tag saqlanganda
+    signal bump + shu task'ni qayta navbatga qo'yadi — 24h TTL zaxira xolos.
     """
     from django.core.cache import cache
     from django.db.models import Count
 
+    from drama.cache import catalog_key
     from drama.models import Tag
 
     tags = list(
@@ -205,5 +219,5 @@ def recompute_trending_tags() -> int:
         .filter(movie_count__gt=0)
         .order_by("-movie_count")[:10]
     )
-    cache.set("trending_tags", tags, 60 * 60 * 24)
+    cache.set(catalog_key("trending_tags"), tags, 60 * 60 * 24)
     return len(tags)
