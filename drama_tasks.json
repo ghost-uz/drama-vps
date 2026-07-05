@@ -1052,7 +1052,7 @@
           "title_en": "Sentry error tracking (web + Celery)",
           "title_uz": "Sentry xato kuzatuvi (web + Celery)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T5"],
           "description_uz": "sentry-sdk Django + Celery integratsiyasi, environment/release tegi, PII filtrlash, performance trace namunasi.",
           "acceptance_criteria": [

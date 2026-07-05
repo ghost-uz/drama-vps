@@ -89,3 +89,27 @@ LOGGING = build_logging(  # noqa: F405
     json_logs=True,
     log_level=config("LOG_LEVEL", default="INFO"),  # noqa: F405
 )
+
+
+# -- SENTRY (xato kuzatuvi: web + Celery) [P12-T1] --
+# FAQAT SENTRY_DSN berilganda yoqiladi — dev/test'da o'chiq (acceptance).
+# Celery worker/beat prod'da shu settings bilan ishga tushadi (docker-compose)
+# -> CeleryIntegration task xatolarini ham yuboradi.
+SENTRY_DSN = config("SENTRY_DSN", default="")  # noqa: F405
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration(), CeleryIntegration()],
+        environment=config("SENTRY_ENVIRONMENT", default="production"),  # noqa: F405
+        # Deploy git SHA beradi -> xato qaysi versiyada ekani ko'rinadi (docs/ops/sentry.md)
+        release=config("SENTRY_RELEASE", default="") or None,  # noqa: F405
+        # PII: email/username/IP YUBORILMAYDI (faqat user.id); default
+        # EventScrubber sezgir kalitlarni (password, token, secret...) o'chiradi.
+        send_default_pii=False,
+        # Performance trace namunasi: so'rovlarning 10% (narx/foyda balansi)
+        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0.1, cast=float),  # noqa: F405
+    )
