@@ -113,13 +113,23 @@ class SecurityHeadersMiddleware:
                 "form-action 'self';",
             ]
         )
+        # [P14-T1] Unfold admin oddiy Alpine yuklaydi — x-data ifodalari
+        # 'unsafe-eval'siz ishlamaydi (P10-T1 eval'ni saytdan olib tashlaganda
+        # admin interaktivligi sezilmasdan singan edi — jonli tekshiruv fosh
+        # qildi). Eval FAQAT /admin/ (staff-only) yo'liga qaytariladi;
+        # ommaviy sayt CSP'si qat'iyligicha qoladi.
+        self.csp_admin = self.csp.replace(
+            "script-src 'self' 'unsafe-inline'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        )
 
     def __call__(self, request):
         response = self.get_response(request)
 
         # Content-Security-Policy
         if "Content-Security-Policy" not in response:
-            response["Content-Security-Policy"] = self.csp
+            is_admin = request.path.startswith("/admin/")
+            response["Content-Security-Policy"] = self.csp_admin if is_admin else self.csp
 
         # Permissions-Policy — keraksiz brauzer APIlarini o'chiradi
         if "Permissions-Policy" not in response:

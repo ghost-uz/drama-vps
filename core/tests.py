@@ -163,6 +163,20 @@ def test_csp_no_unsafe_eval(client):
     assert "'unsafe-eval'" not in csp
 
 
+@pytest.mark.django_db
+def test_csp_admin_allows_eval_for_unfold(client):
+    """Unfold Alpine'i eval talab qiladi — FAQAT /admin/ (staff-only) yo'lida [P14-T1].
+
+    P10-T1 eval'ni olib tashlaganda admin interaktivligi sezilmasdan singan edi
+    (sidebar/tab/palette o'lik) — jonli tekshiruv fosh qildi.
+    """
+    csp = client.get("/admin/login/")["Content-Security-Policy"]
+    assert "'unsafe-eval'" in csp
+    # eval aynan script-src ichida, boshqa direktivada emas
+    script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+    assert "'unsafe-eval'" in script_src
+
+
 def test_x_frame_options_not_allowall(client):
     """Nostandart ALLOWALL (brauzer e'tiborsiz qoldirardi) endi yo'q."""
     resp = client.get("/healthz")
