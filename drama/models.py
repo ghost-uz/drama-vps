@@ -176,7 +176,14 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
         SCHEDULED = "scheduled", "Rejalashtirilgan"
         PUBLISHED = "published", "Chop etilgan"
 
-    OPTIMIZE_IMAGE_FIELDS = {"poster": {"max_size": (1280, 1280), "quality": 80}}
+    OPTIMIZE_IMAGE_FIELDS = {
+        "poster": {
+            "max_size": (1280, 1280),
+            "quality": 80,
+            # Karta varianti (srcset uchun) — task asosiy webp'dan keyin yaratadi [P5-T5]
+            "card": {"field": "poster_card", "max_size": (342, 513), "quality": 78},
+        }
+    }
 
     objects = MovieQuerySet.as_manager()
 
@@ -186,6 +193,10 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
     tagline = models.CharField("Slogan", max_length=255, blank=True)
     description = models.TextField("Tavsif")
     poster = models.ImageField("Rasmi", upload_to="movies/")
+    # Karta o'lchami (srcset) — optimize_image_task avtomatik to'ldiradi [P5-T5]
+    poster_card = models.ImageField(
+        "Poster (karta, 342px)", upload_to="movies/cards/", blank=True, null=True, editable=False
+    )
     tags = models.ManyToManyField(Tag, related_name="movies", blank=True)
     year = models.PositiveSmallIntegerField("Yili", default=2024)
     country = models.CharField("Davlat", max_length=50)

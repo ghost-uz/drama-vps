@@ -55,3 +55,27 @@ def test_jwt_rotation_blacklists_old_refresh(api):
     # Eski refresh'ni qayta ishlatish — blacklist tufayli rad etiladi
     r2 = api.post("/api/v1/auth/token/refresh/", {"refresh": old_refresh})
     assert r2.status_code == 401
+
+
+# --- P11-T3: JWT end-to-end (Bearer header bilan HAQIQIY autentifikatsiya) ---
+
+
+@pytest.mark.django_db
+def test_jwt_bearer_authenticates_protected_endpoint(api):
+    """Olingan access token himoyalangan endpointni HAQIQATAN ochadi.
+
+    Boshqa barcha auth testlar force_authenticate ishlatadi — bu test
+    Authorization: Bearer yo'lining o'zini qamraydi (acceptance: JWT auth).
+    """
+    User.objects.create_user(username="jwtuser", password="pass12345")
+    token = api.post("/api/v1/auth/token/", {"username": "jwtuser", "password": "pass12345"}).data
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {token['access']}")
+    resp = api.get("/api/v1/me/")
+    assert resp.status_code == 200
+    assert "balance" in resp.data
+
+
+@pytest.mark.django_db
+def test_jwt_garbage_token_is_401(api):
+    api.credentials(HTTP_AUTHORIZATION="Bearer bu-token-emas")
+    assert api.get("/api/v1/me/").status_code == 401

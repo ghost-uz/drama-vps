@@ -42,7 +42,12 @@ class Command(BaseCommand):
             for obj in model.objects.all().iterator():
                 for field_name, cfg in fields.items():
                     field = getattr(obj, field_name)
-                    if not field or not field.name or field.name.lower().endswith(".webp"):
+                    if not field or not field.name:
+                        continue
+                    # Asosiy webp bo'lsa ham karta varianti bo'sh bo'lsa navbatga [P5-T5]
+                    card_cfg = cfg.get("card")
+                    card_missing = bool(card_cfg) and not getattr(obj, card_cfg["field"], None)
+                    if field.name.lower().endswith(".webp") and not card_missing:
                         continue
                     total += 1
                     self.stdout.write(f"  {label}.{name}#{obj.pk}.{field_name}: {field.name}")

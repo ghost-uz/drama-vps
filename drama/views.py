@@ -79,6 +79,7 @@ def robots_txt(request):
         "Disallow: /users/",
         "Allow: /",
         f"Sitemap: {request.scheme}://{request.get_host()}/sitemap.xml",
+        f"Sitemap: {request.scheme}://{request.get_host()}/sitemap-video.xml",
         "Host: drama.uz",
     ]
     return HttpResponse("\n".join(lines), content_type="text/plain")

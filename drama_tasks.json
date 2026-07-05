@@ -632,7 +632,7 @@
           "title_en": "Sitemap, robots, image/video sitemaps, performance (lazy img, srcset)",
           "title_uz": "Sitemap/robots kengaytirish + performans (lazy, srcset)",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P5-T4"],
           "description_uz": "Video/image sitemap qo'shish, sitemap index, lastmod. Rasmlarga loading=lazy, responsive srcset, AVIF/WEBP. Core Web Vitals yaxshilash (LCP, CLS).",
           "acceptance_criteria": [
@@ -1015,7 +1015,7 @@
           "title_en": "API tests (auth, permissions, playback, throttle)",
           "title_uz": "API testlar (auth, ruxsat, playback, throttle)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P11-T1", "P2-T2"],
           "description_uz": "DRF endpointlari: JWT auth, permission (egasi/admin), playback gating 403/200, throttle 429, filtering/pagination.",
           "acceptance_criteria": [

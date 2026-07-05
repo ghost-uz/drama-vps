@@ -352,3 +352,32 @@ def test_movie_detail_html_player_signed(client, bunny):
     assert "token_path=%2Fvid-9%2F" in resp.context["video_hls"]
     assert "token=" in resp.context["video_720"]
     assert "token=" in resp.context["video_thumbnail"]
+
+
+# --- P11-T3: pagination + playback throttle gap-fill ---
+
+
+@pytest.mark.django_db
+def test_movie_list_pagination(api):
+    """PAGE_SIZE=20: 25 kino -> 1-sahifa 20 + next, 2-sahifa 5 + next=None."""
+    for i in range(25):
+        _movie(f"Paginate {i}")
+    resp = api.get("/api/v1/movies/")
+    assert resp.data["count"] == 25
+    assert len(resp.data["results"]) == 20
+    assert resp.data["next"]
+    resp2 = api.get("/api/v1/movies/?page=2")
+    assert len(resp2.data["results"]) == 5
+    assert resp2.data["next"] is None
+
+
+@pytest.mark.django_db
+def test_playback_throttle_429(api, bunny):
+    """Playback scope 60/daqiqa: 61-chi so'rovda 429 (signed-URL farm himoyasi)."""
+    from django.core.cache import cache
+
+    cache.clear()
+    ep = _episode(_movie("Throttle Play"), 1, bunny_video_id="vid-thr")
+    statuses = [api.get(f"/api/v1/episodes/{ep.id}/playback/").status_code for _ in range(61)]
+    assert 429 in statuses
+    cache.clear()

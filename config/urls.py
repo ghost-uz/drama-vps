@@ -6,7 +6,13 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
 from core.health import healthz, readyz
-from drama.sitemaps import ActorSitemap, CategorySitemap, GenreSitemap, MovieSitemap
+from drama.sitemaps import (
+    ActorSitemap,
+    CategorySitemap,
+    GenreSitemap,
+    MovieSitemap,
+    VideoSitemap,
+)
 from drama.views import robots_txt
 from drama.webhooks import bunny_webhook
 
@@ -28,7 +34,17 @@ urlpatterns = [
     # 2. Maxsus SEO fayllar
     path("robots.txt", robots_txt, name="robots_txt"),
     path(
-        "sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"
+        "sitemap.xml",
+        sitemap,
+        # image namespace'li shablon [P5-T5]: poster/image'li itemlarga <image:image>
+        {"sitemaps": sitemaps, "template_name": "sitemaps/sitemap-images.xml"},
+        name="django.contrib.sitemaps.views.sitemap",
+    ),
+    path(
+        "sitemap-video.xml",
+        sitemap,
+        {"sitemaps": {"videos": VideoSitemap}, "template_name": "sitemaps/sitemap-video.xml"},
+        name="sitemap_video",
     ),
     # 3. App yo'llari (Namespace bilan)
     path("users/", include("users.urls", namespace="users")),

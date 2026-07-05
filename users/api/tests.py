@@ -140,3 +140,34 @@ def test_review_delete_owner_or_admin_only(api):
     assert api.delete(f"/api/v1/reviews/{review.id}/").status_code == 403
     api.force_authenticate(owner)
     assert api.delete(f"/api/v1/reviews/{review.id}/").status_code == 204
+
+
+# --- P11-T3: 401 gap-fill + review throttle ---
+
+
+@pytest.mark.django_db
+def test_watchlist_requires_auth(api):
+    assert api.get("/api/v1/watchlist/").status_code == 401
+    assert api.post("/api/v1/watchlist/", {}).status_code == 401
+
+
+@pytest.mark.django_db
+def test_watch_progress_requires_auth(api):
+    assert api.post("/api/v1/watch-progress/", {}).status_code == 401
+
+
+@pytest.mark.django_db
+def test_review_create_throttle_429(api):
+    """Review scope 10/soat: 11-chi POST 429 (spam himoya, acceptance)."""
+    from django.core.cache import cache
+
+    cache.clear()
+    api.force_authenticate(_user("throttler"))
+    movie = _movie()
+    statuses = [
+        api.post("/api/v1/reviews/", {"movie": movie.id, "text": f"izoh {i}"}).status_code
+        for i in range(11)
+    ]
+    assert statuses.count(201) == 10
+    assert 429 in statuses
+    cache.clear()

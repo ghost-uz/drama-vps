@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{% comment %}
+Google video sitemap [P5-T5] — VideoSitemap (drama/sitemaps.py) itemlari.
+player_loc = tomosha sahifasi (haqiqiy video manba gating ortida — ochiq
+URL sitemap'ga CHIQMAYDI, P4-T1 imzo siyosati saqlanadi).
+{% endcomment %}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+{% for url in urlset %}  <url>
+    <loc>{{ url.location }}</loc>
+    {% if url.lastmod %}<lastmod>{{ url.lastmod|date:"Y-m-d" }}</lastmod>{% endif %}
+    <video:video>
+      <video:thumbnail_loc>{{ url.item.poster.url }}</video:thumbnail_loc>
+      <video:title>{{ url.item.title }}</video:title>
+      <video:description>{{ url.item.description|truncatechars:200 }}</video:description>
+      <video:player_loc>{{ url.location }}</video:player_loc>
+      {% if url.item.year %}<video:publication_date>{{ url.item.year }}-01-01</video:publication_date>{% endif %}
+    </video:video>
+  </url>
+{% endfor %}</urlset>

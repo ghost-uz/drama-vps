@@ -21,7 +21,8 @@ class ActorSitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return Actor.objects.all()
+        # order_by'siz Paginator beqaror edi (UnorderedObjectListWarning) [P5-T5]
+        return Actor.objects.all().order_by("id")
 
 
 class CategorySitemap(Sitemap):
@@ -29,7 +30,7 @@ class CategorySitemap(Sitemap):
     priority = 0.2
 
     def items(self):
-        return Category.objects.all()
+        return Category.objects.all().order_by("id")
 
 
 class GenreSitemap(Sitemap):
@@ -37,4 +38,28 @@ class GenreSitemap(Sitemap):
     priority = 0.5
 
     def items(self):
-        return Genre.objects.all()
+        return Genre.objects.all().order_by("id")
+
+
+class VideoSitemap(Sitemap):
+    """Google video sitemap [P5-T5] — /sitemap-video.xml (video namespace).
+
+    Faqat haqiqiy video kontentli published kinolar (epizodli yoki yakka film
+    bunny_video_id bilan). Shablon: templates/sitemaps/sitemap-video.xml.
+    """
+
+    changefreq = "weekly"
+    priority = 0.8
+
+    def items(self):
+        from django.db.models import Q
+
+        return (
+            Movie.objects.published()
+            .filter(Q(episodes__isnull=False) | ~Q(bunny_video_id=""))
+            .distinct()
+            .order_by("-created_at")
+        )
+
+    def lastmod(self, obj):
+        return obj.updated_at

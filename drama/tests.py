@@ -893,3 +893,69 @@ def test_gating_funding_takes_precedence_over_vip():
 
     FundingContributorFactory(project=project, profile=premium_user.profile)
     assert get_episode_access(premium_user, ep) == (True, None)
+
+
+# --- P5-T5: video/image sitemap + poster karta varianti (srcset) ---
+
+
+@pytest.mark.django_db
+def test_sitemap_includes_image_namespace(client):
+    from drama.factories import MovieFactory
+
+    movie = MovieFactory()
+    xml = client.get("/sitemap.xml").content.decode()
+    assert 'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' in xml
+    assert "<image:loc>" in xml
+    assert movie.get_absolute_url() in xml
+
+
+@pytest.mark.django_db
+def test_video_sitemap_only_movies_with_video(client):
+    from drama.factories import EpisodeFactory, MovieFactory
+
+    with_video = MovieFactory(title="Videoli Serial")
+    EpisodeFactory(movie=with_video, episode_number=1)
+    MovieFactory(title="Videosiz Kino")  # epizodsiz va bunny'siz — kirmasligi kerak
+    xml = client.get("/sitemap-video.xml").content.decode()
+    assert "<video:video>" in xml
+    assert with_video.get_absolute_url() in xml
+    assert "Videoli Serial" in xml
+    assert "Videosiz Kino" not in xml
+
+
+@pytest.mark.django_db
+def test_robots_lists_both_sitemaps(client):
+    body = client.get("/robots.txt").content.decode()
+    assert "/sitemap.xml" in body
+    assert "/sitemap-video.xml" in body
+
+
+@pytest.mark.django_db
+def test_poster_card_variant_created(django_capture_on_commit_callbacks):
+    """Yangi poster: task asosiy webp + 342px karta variantini yaratadi [P5-T5]."""
+    with django_capture_on_commit_callbacks(execute=True):
+        movie = Movie.objects.create(
+            title="Card Variant Test",
+            description="d",
+            country="KR",
+            poster=SimpleUploadedFile("p.jpg", _image_bytes(), content_type="image/jpeg"),
+        )
+    movie.refresh_from_db()
+    assert movie.poster.name.lower().endswith(".webp")
+    assert movie.poster_card.name.lower().endswith("_card.webp")
+
+
+@pytest.mark.django_db
+def test_optimize_command_backfills_missing_card():
+    """Asosiy allaqachon webp, karta bo'sh (eski ma'lumot) — --sync to'ldiradi."""
+    movie = Movie.objects.create(
+        title="Backfill Card",
+        description="d",
+        country="KR",
+        poster=SimpleUploadedFile("p.webp", _image_bytes(fmt="WEBP"), content_type="image/webp"),
+    )
+    movie.refresh_from_db()
+    assert not movie.poster_card  # on_commit testda bajarilmagan — karta bo'sh
+    call_command("optimize_images", "--sync")
+    movie.refresh_from_db()
+    assert movie.poster_card.name.lower().endswith("_card.webp")

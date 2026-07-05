@@ -1,6 +1,8 @@
 <a href="{{ movie.get_absolute_url }}" class="group relative block touch-manipulation">
     <div class="relative aspect-[2/3] overflow-hidden rounded-lg md:rounded-xl bg-gray-800">
         <img src="{{ movie.poster.url }}"
+             {% if movie.poster_card %}srcset="{{ movie.poster_card.url }} 342w, {{ movie.poster.url }} 780w"
+             sizes="(max-width: 768px) 45vw, 220px"{% endif %}
              alt="{{ movie.title }}"
              loading="lazy"
              decoding="async"

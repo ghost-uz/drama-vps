@@ -40,27 +40,48 @@ def optimize_image_task(self, app_label, model_name, pk, field_name, max_size, q
     field = getattr(instance, field_name)
     if not field or not field.name:
         return
-    if field.name.lower().endswith(".webp"):
-        return  # allaqachon optimized (idempotent)
 
-    content = optimize_to_webp(field, tuple(max_size), quality)
-    if content is None:
-        return  # buzuq/qo'llab-quvvatlanmaydigan format — originalni qoldiramiz (retry'siz)
+    if not field.name.lower().endswith(".webp"):
+        content = optimize_to_webp(field, tuple(max_size), quality)
+        if content is None:
+            return  # buzuq/qo'llab-quvvatlanmaydigan format — originalni qoldiramiz (retry'siz)
 
-    try:
-        old_name = field.name
-        base = os.path.splitext(os.path.basename(old_name))[0]
-        field.save(f"{base}.webp", content, save=False)  # storage'ga yozadi (upload_to)
-        new_name = field.name
-        if new_name != old_name:
-            # .update() model.save()/signal CHAQIRMAYDI — cheksiz qayta-siqish loop'ini oldini oladi
-            model.objects.filter(pk=pk).update(**{field_name: new_name})
-            try:
-                field.storage.delete(old_name)  # eski (siqilmagan) faylni tozalaymiz
-            except Exception:
-                pass
-    except Exception as exc:
-        raise self.retry(exc=exc) from exc
+        try:
+            old_name = field.name
+            base = os.path.splitext(os.path.basename(old_name))[0]
+            field.save(f"{base}.webp", content, save=False)  # storage'ga yozadi (upload_to)
+            new_name = field.name
+            if new_name != old_name:
+                # .update() model.save()/signal CHAQIRMAYDI — cheksiz qayta-siqish loop'i yo'q
+                model.objects.filter(pk=pk).update(**{field_name: new_name})
+                try:
+                    field.storage.delete(old_name)  # eski (siqilmagan) faylni tozalaymiz
+                except Exception:
+                    pass
+        except Exception as exc:
+            raise self.retry(exc=exc) from exc
+
+    # -- KARTA VARIANTI (srcset) [P5-T5] --
+    # Konfiguratsiya modelning o'zidan o'qiladi (task signature o'zgarmadi);
+    # asosiy webp bo'lsa-yu karta bo'sh bo'lsa ham yaratadi (backfill holati).
+    card_cfg = getattr(model, "OPTIMIZE_IMAGE_FIELDS", {}).get(field_name, {}).get("card")
+    if not card_cfg:
+        return
+    card_field = getattr(instance, card_cfg["field"], None)
+    if card_field is not None and not card_field.name:
+        card_content = optimize_to_webp(
+            field,
+            tuple(card_cfg.get("max_size", (342, 513))),
+            card_cfg.get("quality", 78),
+        )
+        if card_content is None:
+            return
+        try:
+            base = os.path.splitext(os.path.basename(field.name))[0]
+            card_field.save(f"{base}_card.webp", card_content, save=False)
+            model.objects.filter(pk=pk).update(**{card_cfg["field"]: card_field.name})
+        except Exception as exc:
+            raise self.retry(exc=exc) from exc
 
 
 @shared_task
