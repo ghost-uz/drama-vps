@@ -1144,7 +1144,7 @@
           "title_en": "Admin: direct Bunny upload + encoding status UI",
           "title_uz": "Admin: to'g'ridan Bunny upload + encoding status",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P3-T1"],
           "description_uz": "Unfold admin'da Episode/Movie uchun video faylni to'g'ridan yuklash, encoding statusini ko'rsatish (P3-T1 pipeline'iga ulangan). Qo'lda GUID kiritish yo'qoladi.",
           "acceptance_criteria": [

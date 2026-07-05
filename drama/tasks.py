@@ -122,52 +122,70 @@ def publish_scheduled_movies() -> int:
     return count
 
 
-@shared_task(bind=True, max_retries=20, default_retry_delay=30)
-def process_episode_upload(self, episode_id: int):
-    """Episode.video_file'ni Bunny'ga yuklaydi va encoding'ni kuzatadi [P3-T1].
+def _run_video_upload(task, app_label: str, model_name: str, pk: int):
+    """video_file'li modelni (Episode YOKI Movie) Bunny'ga yuklash umumiy oqimi [P3-T1/P14-T1].
+
+    Talab: modelda `video_file` / `bunny_video_id` / `upload_status` maydonlari
+    (drama.models.UploadStatus bilan).
 
     1-bosqich (GUID yo'q): Bunny'da video yaratadi + faylni yuklaydi.
     2-bosqich (poll): encoding statusini tekshiradi -> tugaguncha retry(countdown).
     Tugagach bunny_video_id qoladi, upload_status=ready, vaqtinchalik fayl o'chadi.
     """
-    from drama.models import Episode
+    from django.apps import apps
+
+    from drama.models import UploadStatus
     from drama.services import bunny_upload
 
+    model = apps.get_model(app_label, model_name)
     try:
-        ep = Episode.objects.get(pk=episode_id)
-    except Episode.DoesNotExist:
+        obj = model.objects.get(pk=pk)
+    except model.DoesNotExist:
         return
-    if not ep.video_file:
+    if not obj.video_file:
         return
 
     try:
         # 1. GUID hali yo'q -> Bunny'da yaratish + faylni yuklash (bir marta)
-        if not ep.bunny_video_id:
-            guid = bunny_upload.create_video(ep.title)
-            with ep.video_file.open("rb") as fh:
+        if not obj.bunny_video_id:
+            guid = bunny_upload.create_video(str(obj))
+            with obj.video_file.open("rb") as fh:
                 bunny_upload.upload_video(guid, fh.read())
-            Episode.objects.filter(pk=episode_id).update(
-                bunny_video_id=guid, upload_status=Episode.UploadStatus.PROCESSING
+            model.objects.filter(pk=pk).update(
+                bunny_video_id=guid, upload_status=UploadStatus.PROCESSING
             )
-            ep.bunny_video_id = guid
+            obj.bunny_video_id = guid
 
         # 2. Encoding statusini tekshirish
-        status = bunny_upload.get_status(ep.bunny_video_id)
+        status = bunny_upload.get_status(obj.bunny_video_id)
     except Exception as exc:
-        logger.warning("process_episode_upload(%s) xato: %s", episode_id, exc)
-        raise self.retry(exc=exc) from exc
+        logger.warning("process_video_upload(%s.%s %s) xato: %s", app_label, model_name, pk, exc)
+        raise task.retry(exc=exc) from exc
 
     if status >= bunny_upload.STATUS_ERROR:
-        Episode.objects.filter(pk=episode_id).update(upload_status=Episode.UploadStatus.FAILED)
+        model.objects.filter(pk=pk).update(upload_status=UploadStatus.FAILED)
         return
     if status < bunny_upload.STATUS_FINISHED:
-        raise self.retry(countdown=30)  # hali encoding tugamagan
+        raise task.retry(countdown=30)  # hali encoding tugamagan
 
     # Tugadi: vaqtinchalik (lokal) faylni tozalab, ready holatga o'tkazamiz
-    ep.video_file.delete(save=False)
-    Episode.objects.filter(pk=episode_id).update(
-        upload_status=Episode.UploadStatus.READY, video_file=""
-    )
+    obj.video_file.delete(save=False)
+    model.objects.filter(pk=pk).update(upload_status=UploadStatus.READY, video_file="")
+
+
+@shared_task(bind=True, max_retries=20, default_retry_delay=30)
+def process_video_upload(self, app_label: str, model_name: str, pk: int):
+    """Episode yoki Movie video faylini Bunny'ga yuklaydi (yagona kirish nuqtasi)."""
+    _run_video_upload(self, app_label, model_name, pk)
+
+
+@shared_task(bind=True, max_retries=20, default_retry_delay=30)
+def process_episode_upload(self, episode_id: int):
+    """Eski nom [P3-T1] — deploy paytida navbatda qolgan xabarlar uchun saqlangan.
+
+    Yangi kod `process_video_upload` ishlatadi.
+    """
+    _run_video_upload(self, "drama", "episode", episode_id)
 
 
 @shared_task

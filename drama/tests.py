@@ -15,10 +15,11 @@ from django.utils import timezone
 from PIL import Image
 
 from core.images import is_new_upload, optimize_to_webp
-from drama.models import Episode, Movie, Season
+from drama.models import Episode, Movie, Season, UploadStatus
 from drama.tasks import (
     optimize_image_task,
     process_episode_upload,
+    process_video_upload,
     publish_scheduled_movies,
     recompute_movie_rating,
 )
@@ -502,16 +503,17 @@ def test_episode_save_triggers_upload_task(django_capture_on_commit_callbacks, m
     )
     season = Season.objects.create(movie=movie, number=1)
     task_mock = MagicMock()
-    monkeypatch.setattr("drama.tasks.process_episode_upload.delay", task_mock)
+    # Episode.save endi generik process_video_upload'ni navbatga qo'yadi [P14-T1]
+    monkeypatch.setattr("drama.tasks.process_video_upload.delay", task_mock)
     with django_capture_on_commit_callbacks(execute=True):
-        Episode.objects.create(
+        ep = Episode.objects.create(
             movie=movie,
             season=season,
             title="E1",
             episode_number=1,
             video_file=SimpleUploadedFile("v.mp4", b"video-bytes"),
         )
-    task_mock.assert_called_once()
+    task_mock.assert_called_once_with("drama", "episode", ep.pk)
 
 
 # --- P3-T2: Bunny webhook handler ---
@@ -959,3 +961,146 @@ def test_optimize_command_backfills_missing_card():
     call_command("optimize_images", "--sync")
     movie.refresh_from_db()
     assert movie.poster_card.name.lower().endswith("_card.webp")
+
+
+# --- P14-T1: Movie video pipeline + admin Bunny UI ---
+
+
+def _movie_with_video(title="FilmUp"):
+    return Movie.objects.create(
+        title=title,
+        description="x",
+        country="KR",
+        poster=_uploaded("p.jpg"),
+        video_file=SimpleUploadedFile("film.mp4", b"video-bytes"),
+    )
+
+
+def _admin_client(client, name="boss"):
+    user = User.objects.create_superuser(name, f"{name}@drama.uz", "pass12345")
+    client.force_login(user)
+    return user
+
+
+@pytest.mark.django_db
+def test_movie_save_with_video_triggers_upload(django_capture_on_commit_callbacks, monkeypatch):
+    """Yakka film: video_file yuklansa status UPLOADING + generik task navbatda."""
+    from unittest.mock import MagicMock
+
+    task_mock = MagicMock()
+    monkeypatch.setattr("drama.tasks.process_video_upload.delay", task_mock)
+    with django_capture_on_commit_callbacks(execute=True):
+        movie = _movie_with_video("TrigFilm")
+    assert movie.upload_status == UploadStatus.UPLOADING
+    task_mock.assert_called_once_with("drama", "movie", movie.pk)
+
+
+@pytest.mark.django_db
+def test_movie_upload_success(monkeypatch):
+    """Movie ham Episode bilan bir xil pipeline'dan o'tadi: GUID + READY + fayl tozalanadi."""
+    from unittest.mock import MagicMock
+
+    from drama.services import bunny_upload
+
+    movie = _movie_with_video("FilmOk")
+    monkeypatch.setattr(bunny_upload, "create_video", lambda title: "guid-film")
+    monkeypatch.setattr(bunny_upload, "upload_video", MagicMock())
+    monkeypatch.setattr(bunny_upload, "get_status", lambda guid: 4)  # Finished
+    process_video_upload("drama", "movie", movie.id)
+    movie.refresh_from_db()
+    assert movie.bunny_video_id == "guid-film"
+    assert movie.upload_status == UploadStatus.READY
+    assert not movie.video_file
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_updates_movie(client, settings):
+    """Webhook endi GUID'ni Movie'da ham qidiradi (yakka film encoding tayyor)."""
+    settings.BUNNY_WEBHOOK_SECRET = "sec"
+    movie = _movie_with_video("HookFilm")
+    Movie.objects.filter(pk=movie.pk).update(
+        bunny_video_id="guid-hook-film", upload_status=UploadStatus.PROCESSING
+    )
+    resp = client.post(
+        "/webhooks/bunny/?secret=sec",
+        json.dumps({"VideoGuid": "guid-hook-film", "Status": 4}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    movie.refresh_from_db()
+    assert movie.upload_status == UploadStatus.READY
+
+
+@pytest.mark.django_db
+def test_admin_retry_action_requeues_failed(client, monkeypatch):
+    """FAILED qism: GUID tozalanadi, status UPLOADING, task qayta navbatda."""
+    from unittest.mock import MagicMock
+
+    _admin_client(client)
+    ep = _episode_with_video("RetryUp")
+    Episode.objects.filter(pk=ep.pk).update(
+        upload_status=UploadStatus.FAILED, bunny_video_id="guid-old"
+    )
+    task_mock = MagicMock()
+    monkeypatch.setattr("drama.tasks.process_video_upload.delay", task_mock)
+    resp = client.post(
+        reverse("admin:drama_episode_changelist"),
+        {"action": "retry_bunny_upload", "_selected_action": [ep.pk]},
+    )
+    assert resp.status_code == 302
+    ep.refresh_from_db()
+    assert ep.upload_status == UploadStatus.UPLOADING
+    assert ep.bunny_video_id == ""
+    task_mock.assert_called_once_with("drama", "episode", ep.pk)
+
+
+@pytest.mark.django_db
+def test_admin_retry_action_skips_without_file(client, monkeypatch):
+    """Lokal fayl o'chirilgan (READY) qism qayta yuklanmaydi — GUID saqlanadi."""
+    from unittest.mock import MagicMock
+
+    _admin_client(client, "boss2")
+    ep = _episode_with_video("NoFile")
+    Episode.objects.filter(pk=ep.pk).update(
+        video_file="", upload_status=UploadStatus.READY, bunny_video_id="guid-keep"
+    )
+    task_mock = MagicMock()
+    monkeypatch.setattr("drama.tasks.process_video_upload.delay", task_mock)
+    client.post(
+        reverse("admin:drama_episode_changelist"),
+        {"action": "retry_bunny_upload", "_selected_action": [ep.pk]},
+    )
+    ep.refresh_from_db()
+    assert ep.bunny_video_id == "guid-keep"
+    assert ep.upload_status == UploadStatus.READY
+    task_mock.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_admin_refresh_action_polls_stuck_processing(client, monkeypatch):
+    """Tiqilib qolgan PROCESSING (webhook o'tkazib yuborilgan): poll qayta uyg'onadi."""
+    from unittest.mock import MagicMock
+
+    _admin_client(client, "boss3")
+    ep = _episode_with_video("Stuck")
+    Episode.objects.filter(pk=ep.pk).update(
+        upload_status=UploadStatus.PROCESSING, bunny_video_id="guid-stuck"
+    )
+    task_mock = MagicMock()
+    monkeypatch.setattr("drama.tasks.process_video_upload.delay", task_mock)
+    client.post(
+        reverse("admin:drama_episode_changelist"),
+        {"action": "refresh_bunny_status", "_selected_action": [ep.pk]},
+    )
+    task_mock.assert_called_once_with("drama", "episode", ep.pk)
+    ep.refresh_from_db()
+    assert ep.bunny_video_id == "guid-stuck"  # refresh GUID'ga tegmaydi
+
+
+@pytest.mark.django_db
+def test_admin_episode_changelist_renders(client):
+    """EpisodeAdmin ro'yxati (badge/filter konfiguratsiyasi) ochiladi."""
+    _admin_client(client, "boss4")
+    _episode_with_video("ListEp")
+    resp = client.get(reverse("admin:drama_episode_changelist"))
+    assert resp.status_code == 200

@@ -42,20 +42,22 @@ def bunny_webhook(request):
     if not guid or status_code is None:
         return JsonResponse({"detail": "missing fields"}, status=400)
 
-    from drama.models import Episode
+    from drama.models import Episode, Movie, UploadStatus
 
     if status_code >= STATUS_ERROR:
-        new_status = Episode.UploadStatus.FAILED
+        new_status = UploadStatus.FAILED
     elif status_code >= STATUS_FINISHED:
-        new_status = Episode.UploadStatus.READY
+        new_status = UploadStatus.READY
     else:
-        new_status = Episode.UploadStatus.PROCESSING
+        new_status = UploadStatus.PROCESSING
 
+    # GUID Episode'da ham, yakka film (Movie)da ham bo'lishi mumkin [P14-T1]
     updated = Episode.objects.filter(bunny_video_id=guid).update(upload_status=new_status)
-    if updated and new_status == Episode.UploadStatus.READY:
+    updated += Movie.objects.filter(bunny_video_id=guid).update(upload_status=new_status)
+    if updated and new_status == UploadStatus.READY:
         # Yangi kontent tayyor -> katalog filtr keshini yangilaymiz
         cache.delete_many(["movie_years", "movie_countries"])
     logger.info(
-        "bunny_webhook: guid=%s status=%s -> %s (%d ep)", guid, status_code, new_status, updated
+        "bunny_webhook: guid=%s status=%s -> %s (%d obyekt)", guid, status_code, new_status, updated
     )
     return JsonResponse({"ok": True, "updated": updated})

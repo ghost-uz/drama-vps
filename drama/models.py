@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
-from core.images import ImageOptimizationMixin
+from core.images import ImageOptimizationMixin, is_new_upload
 from core.validators import ImageFileValidator, VideoFileValidator
 
 
@@ -145,6 +145,16 @@ class TopSlider(ImageOptimizationMixin, models.Model):
 # --- Asosiy Film Modeli ---
 
 
+class UploadStatus(models.TextChoices):
+    """video_file -> Bunny pipeline holatlari (Movie va Episode umumiy) [P14-T1]."""
+
+    NONE = "none", "Yo'q"
+    UPLOADING = "uploading", "Yuklanmoqda"
+    PROCESSING = "processing", "Qayta ishlanmoqda (encoding)"
+    READY = "ready", "Tayyor"
+    FAILED = "failed", "Xato"
+
+
 class MovieQuerySet(models.QuerySet):
     """Movie ko'rinish invariantlarini bitta joyga jamlaydi (DRY + xavfsizlik).
 
@@ -210,6 +220,17 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
     bunny_trailer_id = models.CharField(
         "Bunny Stream Video ID (Trailer)", max_length=100, blank=True
     )
+    # Yakka film videosi: fayl yuklansa Bunny pipeline avto-ishlaydi [P14-T1]
+    video_file = models.FileField(
+        "Video fayl (Bunny'ga avtomatik yuklanadi)",
+        upload_to="movie_uploads/",
+        blank=True,
+        null=True,
+        validators=[VideoFileValidator(max_mb=500)],
+    )
+    upload_status = models.CharField(
+        "Yuklash holati", max_length=12, choices=UploadStatus, default=UploadStatus.NONE
+    )
     film_embed_code = models.TextField(
         "Film HTML kodi (Eski)", blank=True, default="<div>...</div>"
     )
@@ -269,10 +290,22 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
             )
 
     def save(self, *args, **kwargs):
+        from functools import partial
+
+        from django.db import transaction
+
         if not self.slug:
             self.slug = slugify(self.title)
+        # Yakka film videosi: yangi fayl -> Bunny pipeline (Episode bilan bir xil yo'l)
+        new_video = is_new_upload(self.video_file)
+        if new_video:
+            self.upload_status = UploadStatus.UPLOADING
         # Poster siqish ImageOptimizationMixin.save() orqali fon (Celery)da.
         super().save(*args, **kwargs)
+        if new_video:
+            from drama.tasks import process_video_upload
+
+            transaction.on_commit(partial(process_video_upload.delay, "drama", "movie", self.pk))
 
     def __str__(self):
         return self.title
@@ -300,12 +333,9 @@ class Season(models.Model):
 class Episode(ImageOptimizationMixin, TimeStampedModel):
     OPTIMIZE_IMAGE_FIELDS = {"thumbnail": {"max_size": (1280, 1280), "quality": 80}}
 
-    class UploadStatus(models.TextChoices):
-        NONE = "none", "Yo'q"
-        UPLOADING = "uploading", "Yuklanmoqda"
-        PROCESSING = "processing", "Qayta ishlanmoqda (encoding)"
-        READY = "ready", "Tayyor"
-        FAILED = "failed", "Xato"
+    # Modul-darajali umumiy holatlar (Movie bilan bitta) — eski `Episode.UploadStatus`
+    # murojaatlari (tasks/webhooks/testlar) alias orqali ishlayveradi [P14-T1]
+    UploadStatus = UploadStatus
 
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="episodes")
     # Backward-compat: movie SAQLANADI (eski view/admin movie.episodes ishlatadi).
@@ -324,7 +354,7 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
         validators=[VideoFileValidator(max_mb=500)],
     )
     upload_status = models.CharField(
-        "Yuklash holati", max_length=12, choices=UploadStatus.choices, default=UploadStatus.NONE
+        "Yuklash holati", max_length=12, choices=UploadStatus, default=UploadStatus.NONE
     )
     video_embed_code = models.TextField("Video HTML kodi (Eski / Embed)", blank=True)
     thumbnail = models.ImageField(
@@ -347,17 +377,15 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
 
         from django.db import transaction
 
-        from core.images import is_new_upload
-
         new_video = is_new_upload(self.video_file)
         if new_video:
             self.upload_status = self.UploadStatus.UPLOADING
         # super().save() ImageOptimizationMixin orqali thumbnail'ni fon (Celery)da siqadi
         super().save(*args, **kwargs)
         if new_video:
-            from drama.tasks import process_episode_upload
+            from drama.tasks import process_video_upload
 
-            transaction.on_commit(partial(process_episode_upload.delay, self.pk))
+            transaction.on_commit(partial(process_video_upload.delay, "drama", "episode", self.pk))
 
     def __str__(self):
         return f"{self.movie.title} - {self.episode_number}-qism"

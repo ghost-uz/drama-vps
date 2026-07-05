@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -20,7 +20,86 @@ from .models import (
     Season,
     Tag,
     TopSlider,
+    UploadStatus,
 )
+
+# --- BUNNY VIDEO PIPELINE (P14-T1) ---
+
+
+class BunnyVideoAdminMixin:
+    """Bunny yuklash holati badge'i + retry/refresh action'lari (Episode/Movie umumiy).
+
+    Video fayl admin'dan yuklanadi, qolgani avtomatik (P3-T1 pipeline):
+    yaratish -> yuklash -> encoding poll/webhook -> READY'da GUID bog'langan bo'ladi.
+    """
+
+    @display(
+        description=_("Bunny holati"),
+        label={
+            UploadStatus.UPLOADING.label: "info",
+            UploadStatus.PROCESSING.label: "warning",
+            UploadStatus.READY.label: "success",
+            UploadStatus.FAILED.label: "danger",
+        },
+    )
+    def display_upload_status(self, obj):
+        return obj.get_upload_status_display()
+
+    @admin.action(description=_("Bunny'ga qayta yuklash (lokal fayli borlar)"))
+    def retry_bunny_upload(self, request, queryset):
+        """Xato/tiqilib qolgan yuklashni NOLdan qayta boshlaydi.
+
+        GUID tozalanadi (Bunny'dagi chala video panelda qoladi — docs/ops/bunny.md),
+        pipeline yaratish+yuklashdan qayta yuradi. Lokal fayl o'chirilgan (READY)
+        obyektga fayl qayta biriktirilishi kerak.
+        """
+        from drama.tasks import process_video_upload
+
+        model = queryset.model
+        model_name = model._meta.model_name
+        queued = skipped = 0
+        for obj in queryset:
+            if obj.video_file:
+                model.objects.filter(pk=obj.pk).update(
+                    bunny_video_id="", upload_status=UploadStatus.UPLOADING
+                )
+                process_video_upload.delay("drama", model_name, obj.pk)
+                queued += 1
+            else:
+                skipped += 1
+        if queued:
+            messages.success(
+                request, f"{queued} ta obyekt Bunny'ga qayta yuklashga navbatga qo'yildi."
+            )
+        if skipped:
+            messages.warning(
+                request,
+                f"{skipped} ta obyektda lokal video fayl yo'q — "
+                "qayta yuklash uchun faylni qayta biriktiring.",
+            )
+
+    @admin.action(description=_("Encoding holatini Bunny'dan yangilash"))
+    def refresh_bunny_status(self, request, queryset):
+        """Tiqilib qolgan PROCESSING uchun poll'ni qayta uyg'otadi.
+
+        Poll retry'lari tugab (10 daqiqa) webhook ham kelmagan bo'lsa, status
+        abadiy PROCESSING'da qoladi — bu action yagona davo.
+        """
+        from drama.tasks import process_video_upload
+
+        model_name = queryset.model._meta.model_name
+        queued = 0
+        for obj in queryset:
+            if obj.bunny_video_id and obj.video_file:
+                process_video_upload.delay("drama", model_name, obj.pk)
+                queued += 1
+        if queued:
+            messages.success(request, f"{queued} ta obyekt holati Bunny'dan qayta so'raladi.")
+        else:
+            messages.warning(
+                request, "Mos obyekt yo'q (GUID va lokal fayl mavjudlargina yangilanadi)."
+            )
+
 
 # --- INLINES ---
 
@@ -49,7 +128,7 @@ class MovieShotsInline(TabularInline):
         return "-"
 
 
-class EpisodeInline(TabularInline):
+class EpisodeInline(BunnyVideoAdminMixin, TabularInline):
     model = Episode
     extra = 1
     tab = True
@@ -58,11 +137,11 @@ class EpisodeInline(TabularInline):
         "episode_number",
         "title",
         "video_file",
-        "upload_status",
+        "display_upload_status",
         "bunny_video_id",
         "video_embed_code",
     )
-    readonly_fields = ("upload_status", "bunny_video_id")
+    readonly_fields = ("display_upload_status", "bunny_video_id")
     sortable_field_name = "episode_number"
 
 
@@ -119,7 +198,7 @@ class ActorAdmin(ModelAdmin, TranslationAdmin):
 
 
 @admin.register(Movie)
-class MovieAdmin(ModelAdmin, TranslationAdmin):
+class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
     list_display = (
         "display_header",
         "year",
@@ -138,7 +217,7 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
 
     inlines = [SeasonInline, MovieShotsInline, EpisodeInline, ReviewInline]
     save_on_top = True
-    actions = ["publish_movies", "unpublish_movies"]
+    actions = ["publish_movies", "unpublish_movies", "retry_bunny_upload", "refresh_bunny_status"]
 
     fieldsets = (
         (
@@ -164,8 +243,13 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
             _("Media & Vizual"),
             {
                 "classes": ["tab"],
+                "description": _(
+                    "Yakka film videosi: faylni yuklang — Bunny'ga yuborish va GUID "
+                    "bog'lash avtomatik (qismlar uchun Qismlar tabidan yuklanadi)."
+                ),
                 "fields": (
                     ("poster", "display_poster_preview"),
+                    ("video_file", "display_upload_status"),
                     ("bunny_video_id", "bunny_trailer_id"),
                     ("film_embed_code", "trailer_embed_code"),
                 ),
@@ -194,6 +278,7 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
 
     readonly_fields = (
         "display_poster_preview",
+        "display_upload_status",
         "average_rating",
         "total_votes",
         "created_at",
@@ -238,6 +323,54 @@ class MovieAdmin(ModelAdmin, TranslationAdmin):
     @admin.action(description=_("Nashr etish"))
     def publish_movies(self, request, queryset):
         queryset.update(status=Movie.Status.PUBLISHED)
+
+
+@admin.register(Episode)
+class EpisodeAdmin(BunnyVideoAdminMixin, ModelAdmin):
+    """Qismlar ro'yxati: yuklash/encoding holatini bir qarashda ko'rish + retry [P14-T1]."""
+
+    list_display = (
+        "display_episode",
+        "season",
+        "display_upload_status",
+        "has_bunny_video",
+        "created_at",
+    )
+    list_filter = ("upload_status",)
+    search_fields = ("title", "movie__title")
+    autocomplete_fields = ["movie", "season"]
+    list_select_related = ("movie", "season")
+    actions = ["retry_bunny_upload", "refresh_bunny_status"]
+    readonly_fields = ("display_upload_status",)
+    fieldsets = (
+        (
+            _("Asosiy"),
+            {"fields": (("movie", "season"), ("episode_number", "title"), "thumbnail")},
+        ),
+        (
+            _("Video (Bunny — avtomatik)"),
+            {
+                "description": _(
+                    "Video faylni shu yerga yuklang — Bunny'ga yuborish, encoding va "
+                    "GUID bog'lash avtomatik. GUID'ni qo'lda kiritish odatda shart emas "
+                    "(faqat favqulodda/legacy holat)."
+                ),
+                "fields": ("video_file", "display_upload_status", "bunny_video_id"),
+            },
+        ),
+        (
+            _("Legacy (qo'lda embed)"),
+            {"classes": ["collapse"], "fields": ("video_embed_code",)},
+        ),
+    )
+
+    @display(description=_("Qism"), header=True)
+    def display_episode(self, obj):
+        return f"{obj.episode_number}-qism", obj.movie.title
+
+    @admin.display(description=_("Bunny video"), boolean=True)
+    def has_bunny_video(self, obj):
+        return bool(obj.bunny_video_id)
 
 
 @admin.register(Season)

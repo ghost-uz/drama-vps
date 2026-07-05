@@ -89,3 +89,34 @@ Qo'lda curl bilan:
     curl -s -o /dev/null -w "%{http_code}" -e "https://evil.example/" "<imzoli-hls-url>"
     # to'g'ri referer -> 200 kutiladi
     curl -s -o /dev/null -w "%{http_code}" -e "https://drama.uz/" "<imzoli-hls-url>"
+
+## Admin orqali video yuklash (P14-T1)
+
+Oqim (Episode ham, yakka film Movie ham — bitta pipeline):
+
+1. Admin'da video faylni `video_file` maydoniga yuklang (Episode: alohida sahifa
+   yoki Movie ichidagi Qismlar tabi; yakka film: Movie -> Media & Vizual tab).
+2. Saqlashda status **Yuklanmoqda** bo'ladi, `process_video_upload` (Celery)
+   Bunny'da video yaratadi, faylni yuboradi -> **Qayta ishlanmoqda (encoding)**.
+3. Encoding tugashi ikki kanaldan keladi: webhook (tez) yoki poll (30s retry).
+   Tayyor bo'lganda GUID (`bunny_video_id`) allaqachon bog'langan, status
+   **Tayyor**, lokal vaqtinchalik fayl o'chirilgan. GUID'ni qo'lda kiritish
+   odatda kerak emas (maydon favqulodda/legacy holat uchun ochiq qoldirilgan).
+
+Fayl validatsiyasi (P10-T3): faqat .mp4/.m4v/.mov/.mkv/.webm/.avi, sehrli-bayt
+tekshiruvi bilan, 500 MB gacha (nginx `client_max_body_size` bilan bir xil).
+
+### Muammolarni bartaraf etish (admin action'lar)
+
+- **Xato (FAILED)** yoki tiqilib qolgan yuklash: ro'yxatda belgilab
+  **"Bunny'ga qayta yuklash"** — GUID tozalanadi, pipeline noldan yuradi.
+  Diqqat: Bunny kutubxonasida chala video yetim qoladi — panel orqali qo'lda
+  o'chiriladi (kam uchraydi, avtomatik delete ataylab qo'shilmagan).
+  Lokal fayli o'chib bo'lgan (READY) obyektni qayta yuklash uchun avval faylni
+  qayta biriktiring.
+- **PROCESSING'da tiqilib qolgan** (poll retry'lari ~10 daqiqada tugaydi,
+  webhook ham kelmagan bo'lsa status abadiy qoladi): **"Encoding holatini
+  Bunny'dan yangilash"** — poll qayta uyg'onadi va holatni sinxronlaydi.
+
+Webhook sozlamasi: Bunny panel -> Stream -> API -> Webhook URL:
+`https://drama.uz/webhooks/bunny/?secret=<BUNNY_WEBHOOK_SECRET>`.
