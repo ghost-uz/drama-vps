@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load cache %}
 
 {% block page_title %}{% if title %}{{ title }} - Drama.uz{% else %}Katalog — barcha dramalar - Drama.uz{% endif %}{% endblock %}
 {% block meta_description %}{% if title %}{{ title }} — Drama.uz{% else %}Janr, yil va davlat bo'yicha filtrlab, o'zbek tilidagi dramalarni toping — Drama.uz katalogi{% endif %}{% endblock %}
@@ -12,17 +11,21 @@
             <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 sticky top-24">
                 <h3 class="text-lg font-black uppercase italic tracking-tighter mb-6 text-[#00cc4c]">Filtrlar</h3>
 
-                {# Global filtrlar (GET forma, CSRF'siz, user-ma'lumotsiz) — catalog_ver bump'ida yangilanadi [P9-T1] #}
-                {% cache 21600 explore_filters catalog_ver %}
-                <form hx-get="{% url 'drama:explore' %}"
+                {% comment %}
+                Selected holat request'ga xos -> template fragment kesh YO'Q;
+                ma'lumot facets.py/GenreYearMixin'da allaqachon keshlangan [P8-T3].
+                {% endcomment %}
+                <form id="filter-form"
+                      hx-get="{% url 'drama:explore' %}"
                       hx-target="#movie-grid"
                       hx-trigger="change"
+                      hx-include="[name='sort']"
                       hx-indicator="#loading-indicator"
                       class="space-y-6">
 
                     <div>
-                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Minimal Reyting: <span id="rating-val" class="text-[#00cc4c]">0</span></label>
-                        <input type="range" name="min_rating" min="0" max="10" step="0.5" value="0"
+                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Minimal Reyting: <span id="rating-val" class="text-[#00cc4c]">{{ selected_min_rating }}</span></label>
+                        <input type="range" name="min_rating" min="0" max="10" step="0.5" value="{{ selected_min_rating }}"
                                oninput="document.getElementById('rating-val').innerText = this.value"
                                class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00cc4c]">
                     </div>
@@ -31,8 +34,8 @@
                         <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Davlat</label>
                         <select name="country" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-[#00cc4c]">
                             <option value="">Hammasi</option>
-                            {% for c in countries %}
-                            <option value="{{ c }}">{{ c }}</option>
+                            {% for c in country_facets %}
+                            <option value="{{ c.country }}" {% if c.country == selected_country %}selected{% endif %}>{{ c.country }} ({{ c.count }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -40,37 +43,56 @@
                     <div>
                         <label class="text-[10px] font-black uppercase text-gray-500 mb-3 block">Ishlab chiqarilgan yil</label>
                         <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                            {% for y in years %}
+                            {% for y in year_facets %}
                             <label class="flex items-center space-x-2 cursor-pointer group">
-                                <input type="checkbox" name="year" value="{{ y }}" class="hidden peer">
+                                <input type="checkbox" name="year" value="{{ y.year }}" class="hidden peer" {% if y.year|stringformat:"s" in selected_years %}checked{% endif %}>
                                 <div class="w-full py-2 px-3 rounded-xl bg-black/40 border border-white/5 text-[11px] text-center peer-checked:bg-[#00cc4c] peer-checked:text-black transition-all">
-                                    {{ y }}
+                                    {{ y.year }} <span class="opacity-50">({{ y.count }})</span>
                                 </div>
                             </label>
                             {% endfor %}
                         </div>
                     </div>
 
-
                     <div>
                         <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Janrlar</label>
                         <div class="flex flex-wrap gap-2">
-                            {% for g in genres %}
+                            {% for g in genre_facets %}
                             <label class="cursor-pointer">
-                                <input type="checkbox" name="genre" value="{{ g.slug }}" class="hidden peer">
+                                <input type="checkbox" name="genre" value="{{ g.genres__slug }}" class="hidden peer" {% if g.genres__slug in selected_genres %}checked{% endif %}>
                                 <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] peer-checked:border-[#00cc4c] peer-checked:text-[#00cc4c] transition-all">
-                                    {{ g.name }}
+                                    {{ g.genres__name }} <span class="opacity-50">{{ g.count }}</span>
                                 </span>
                             </label>
                             {% endfor %}
                         </div>
                     </div>
                 </form>
-                {% endcache %}
             </div>
         </aside>
 
         <main class="w-full lg:w-3/4">
+            {# Saralash [P8-T3] — o'zgarganda filtrlarni ham qo'shib yuboradi (hx-include) #}
+            <div class="flex items-center justify-between mb-6 gap-4">
+                <span id="loading-indicator" class="htmx-indicator text-xs text-[#00cc4c] font-black uppercase tracking-widest">
+                    <i class="fas fa-circle-notch fa-spin"></i> Yuklanmoqda...
+                </span>
+                <label class="ml-auto flex items-center gap-2 text-xs text-gray-400">
+                    <span class="font-black uppercase tracking-widest">Saralash</span>
+                    <select name="sort"
+                            hx-get="{% url 'drama:explore' %}"
+                            hx-target="#movie-grid"
+                            hx-trigger="change"
+                            hx-include="#filter-form"
+                            hx-indicator="#loading-indicator"
+                            class="bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs outline-none focus:border-[#00cc4c] cursor-pointer">
+                        {% for key, opt in sort_options.items %}
+                        <option value="{{ key }}" {% if key == current_sort %}selected{% endif %}>{{ opt.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+
             <div id="movie-grid" class="transition-opacity duration-300">
                 {% include 'movies/partials/movie_grid.html' %}
             </div>

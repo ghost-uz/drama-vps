@@ -824,7 +824,7 @@
           "title_en": "Faceted filters & sorting + autocomplete",
           "title_uz": "Faceted filtr, saralash + autocomplete",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P8-T1"],
           "description_uz": "Explore'da janr/yil/davlat/reyting facet (har facet uchun son), saralash (yangi/reyting/mashhur), qidiruv autocomplete.",
           "acceptance_criteria": [

@@ -1607,3 +1607,94 @@ def test_detail_page_renders_similar_section(client):
     body = resp.content.decode()
     assert "O'xshash dramalar" in body
     assert "OxshashSimilar" in body
+
+
+# --- P8-T3: faceted filtr sonlari + saralash ---
+
+
+@pytest.mark.django_db
+def test_facets_count_published_movies():
+    """Facet sonlari chop etilgan kinolarni sanaydi (janr/davlat/yil)."""
+    from django.core.cache import cache
+
+    from drama import facets
+    from drama.factories import GenreFactory, MovieFactory
+
+    cache.clear()
+    action = GenreFactory(name="Jangari", slug="jangari-f")
+    MovieFactory(country="KR", year=2024).genres.add(action)
+    MovieFactory(country="KR", year=2024).genres.add(action)
+    MovieFactory(country="JP", year=2023)
+
+    genre_map = {g["genres__slug"]: g["count"] for g in facets.genre_facets()}
+    assert genre_map["jangari-f"] == 2
+    country_map = {c["country"]: c["count"] for c in facets.country_facets()}
+    assert country_map["KR"] == 2 and country_map["JP"] == 1
+    year_map = {y["year"]: y["count"] for y in facets.year_facets()}
+    assert year_map[2024] == 2 and year_map[2023] == 1
+
+
+@pytest.mark.django_db
+def test_explore_sort_by_rating(client):
+    """?sort=rating -> mdl_rank kamayish tartibida."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    low = MovieFactory(title="Past", mdl_rank=5)
+    high = MovieFactory(title="Baland", mdl_rank=9)
+    resp = client.get(reverse("drama:explore"), {"sort": "rating"})
+    ids = [m.id for m in resp.context["movies"]]
+    assert ids.index(high.id) < ids.index(low.id)
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_explore_sort_by_popular(client):
+    """?sort=popular -> total_votes kamayish tartibida."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    quiet = MovieFactory(title="Jim", total_votes=3)
+    loud = MovieFactory(title="Mashhur", total_votes=99)
+    resp = client.get(reverse("drama:explore"), {"sort": "popular"})
+    ids = [m.id for m in resp.context["movies"]]
+    assert ids.index(loud.id) < ids.index(quiet.id)
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_explore_invalid_sort_falls_back(client):
+    """Yaroqsiz sort qiymati -> default (new), 500 EMAS (injection himoyasi)."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory()
+    resp = client.get(reverse("drama:explore"), {"sort": "'; DROP TABLE"})
+    assert resp.status_code == 200
+    assert resp.context["current_sort"] == "new"
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_explore_renders_facet_counts_and_selection(client):
+    """Facet sonlari render bo'ladi; tanlangan janr checkbox checked qoladi."""
+    from django.core.cache import cache
+
+    from drama.factories import GenreFactory, MovieFactory
+
+    cache.clear()
+    genre = GenreFactory(name="Melodrama", slug="melo-f")
+    MovieFactory().genres.add(genre)
+    resp = client.get(reverse("drama:explore"), {"genre": "melo-f"})
+    body = resp.content.decode()
+    assert "Melodrama" in body
+    # tanlangan janr checkbox 'checked' bilan render bo'ladi (holat saqlanadi)
+    assert 'value="melo-f" class="hidden peer" checked' in body
+    assert resp.context["selected_genres"] == ["melo-f"]
+    cache.clear()

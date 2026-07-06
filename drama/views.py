@@ -512,10 +512,23 @@ class FilterMoviesView(GenreYearMixin, ListView):
     context_object_name = "movies"
     paginate_by = 12
 
+    # Saralash oq ro'yxati [P8-T3] — foydalanuvchi kiritmasi order_by'ga
+    # to'g'ridan-to'g'ri tushmaydi (injection yo'q). Kalit -> (order_by, yorliq).
+    SORT_OPTIONS = {
+        "new": (("-created_at",), "Yangi"),
+        "rating": (("-mdl_rank", "-average_rating"), "Reyting"),
+        "popular": (("-total_votes", "-average_rating"), "Mashhur"),
+    }
+    DEFAULT_SORT = "new"
+
     def get_template_names(self):
         if self.request.headers.get("HX-Request"):
             return ["movies/partials/movie_grid.html"]
         return [self.template_name]
+
+    def _current_sort(self) -> str:
+        sort = self.request.GET.get("sort", self.DEFAULT_SORT)
+        return sort if sort in self.SORT_OPTIONS else self.DEFAULT_SORT
 
     def get_queryset(self):
         # Parametrlarni olish
@@ -526,7 +539,7 @@ class FilterMoviesView(GenreYearMixin, ListView):
 
         # [P9-T2] Karta kategoriya/janr ko'rsatmaydi — select/prefetch bekor edi;
         # with_card_data() qism-soni annotatsiyasini beradi.
-        queryset = Movie.objects.published().with_card_data().order_by("-id")
+        queryset = Movie.objects.published().with_card_data()
 
         # Filtrlar mantiqi
         if year:
@@ -536,9 +549,31 @@ class FilterMoviesView(GenreYearMixin, ListView):
         if country:
             queryset = queryset.filter(country=country)
         if min_rating:
-            queryset = queryset.filter(mdl_rank__gte=float(min_rating))
+            try:
+                queryset = queryset.filter(mdl_rank__gte=float(min_rating))
+            except (TypeError, ValueError):
+                pass  # yaroqsiz reyting — e'tiborsiz
 
-        return queryset.distinct().order_by("-created_at")
+        order_by = self.SORT_OPTIONS[self._current_sort()][0]
+        return queryset.distinct().order_by(*order_by)
+
+    def get_context_data(self, **kwargs):
+        from drama import facets
+
+        context = super().get_context_data(**kwargs)
+        # Faceted sonlar (keshlangan, catalog_ver bilan yangilanadi) [P8-T3]
+        context["genre_facets"] = facets.genre_facets()
+        context["country_facets"] = facets.country_facets()
+        context["year_facets"] = facets.year_facets()
+        # Saralash holati (UI faol variantni belgilashi + HTMX formada saqlash)
+        context["sort_options"] = self.SORT_OPTIONS
+        context["current_sort"] = self._current_sort()
+        # Tanlangan filtrlarni saqlash (HTMX qayta so'rovda checkbox holati)
+        context["selected_years"] = self.request.GET.getlist("year")
+        context["selected_genres"] = self.request.GET.getlist("genre")
+        context["selected_country"] = self.request.GET.get("country", "")
+        context["selected_min_rating"] = self.request.GET.get("min_rating", "0")
+        return context
 
 
 class ActorView(GenreYearMixin, DetailView):
