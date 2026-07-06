@@ -46,6 +46,22 @@
             </a>
         </div>
 
+        {# Payme avtomatik to'lov (tavsiya etiladi — chek/tasdiqsiz darhol) [P7-T2] #}
+        <div class="max-w-2xl mx-auto mb-8">
+            <a href="{% url 'billing:checkout' %}"
+               class="flex items-center justify-between gap-4 p-5 rounded-2xl bg-[#00cc4c]/10 border border-[#00cc4c]/30 hover:bg-[#00cc4c]/20 transition-all group">
+                <span class="flex items-center gap-3">
+                    <i class="fas fa-bolt text-2xl text-[#00cc4c]"></i>
+                    <span>
+                        <span class="block text-white font-black">Payme orqali avtomatik</span>
+                        <span class="block text-[11px] text-gray-400">Darhol — chek yuklash va admin tasdig'i kerak emas</span>
+                    </span>
+                </span>
+                <i class="fas fa-arrow-right text-[#00cc4c] group-hover:translate-x-1 transition-transform"></i>
+            </a>
+            <p class="text-center text-[11px] text-gray-500 mt-4 uppercase tracking-widest">— yoki qo'lda chek yuklang —</p>
+        </div>
+
         {% if messages %}
         <div class="mb-8 max-w-2xl mx-auto">
             {% for message in messages %}

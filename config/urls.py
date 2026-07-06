@@ -48,6 +48,7 @@ urlpatterns = [
     ),
     # 3. App yo'llari (Namespace bilan)
     path("users/", include("users.urls", namespace="users")),
+    path("billing/", include("billing.urls")),  # checkout + Payme webhook [P7-T2]
     # 4. REST API (P2)
     path("api/v1/", include("config.api_urls")),
     # 5. Tashqi webhook'lar (P3)

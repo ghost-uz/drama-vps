@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "drama.apps.DramaConfig",
     "funding.apps.FundingConfig",
     "users.apps.UsersConfig",
+    "billing.apps.BillingConfig",
 ]
 
 # -- MIDDLEWARE --
@@ -253,6 +254,14 @@ BUNNY_TOKEN_EXPIRY_SECONDS = config("BUNNY_TOKEN_EXPIRY_SECONDS", default=4 * 36
 BUNNY_TOKEN_BIND_IP = config("BUNNY_TOKEN_BIND_IP", default=False, cast=bool)
 # Webhook autentifikatsiya sirri (encoding-tugadi signali) [P3-T2]
 BUNNY_WEBHOOK_SECRET = config("BUNNY_WEBHOOK_SECRET", default="")
+
+# -- TO'LOV: PAYME [P7-T2] --
+# PAYME_KEY = merchant kaliti (webhook Basic-auth paroli). Sozlanmagan (dev/test)
+# bo'lsa webhook barcha chaqiruvni -32504 (ruxsatsiz) qaytaradi — xavfsiz default.
+PAYME_MERCHANT_ID = config("PAYME_MERCHANT_ID", default="")
+PAYME_KEY = config("PAYME_KEY", default="")
+# Checkout (to'lov sahifasi) bazasi — sandbox: https://checkout.test.paycom.uz
+PAYME_CHECKOUT_URL = config("PAYME_CHECKOUT_URL", default="https://checkout.paycom.uz")
 
 # -- CORS / CSRF (umumiy) --
 # Aniq origin ro'yxatlari muhitga xos (dev.py / prod.py).

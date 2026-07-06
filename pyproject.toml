@@ -78,7 +78,7 @@ markers = [
 
 # --- coverage (P11-T1) ---
 [tool.coverage.run]
-source = ["config", "core", "drama", "users", "funding"]
+source = ["config", "core", "drama", "users", "funding", "billing"]
 omit = [
     "*/migrations/*",
     "*/tests.py",

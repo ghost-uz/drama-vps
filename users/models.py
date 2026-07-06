@@ -327,6 +327,8 @@ class CoinTransaction(models.Model):
         OPENING = "opening", "Boshlang'ich balans"
         TOPUP = "topup", "Hisob to'ldirish"
         CRYPTO_TOPUP = "crypto_topup", "Kripto to'ldirish"
+        PAYME = "payme", "Payme to'lovi"
+        CLICK = "click", "Click to'lovi"
         GIFT = "gift", "Aktyorga sovg'a"
         FUNDING = "funding", "Crowdfunding hissa"
         VIP = "vip", "VIP obuna"

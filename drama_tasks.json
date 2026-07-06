@@ -739,7 +739,7 @@
           "title_en": "Payment gateway integration: Payme/Click (UZ) + webhooks",
           "title_uz": "To'lov shlyuzi: Payme/Click integratsiyasi + webhook",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P7-T1", "P1-T4"],
           "description_uz": "O'zbekiston to'lov tizimlari (Payme/Click) integratsiyasi: obuna/Coin sotib olish. Provider webhook'lari (to'lov tasdig'i) -> Coin/obuna avtomatik. Qo'lda chek (TopUpRequest) zaxira variant sifatida qoladi.",
           "acceptance_criteria": [
