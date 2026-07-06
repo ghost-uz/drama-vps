@@ -1210,8 +1210,8 @@ def test_similar_movies_cached_and_refreshed(client):
     main.tags.add(tag)
     other.tags.add(tag)
 
-    # similar_movies hozircha shablonda render qilinmaydi (P8-T2 ulaydi) —
-    # kesh semantikasi view kontekstida tekshiriladi.
+    # similar_movies endi episodeSheet'da render qilinadi [P8-T2]; bu yerda
+    # kesh semantikasi (bump'da qayta hisoblash) view kontekstida tekshiriladi.
     resp1 = client.get(main.get_absolute_url())
     assert [m.title for m in resp1.context["similar_movies"]] == ["Oxshash Kino Bir"]
 
@@ -1314,15 +1314,16 @@ def test_index_query_count_constant(client, django_assert_num_queries):
 
     Oldin har karta `episodes.count` uchun 3 tagacha COUNT so'rovi berardi;
     endi with_card_data() annotatsiyasi bilan: paginator COUNT + kartalar
-    SELECT = 2 (kesh issiq holatda; birinchi GET keshni isitadi).
+    SELECT + trenddagi karusel _cards SELECT = 3 (kesh issiq; trending ID'lar
+    keshda, obyektlar har request'da bitta SELECT bilan olinadi) [P8-T2].
     """
     from django.core.cache import cache
 
     cache.clear()
     for i in range(8):
         _movie_with_episodes(f"Idx Kino {i}")
-    client.get("/")  # katalog data + fragment keshlarini isitadi
-    with django_assert_num_queries(2):
+    client.get("/")  # katalog data + fragment + trending ID keshlarini isitadi
+    with django_assert_num_queries(3):
         resp = client.get("/")
     assert resp.status_code == 200
     assert b"Idx Kino 7" in resp.content
@@ -1425,3 +1426,184 @@ def test_search_short_or_empty_query_returns_none():
     assert list(search_movies(Movie.objects.published(), "a")) == []
     assert list(search_movies(Movie.objects.published(), "")) == []
     assert list(search_movies(Movie.objects.published(), None)) == []
+
+
+# --- P8-T2: tavsiyalar (o'xshash / trenddagi / siz ko'rganingiz asosida) ---
+
+
+def _watch(user, episode, **kwargs):
+    from users.models import WatchProgress
+
+    return WatchProgress.objects.create(user=user, episode=episode, **kwargs)
+
+
+@pytest.mark.django_db
+def test_compute_trending_ranks_by_recent_views():
+    """Trenddagi: oxirgi hafta ko'rish faolligi ko'p kino oldinda."""
+    from drama import recommendations
+    from drama.factories import EpisodeFactory, MovieFactory
+
+    hot = MovieFactory(title="Qaynoq")
+    cold = MovieFactory(title="Sovuq")
+    hot_ep = EpisodeFactory(movie=hot)
+    cold_ep = EpisodeFactory(movie=cold)
+    u1 = User.objects.create_user("t_u1", password="pass12345")
+    u2 = User.objects.create_user("t_u2", password="pass12345")
+    _watch(u1, hot_ep)
+    _watch(u2, hot_ep)
+    _watch(u1, cold_ep)
+
+    ids = recommendations.compute_trending_ids(limit=12)
+    assert ids.index(hot.id) < ids.index(cold.id)
+
+
+@pytest.mark.django_db
+def test_compute_trending_fills_when_no_activity():
+    """Faollik yo'q bo'lsa ham bo'sh chiqmaydi — baho/ovoz bo'yicha to'ldiriladi."""
+    from drama import recommendations
+    from drama.factories import MovieFactory
+
+    MovieFactory(average_rating=9)
+    MovieFactory(average_rating=5)
+    ids = recommendations.compute_trending_ids(limit=12)
+    assert len(ids) == 2  # ko'rishlar yo'q, lekin ikkala kino ham to'ldirishda
+
+
+@pytest.mark.django_db
+def test_recompute_trending_movies_task_caches_ids():
+    """Beat task ID'larni versiyalangan keshga yozadi; trending_movies o'qiydi."""
+    from django.core.cache import cache
+
+    from drama import recommendations
+    from drama.cache import catalog_key
+    from drama.factories import MovieFactory
+    from drama.tasks import recompute_trending_movies
+
+    cache.clear()
+    movie = MovieFactory()
+    n = recompute_trending_movies(limit=12)
+    assert n == 1
+    assert cache.get(catalog_key(recommendations.TRENDING_CACHE_KEY)) == [movie.id]
+    assert [m.id for m in recommendations.trending_movies()] == [movie.id]
+
+
+@pytest.mark.django_db
+def test_similar_uses_tags_and_genres():
+    """O'xshash: janr mosligi ham hisobga olinadi (eski faqat-teg mantiqidan yaxshi)."""
+    from drama import recommendations
+    from drama.factories import GenreFactory, MovieFactory, TagFactory
+
+    tag = TagFactory()
+    genre = GenreFactory()
+    main = MovieFactory(title="Asosiy")
+    main.tags.add(tag)
+    main.genres.add(genre)
+
+    by_tag = MovieFactory(title="Teg mos")
+    by_tag.tags.add(tag)
+    by_genre = MovieFactory(title="Janr mos")
+    by_genre.genres.add(genre)
+    MovieFactory(title="Aloqasiz")
+
+    ids = recommendations.compute_similar_ids(main, limit=6)
+    assert {by_tag.id, by_genre.id} <= set(ids)
+    assert main.id not in ids
+
+
+@pytest.mark.django_db
+def test_similar_fallback_by_country_when_no_tags_or_genres():
+    """Teg/janr yo'q kino — o'sha davlatdagi reyting bilan to'ldiriladi (bo'sh emas)."""
+    from drama import recommendations
+    from drama.factories import MovieFactory
+
+    main = MovieFactory(country="KR")
+    same = MovieFactory(country="KR", mdl_rank=9)
+    MovieFactory(country="JP")  # boshqa davlat — chiqmaydi
+
+    ids = recommendations.compute_similar_ids(main, limit=6)
+    assert same.id in ids
+
+
+@pytest.mark.django_db
+def test_because_you_watched_recommends_by_genre_excluding_watched():
+    """Ko'rilgan kino janridagi HALI KO'RILMAGAN kinolar tavsiya qilinadi."""
+    from drama import recommendations
+    from drama.factories import EpisodeFactory, GenreFactory, MovieFactory
+
+    genre = GenreFactory()
+    watched = MovieFactory(title="Ko'rilgan")
+    watched.genres.add(genre)
+    ep = EpisodeFactory(movie=watched)
+    rec = MovieFactory(title="Tavsiya")
+    rec.genres.add(genre)
+    MovieFactory(title="Boshqa janr")  # janr mos emas
+
+    user = User.objects.create_user("byw_u", password="pass12345")
+    _watch(user, ep)
+
+    result = recommendations.because_you_watched(user, limit=12)
+    ids = [m.id for m in result]
+    assert rec.id in ids
+    assert watched.id not in ids  # ko'rilgan qayta tavsiya qilinmaydi
+
+
+@pytest.mark.django_db
+def test_because_you_watched_anonymous_is_empty():
+    """Anonim/tarixsiz foydalanuvchi — bo'sh (shaxsiy tavsiya yo'q)."""
+    from django.contrib.auth.models import AnonymousUser
+
+    from drama import recommendations
+
+    assert recommendations.because_you_watched(AnonymousUser()) == []
+
+
+@pytest.mark.django_db
+def test_home_page_renders_recommendation_blocks(client):
+    """Acceptance: bosh sahifada trend + davom ettirish + tavsiya bloklari."""
+    from django.core.cache import cache
+
+    from drama.factories import EpisodeFactory, GenreFactory, MovieFactory
+
+    cache.clear()
+    genre = GenreFactory()
+    watched = MovieFactory(title="TarixKino")
+    watched.genres.add(genre)
+    ep = EpisodeFactory(movie=watched)
+    rec = MovieFactory(title="TavsiyaKino")
+    rec.genres.add(genre)
+
+    user = User.objects.create_user("home_u", password="pass12345")
+    _watch(user, ep, position_seconds=30, duration_seconds=100)
+    client.force_login(user)
+
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "trending_movies" in resp.context
+    # Davom ettirish (tugatilmagan) + tavsiya (janr mos, ko'rilmagan) render bo'ladi
+    assert list(resp.context["continue_watching"])
+    assert rec.id in [m.id for m in resp.context["recommended_movies"]]
+    body = resp.content.decode()
+    assert "Davom ettirish" in body
+    assert "Trenddagi" in body
+
+
+@pytest.mark.django_db
+def test_detail_page_renders_similar_section(client):
+    """Acceptance: detail sahifada 'o'xshash dramalar' bo'limi ko'rinadi."""
+    from django.core.cache import cache
+
+    from drama.factories import GenreFactory, MovieFactory
+
+    cache.clear()
+    genre = GenreFactory()
+    main = _movie_with_episodes("AsosiySimilar")
+    main.genres.add(genre)
+    similar = MovieFactory(title="OxshashSimilar")
+    similar.genres.add(genre)
+
+    resp = client.get(main.get_absolute_url())
+    assert resp.status_code == 200
+    assert [m.id for m in resp.context["similar_movies"]] == [similar.id]
+    body = resp.content.decode()
+    assert "O'xshash dramalar" in body
+    assert "OxshashSimilar" in body

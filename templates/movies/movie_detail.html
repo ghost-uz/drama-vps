@@ -619,6 +619,48 @@ body > main {
     transform: scale(1.06);
 }
 
+/* O'xshash dramalar [P8-T2] — sheet ichidagi gorizontal karusel */
+.r-similar { margin-top: 22px; }
+.r-similar-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 12px;
+}
+.r-similar-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.r-similar-row::-webkit-scrollbar { display: none; }
+.r-similar-card {
+    flex: 0 0 auto;
+    width: 96px;
+    text-decoration: none;
+}
+.r-similar-card img {
+    width: 96px;
+    height: 144px;
+    object-fit: cover;
+    border-radius: 12px;
+    background: #1a1a1a;
+}
+.r-similar-name {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
 /* ═══════════════════════════════════════════════════════════
    RESTRICTION OVERLAY
 ═══════════════════════════════════════════════════════════ */
@@ -1100,6 +1142,22 @@ body > main {
                 </a>
                 {% endfor %}
             </div>
+
+            {# ── O'xshash dramalar [P8-T2] — teg+janr mosligi ── #}
+            {% if similar_movies %}
+            <div class="r-similar">
+                <h4 class="r-similar-title"><i class="fas fa-layer-group" style="color:#00cc4c;margin-right:6px;"></i>O'xshash dramalar</h4>
+                <div class="r-similar-row">
+                    {% for sm in similar_movies %}
+                    <a href="{{ sm.get_absolute_url }}" class="r-similar-card">
+                        <img src="{% if sm.poster_card %}{{ sm.poster_card.url }}{% else %}{{ sm.poster.url }}{% endif %}"
+                             alt="{{ sm.title }}" loading="lazy" decoding="async">
+                        <span class="r-similar-name">{{ sm.title }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 

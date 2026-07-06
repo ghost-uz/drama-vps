@@ -42,6 +42,12 @@ app.conf.beat_schedule = {
         "task": "drama.tasks.recompute_trending_tags",
         "schedule": crontab(minute=0, hour="*/6"),
     },
+    # Trenddagi kinolar keshini har 2 soatda yangilaydi [P8-T2]
+    # (oyna asosli — teglardan tez-tez o'zgaradi)
+    "recompute-trending-movies": {
+        "task": "drama.tasks.recompute_trending_movies",
+        "schedule": crontab(minute=0, hour="*/2"),
+    },
 }
 
 

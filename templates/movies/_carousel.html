@@ -1,0 +1,31 @@
+{% comment %}
+Qayta ishlatiladigan gorizontal karusel [P8-T2].
+Kutilgan kontekst:
+  carousel_title  — sarlavha matni
+  carousel_icon   — FontAwesome klass (masalan "fa-fire")
+  carousel_movies — with_card_data() Movie ro'yxati
+  carousel_more   — (ixtiyoriy) "hammasi" havolasi URL
+Bo'sh ro'yxatda HECH NARSA chiqmaydi (blok yashiriladi).
+{% endcomment %}
+{% if carousel_movies %}
+<section class="mb-8 md:mb-10">
+    <div class="flex items-center justify-between mb-3 md:mb-4">
+        <h2 class="text-base md:text-xl lg:text-2xl font-bold flex items-center gap-2">
+            {% if carousel_icon %}<i class="fas {{ carousel_icon }} text-[#00cc4c]"></i>{% endif %}
+            {{ carousel_title }}
+        </h2>
+        {% if carousel_more %}
+        <a href="{{ carousel_more }}" class="text-xs md:text-sm text-gray-400 hover:text-[#00cc4c] transition">
+            Hammasi <i class="fas fa-chevron-right text-[10px]"></i>
+        </a>
+        {% endif %}
+    </div>
+    <div class="flex gap-3 md:gap-4 overflow-x-auto pb-2 snap-x scrollbar-hide -mx-1 px-1">
+        {% for movie in carousel_movies %}
+        <div class="shrink-0 w-32 sm:w-36 md:w-44 snap-start">
+            {% include 'movies/movies_card.html' %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}

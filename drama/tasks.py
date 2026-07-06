@@ -224,6 +224,25 @@ def recompute_trending_tags() -> int:
 
 
 @shared_task
+def recompute_trending_movies(limit: int = 12) -> int:
+    """Trenddagi kino ID'larini qayta hisoblab keshga yozadi [P8-T2].
+
+    "Trenddagi" oyna asosli (oxirgi hafta ko'rishlar) — vaqt o'tishi bilan
+    tabiiy eskiradi, shuning uchun beat davriy yangilaydi. Kalit versiyalangan
+    (catalog:v{n}) — Movie o'zgarsa signal bump ham eskirtiradi. Bu yer FAQAT
+    ID ro'yxatini yozadi; obyektlar so'rov paytida arzon olinadi.
+    """
+    from django.core.cache import cache
+
+    from drama.cache import catalog_key
+    from drama.recommendations import TRENDING_CACHE_KEY, compute_trending_ids
+
+    ids = compute_trending_ids(limit)
+    cache.set(catalog_key(TRENDING_CACHE_KEY), ids, 60 * 60 * 6)
+    return len(ids)
+
+
+@shared_task
 def update_search_vector(movie_id: int) -> bool:
     """Movie.search_vector'ni qayta quradi [P8-T1] (signal -> on_commit -> shu task).
 

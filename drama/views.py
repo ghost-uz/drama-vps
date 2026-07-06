@@ -2,7 +2,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
@@ -123,9 +123,13 @@ class MoviesView(GenreYearMixin, ListView):
     paginate_by = 12
 
     def get_context_data(self, **kwargs):
+        from drama import recommendations
+
         context = super().get_context_data(**kwargs)
         context["top_sliders"] = TopSlider.objects.all()
-        # 'Davom ettirish' karuseli — tugatilmagan progresslar (indeks: user, -updated_at)
+        # Trenddagi karusel — keshdan (recompute_trending_movies to'ldiradi) [P8-T2]
+        context["trending_movies"] = recommendations.trending_movies()
+        # 'Davom ettirish' + 'siz ko'rganingiz asosida' — faqat kirgan foydalanuvchi
         if self.request.user.is_authenticated:
             from users.models import WatchProgress
 
@@ -134,6 +138,7 @@ class MoviesView(GenreYearMixin, ListView):
                 .select_related("episode", "episode__movie")
                 .order_by("-updated_at")[:12]
             )
+            context["recommended_movies"] = recommendations.because_you_watched(self.request.user)
         return context
 
 
@@ -336,25 +341,11 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 profile=user.profile, movie=movie
             ).first()
 
-        # O'xshash kinolar — og'ir annotate-Count so'rovi. ID'lar versiyalangan
-        # keshda; obyektlar arzon pk-so'rov bilan YANGI olinadi (reyting/poster
-        # .update() bilan o'zgarsa ham kartada eskirmaydi) [P9-T1]
-        def _similar_ids():
-            movie_tags_ids = movie.tags.values_list("id", flat=True)
-            return list(
-                Movie.objects.published()
-                .filter(tags__in=movie_tags_ids)
-                .exclude(id=movie.id)
-                .annotate(same_tags=Count("tags"))
-                .order_by("-same_tags", "-mdl_rank")
-                .values_list("id", flat=True)[:6]
-            )
+        # O'xshash kinolar — teg+janr mosligi, per-kino versiyalangan keshda
+        # (ID'lar keshda, obyektlar arzon pk-so'rovda) [P8-T2 / P9-T1]
+        from drama import recommendations
 
-        similar_ids = get_or_set_catalog(f"similar:{movie.pk}", _similar_ids)
-        similar_map = {
-            m.pk: m for m in Movie.objects.published().with_card_data().filter(id__in=similar_ids)
-        }
-        context["similar_movies"] = [similar_map[i] for i in similar_ids if i in similar_map]
+        context["similar_movies"] = recommendations.similar_movies(movie)
 
         # SEO structured data [P5-T4] — xavfsiz JSON-LD (drama/seo.py)
         from drama.seo import movie_jsonld

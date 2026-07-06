@@ -809,7 +809,7 @@
           "title_en": "Recommendations: similar, trending, 'because you watched'",
           "title_uz": "Tavsiyalar: o'xshash, trenddagi, 'siz ko'rganingiz asosida'",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P8-T1", "P1-T3"],
           "description_uz": "Teg/janr asosida o'xshashlar (mavjud), trenddagi (ko'rishlar/baholar), ko'rish tarixiga asoslangan tavsiyalar. Celery'da oldindan hisoblab keshlash.",
           "acceptance_criteria": [

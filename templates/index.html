@@ -124,6 +124,46 @@
         <p class="text-gray-500 text-xs md:text-sm mt-1">Eng so'nggi koreys va xitoy dramalari</p>
     </div>
 
+    {# ── 'Davom ettirish' karuseli [P8-T2] — tugatilmagan progresslar ── #}
+    {% if continue_watching %}
+    <section class="mb-8 md:mb-10">
+        <h2 class="text-base md:text-xl lg:text-2xl font-bold flex items-center gap-2 mb-3 md:mb-4">
+            <i class="fas fa-history text-[#00cc4c]"></i> Davom ettirish
+        </h2>
+        <div class="flex gap-3 md:gap-4 overflow-x-auto pb-2 snap-x scrollbar-hide -mx-1 px-1">
+            {% for wp in continue_watching %}
+            <a href="{{ wp.episode.movie.get_absolute_url }}?episode={{ wp.episode.episode_number }}"
+               class="shrink-0 w-32 sm:w-36 md:w-44 snap-start group block">
+                <div class="relative aspect-[2/3] overflow-hidden rounded-lg md:rounded-xl bg-gray-800">
+                    <img src="{{ wp.episode.movie.poster.url }}" alt="{{ wp.episode.movie.title }}"
+                         loading="lazy" decoding="async"
+                         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-2">
+                        <p class="text-white text-[10px] md:text-xs font-medium truncate mb-1">{{ wp.episode.episode_number }}-qism</p>
+                        <div class="h-1 w-full bg-white/20 rounded-full overflow-hidden">
+                            <div class="h-full bg-[#00cc4c]" style="width: {{ wp.percent }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <div class="w-11 h-11 rounded-full bg-[#00cc4c]/90 flex items-center justify-center text-black">
+                            <i class="fas fa-play ml-0.5"></i>
+                        </div>
+                    </div>
+                </div>
+                <h3 class="mt-2 text-xs md:text-sm font-semibold text-gray-200 group-hover:text-[#00cc4c] line-clamp-1">{{ wp.episode.movie.title }}</h3>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Trenddagi karusel [P8-T2] ── #}
+    {% include 'movies/_carousel.html' with carousel_title="Trenddagi" carousel_icon="fa-fire" carousel_movies=trending_movies %}
+
+    {# ── 'Siz ko'rganingiz asosida' [P8-T2] — faqat tarixli foydalanuvchi ── #}
+    {% include 'movies/_carousel.html' with carousel_title="Siz ko'rganingiz asosida" carousel_icon="fa-wand-magic-sparkles" carousel_movies=recommended_movies %}
+
     <!-- Section Header -->
     <div class="flex items-center justify-between mb-4 md:mb-6">
         <h2 class="text-lg md:text-2xl lg:text-3xl font-bold border-l-4 border-green-500 pl-3">
