@@ -148,13 +148,17 @@ DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_CACHE_ALIAS = "default"
 
-# -- PAROL VALIDATSIYA --
-# NOTE: P6-T1 da min_length 8 ga ko'tariladi + qo'shimcha validatorlar.
+# -- PAROL VALIDATSIYA [P6-T1] --
+# Min 8 belgi + username/emailga o'xshash, keng tarqalgan va faqat-raqam parollar
+# bloklanadi. Mavjud hisoblarga ta'sir qilmaydi (faqat yangi/o'zgartirilgan parol).
 AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 3},
+        "OPTIONS": {"min_length": 8},
     },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 # -- AUTENTIFIKATSIYA (allauth) --
@@ -164,7 +168,12 @@ AUTHENTICATION_BACKENDS = [
 ]
 ACCOUNT_LOGIN_METHODS = {"username"}
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none"  # NOTE: P6-T1 da 'mandatory'
+# Birinchi tomon register/login oqimi MAXSUS (users/views.py +
+# users/services/email_verification.py) — allauth view'lari ulanmagan, bu sozlama
+# faqat kelajakdagi allauth oqimlariga (P6-T2 social login) tegishli.
+# Tanlov [P6-T1]: "optional" — login bloklanmaydi (Telegram auditoriyasi uchun
+# majburiy email tasdiqlash konversiyani o'ldiradi); UI'da "tasdiqlangan" badge.
+ACCOUNT_EMAIL_VERIFICATION = "optional"
 ACCOUNT_USERNAME_MIN_LENGTH = 4
 ACCOUNT_AUTHENTICATED_REGISTRATION_REDIRECTS = True
 ACCOUNT_SIGNUP_REDIRECT_URL = "users:login"
@@ -219,6 +228,8 @@ STORAGES = {
 RATELIMIT_RATES = {
     "login": "10/m",  # brute-force himoya (IP bo'yicha)
     "register": "5/h",  # IP bo'yicha
+    "password_reset": "5/h",  # IP bo'yicha — email bombing oldini oladi [P6-T1]
+    "resend_verify": "3/h",  # user bo'yicha (anonim: IP) [P6-T1]
     "review": "10/h",  # API "review" scope bilan bir xil
     "gift": "20/h",
     "premium": "10/h",

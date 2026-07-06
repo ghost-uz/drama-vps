@@ -26,7 +26,10 @@
                             <button class="btn btn-primary btn-lg rounded-pill" type="submit">Kirish</button>
                         </div>
                     </form>
-                    <div class="text-center mt-4">
+                    <div class="text-center mt-3">
+                        <small><a href="{% url 'users:password_reset' %}" class="text-decoration-none">Parolni unutdingizmi?</a></small>
+                    </div>
+                    <div class="text-center mt-2">
                         <small class="text-muted">Hali ro'yxatdan o'tmadingizmi? <a href="{% url 'users:register' %}" class="text-decoration-none">Yangi ochish</a></small>
                     </div>
                 </div>

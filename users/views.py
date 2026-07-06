@@ -22,7 +22,7 @@ from .forms import (
     UserUpdateForm,
 )
 from .models import CoinTransaction, CryptoTopUpRequest, TopUpRequest, UserMovieList
-from .services import wallet
+from .services import email_verification, wallet
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +41,15 @@ def register(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    form.save()
+                    user = form.save()
+                    # Tasdiqlash havolasi — on_commit'da fon (Celery)ga ketadi [P6-T1]
+                    email_verification.send_verification_email(user, request)
                 username = form.cleaned_data.get("username")
                 messages.success(
                     request,
                     f"Xush kelibsiz {username}! Account yaratildi. "
-                    f"Endi username va parolingiz bilan kiring.",
+                    f"Emailingizga tasdiqlash havolasi yubordik (spam papkasini ham "
+                    f"tekshiring). Endi username va parolingiz bilan kiring.",
                 )
                 return redirect("users:login")
             except Exception as e:
@@ -55,6 +58,36 @@ def register(request):
         form = UserRegisterForm()
 
     return render(request, "users/register.html", {"form": form})
+
+
+def verify_email(request, key):
+    """Emaildagi tasdiqlash havolasi [P6-T1]. Login talab qilinmaydi —
+    imzolangan kalitning o'zi yetarli (havola boshqa qurilmada ochilishi mumkin)."""
+    email_address = email_verification.confirm_key(key)
+    if email_address is None:
+        messages.error(request, "Tasdiqlash havolasi yaroqsiz yoki muddati o'tgan.")
+    else:
+        messages.success(request, f"{email_address.email} manzili tasdiqlandi ✅")
+    if request.user.is_authenticated:
+        return redirect("users:settings")
+    return redirect("users:login")
+
+
+@login_required
+@ratelimit(key=user_or_ip_key, rate=rate, group="resend_verify", method="POST", block=True)
+def resend_verification(request):
+    """Tasdiqlash havolasini qayta yuborish [P6-T1] (settings sahifasidagi tugma)."""
+    if request.method != "POST":
+        return redirect("users:settings")
+
+    if not request.user.email:
+        messages.error(request, "Avval sozlamalarda email manzil kiriting.")
+    elif email_verification.is_verified(request.user):
+        messages.info(request, "Emailingiz allaqachon tasdiqlangan.")
+    else:
+        email_verification.send_verification_email(request.user, request)
+        messages.success(request, "Tasdiqlash havolasi qayta yuborildi.")
+    return redirect("users:settings")
 
 
 def profile_view(request, username):
@@ -173,6 +206,11 @@ def user_full_list(request, username):
 
 @login_required
 def settings_view(request):
+    # DIQQAT: ModelForm is_valid() instance'ni mutatsiya qiladi (_post_clean) —
+    # eski email va tasdiq holatini forma yaratilishidan OLDIN olamiz [P6-T1].
+    old_email = request.user.email
+    email_verified = email_verification.is_verified(request.user)
+
     if request.method == "POST":
         u_form = UserUpdateForm(request.POST, instance=request.user)
         p_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
@@ -182,6 +220,10 @@ def settings_view(request):
                 u_form.save()
                 p_form.save()
             messages.success(request, "Ma'lumotlaringiz muvaffaqiyatli yangilandi!")
+            # Email o'zgardi -> yangi manzil tasdiqlanmagan, havola yuboramiz [P6-T1]
+            if (request.user.email or "").lower() != (old_email or "").lower():
+                email_verification.send_verification_email(request.user, request)
+                messages.info(request, "Yangi emailingizga tasdiqlash havolasi yubordik.")
             return redirect("users:settings")
     else:
         u_form = UserUpdateForm(instance=request.user)
@@ -193,6 +235,7 @@ def settings_view(request):
         {
             "u_form": u_form,
             "p_form": p_form,
+            "email_verified": email_verified,
             "title": "Profil sozlamalari",
         },
     )

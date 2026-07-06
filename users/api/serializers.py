@@ -8,12 +8,14 @@ bio/avatar/birth_date ni yangilaydi.
 from rest_framework import serializers
 
 from users.models import Profile, UserMovieList, WatchProgress
+from users.services import email_verification
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     level = serializers.IntegerField(read_only=True)
     is_currently_premium = serializers.BooleanField(read_only=True)
+    email_verified = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -27,9 +29,14 @@ class ProfileSerializer(serializers.ModelSerializer):
             "balance",
             "is_premium",
             "is_currently_premium",
+            "email_verified",
         )
         # XAVFSIZLIK: pul/daraja maydonlari faqat o'qiladi (wallet/tizim manbai)
         read_only_fields = ("xp", "balance", "is_premium")
+
+    def get_email_verified(self, obj: Profile) -> bool:
+        """JORIY email tasdiqlanganmi [P6-T1]."""
+        return email_verification.is_verified(obj.user)
 
 
 class WatchlistSerializer(serializers.ModelSerializer):

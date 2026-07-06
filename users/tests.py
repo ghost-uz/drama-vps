@@ -403,3 +403,241 @@ def test_topup_receipt_stored_under_random_name(client):
     topup = TopUpRequest.objects.get(user=user)
     assert re.fullmatch(r"receipts/\d{4}/\d{2}/[0-9a-f]{32}\.jpg", topup.receipt_image.name)
     assert "passport" not in topup.receipt_image.name
+
+
+# --- P6-T1: email tasdiqlash + parol siyosati + parol tiklash ---
+
+_STRONG = "Kuchli-Parol-42"
+
+
+def _register(client, django_capture_on_commit_callbacks, email="yangi@example.com"):
+    """Register POST — ratelimit keshini tozalab, on_commit (email task)ni bajaradi."""
+    from django.core.cache import cache
+
+    cache.clear()  # register 5/h chelagi testlar orasida to'lib qolmasin
+    with django_capture_on_commit_callbacks(execute=True):
+        resp = client.post(
+            reverse("users:register"),
+            {"username": "yangi", "email": email, "password1": _STRONG, "password2": _STRONG},
+        )
+    return resp
+
+
+def _verify_link(body):
+    """Email matnidan tasdiqlash yo'lini ajratib oladi."""
+    import re
+
+    match = re.search(r"(/users/verify-email/[^/\s]+/)", body)
+    assert match, body
+    return match.group(1)
+
+
+@pytest.mark.django_db
+def test_register_sends_verification_email(client, django_capture_on_commit_callbacks):
+    """Acceptance: ro'yxatdan o'tishda tasdiqlash emaili fon (Celery) taskda ketadi."""
+    from allauth.account.models import EmailAddress
+    from django.core import mail
+
+    resp = _register(client, django_capture_on_commit_callbacks)
+    assert resp.status_code == 302
+    email_address = EmailAddress.objects.get(user__username="yangi")
+    assert not email_address.verified
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["yangi@example.com"]
+    assert "verify-email" in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+def test_verify_email_link_confirms(client, django_capture_on_commit_callbacks):
+    """Emaildagi havola bosilsa — (user, joriy email) tasdiqlangan bo'ladi."""
+    from django.core import mail
+
+    from users.services import email_verification
+
+    _register(client, django_capture_on_commit_callbacks)
+    resp = client.get(_verify_link(mail.outbox[0].body))
+    assert resp.status_code == 302
+    user = User.objects.get(username="yangi")
+    assert email_verification.is_verified(user)
+
+
+@pytest.mark.django_db
+def test_verify_email_bad_key_rejected(client):
+    """Buzilgan/soxta kalit hech narsani tasdiqlamaydi (BadSignature yutiladi)."""
+    from users.services import email_verification
+
+    user = _user("badkey")
+    user.email = "badkey@example.com"
+    user.save()
+    resp = client.get("/users/verify-email/soxta-kalit/")
+    assert resp.status_code == 302
+    assert not email_verification.is_verified(user)
+
+
+@pytest.mark.django_db
+def test_email_change_resets_verification(client, django_capture_on_commit_callbacks):
+    """Sozlamalarda email o'zgarsa — tasdiq avtomatik bekor, yangi havola ketadi."""
+    from allauth.account.models import EmailAddress
+    from django.core import mail
+
+    from users.services import email_verification
+
+    user = _user("almash")
+    user.email = "eski@example.com"
+    user.save()
+    EmailAddress.objects.create(user=user, email="eski@example.com", verified=True)
+    assert email_verification.is_verified(user)
+
+    client.force_login(user)
+    with django_capture_on_commit_callbacks(execute=True):
+        resp = client.post(
+            reverse("users:settings"),
+            {"username": "almash", "email": "yangi2@example.com"},
+        )
+    assert resp.status_code == 302
+    user.refresh_from_db()
+    assert user.email == "yangi2@example.com"
+    assert not email_verification.is_verified(user)  # yangi juftlik uchun yozuv yo'q
+    assert any(m.to == ["yangi2@example.com"] for m in mail.outbox)
+
+
+@pytest.mark.django_db
+def test_resend_verification_sends_mail(client, django_capture_on_commit_callbacks):
+    """Settings'dagi "qayta yuborish" tugmasi yangi havola jo'natadi."""
+    from django.core import mail
+    from django.core.cache import cache
+
+    cache.clear()  # resend_verify 3/h chelagi
+    user = _user("qayta")
+    user.email = "qayta@example.com"
+    user.save()
+    client.force_login(user)
+    with django_capture_on_commit_callbacks(execute=True):
+        resp = client.post(reverse("users:resend_verification"))
+    assert resp.status_code == 302
+    assert len(mail.outbox) == 1
+    cache.clear()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("bad", ["qisqa", "password", "84619375"])
+def test_register_rejects_weak_password(client, bad):
+    """Parol siyosati [P6-T1]: qisqa / keng tarqalgan / faqat-raqam parollar rad."""
+    from django.core.cache import cache
+
+    cache.clear()
+    resp = client.post(
+        reverse("users:register"),
+        {"username": "zaif", "email": "zaif@example.com", "password1": bad, "password2": bad},
+    )
+    assert resp.status_code == 200  # forma xatolar bilan qayta ochiladi
+    assert not User.objects.filter(username="zaif").exists()
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_register_rejects_duplicate_email(client):
+    """Email unikal (katta-kichik harfga befarq) — ikkinchi hisob ochilmaydi."""
+    from django.core.cache import cache
+
+    cache.clear()
+    User.objects.create_user(username="birinchi", email="dup@example.com", password=_STRONG)
+    resp = client.post(
+        reverse("users:register"),
+        {
+            "username": "ikkinchi",
+            "email": "DUP@example.com",
+            "password1": _STRONG,
+            "password2": _STRONG,
+        },
+    )
+    assert resp.status_code == 200
+    assert not User.objects.filter(username="ikkinchi").exists()
+    cache.clear()
+
+
+def _reset_confirm_link(body):
+    """Parol tiklash emailidan confirm yo'lini ajratib oladi."""
+    import re
+
+    match = re.search(r"(/users/password-reset/[^/\s]+/[^/\s]+/)", body)
+    assert match, body
+    return match.group(1)
+
+
+@pytest.mark.django_db
+def test_password_reset_full_flow(client):
+    """To'liq oqim: so'rov -> emaildagi havola -> yangi parol -> login ishlaydi."""
+    from django.core import mail
+    from django.core.cache import cache
+
+    cache.clear()  # password_reset 5/h chelagi
+    User.objects.create_user(username="resetchi", email="r@example.com", password="Eski-Parol-99")
+    resp = client.post(reverse("users:password_reset"), {"email": "r@example.com"})
+    assert resp.status_code == 302
+    assert len(mail.outbox) == 1  # Celery eager — darhol outbox'da
+
+    resp = client.get(_reset_confirm_link(mail.outbox[0].body))
+    assert resp.status_code == 302  # token sessiyaga olinib set-password'ga redirect
+    resp = client.post(
+        resp.url, {"new_password1": "Yangi-Parol-77", "new_password2": "Yangi-Parol-77"}
+    )
+    assert resp.status_code == 302
+    assert client.login(username="resetchi", password="Yangi-Parol-77")
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_password_reset_rejects_weak_password(client):
+    """Confirm bosqichida ham parol siyosati ishlaydi (SetPasswordForm)."""
+    from django.core import mail
+    from django.core.cache import cache
+
+    cache.clear()
+    User.objects.create_user(username="zaifreset", email="z@example.com", password="Eski-Parol-99")
+    client.post(reverse("users:password_reset"), {"email": "z@example.com"})
+    resp = client.get(_reset_confirm_link(mail.outbox[0].body))
+    resp = client.post(resp.url, {"new_password1": "123", "new_password2": "123"})
+    assert resp.status_code == 200  # forma xato bilan qaytadi
+    assert client.login(username="zaifreset", password="Eski-Parol-99")  # eski parol joyida
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_password_reset_unknown_email_silent(client):
+    """Mavjud bo'lmagan email — baribir 'yuborildi' sahifasi, xat esa ketmaydi
+    (hisob mavjudligi oshkor qilinmaydi)."""
+    from django.core import mail
+    from django.core.cache import cache
+
+    cache.clear()
+    resp = client.post(reverse("users:password_reset"), {"email": "yoq@example.com"})
+    assert resp.status_code == 302
+    assert len(mail.outbox) == 0
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_verification_templates_render(client):
+    """Smoke: settings badge (ikkala holat), login havolasi, reset sahifalari render bo'ladi."""
+    from allauth.account.models import EmailAddress
+    from django.core.cache import cache
+
+    cache.clear()
+    user = _user("smoke")
+    user.email = "smoke@example.com"
+    user.save()
+    client.force_login(user)
+
+    resp = client.get(reverse("users:settings"))
+    assert resp.status_code == 200
+    assert "tasdiqlanmagan" in resp.content.decode().lower()
+
+    EmailAddress.objects.create(user=user, email="smoke@example.com", verified=True)
+    resp = client.get(reverse("users:settings"))
+    assert "email tasdiqlangan" in resp.content.decode().lower()
+
+    assert client.get(reverse("users:password_reset")).status_code == 200
+    resp = client.get(reverse("users:login"))
+    assert "password-reset" in resp.content.decode()
+    cache.clear()

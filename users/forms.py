@@ -1,9 +1,12 @@
 from datetime import datetime  # 🌟 YANIGI QO'SHILDI
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.forms.widgets import SelectDateWidget  # 🌟 YANIGI QO'SHILDI
+from django.template import loader
+
+from core.tasks import send_email_task
 
 from .models import CryptoTopUpRequest, Profile, TopUpRequest
 
@@ -19,6 +22,17 @@ class UserRegisterForm(UserCreationForm):
         model = User
         fields = ["username", "email"]
 
+    def clean_email(self):
+        """Email unikal [P6-T1] — tasdiqlash va parol tiklash aniq bitta hisobga borishi uchun.
+
+        Forma darajasida (DB constraint emas): legacy dublikatlar migratsiyani
+        yiqitmasligi uchun faqat YANGI dublikatlar bloklanadi.
+        """
+        email = self.cleaned_data["email"]
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Bu email bilan hisob allaqachon mavjud.")
+        return email
+
 
 class UserUpdateForm(forms.ModelForm):
     email = forms.EmailField()
@@ -26,6 +40,35 @@ class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ["username", "email"]
+
+    def clean_email(self):
+        """Email unikal [P6-T1] — o'z hisobidan boshqasiga tegishli bo'lmasin."""
+        email = self.cleaned_data["email"]
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Bu email boshqa hisobda ro'yxatdan o'tgan.")
+        return email
+
+
+class AsyncPasswordResetForm(PasswordResetForm):
+    """Parol tiklash [P6-T1] — emailni Celery fonida yuboradi.
+
+    Django'ning default send_mail'i SMTP'ni request siklida chaqiradi (sekin/
+    ishonchsiz) — loyihada barcha email core.tasks.send_email_task orqali ketadi.
+    """
+
+    def send_mail(
+        self,
+        subject_template_name,
+        email_template_name,
+        context,
+        from_email,
+        to_email,
+        html_email_template_name=None,
+    ):
+        subject = loader.render_to_string(subject_template_name, context)
+        subject = "".join(subject.splitlines())  # sarlavha bir qatorda bo'lishi shart
+        body = loader.render_to_string(email_template_name, context)
+        send_email_task.delay(subject, body, [to_email])
 
 
 class ProfileUpdateForm(forms.ModelForm):
