@@ -1,0 +1,11 @@
+{
+  "//": "GCS media bucket lifecycle [P13-T3] — Object Versioning bilan birga.",
+  "//1": "Eski (noncurrent) versiyalarni 30 kundan keyin o'chiradi (cheksiz o'smasin).",
+  "//2": "Qo'llash: gsutil lifecycle set gcs-lifecycle.json gs://cdn.drama.uz",
+  "rule": [
+    {
+      "action": { "type": "Delete" },
+      "condition": { "daysSinceNoncurrentTime": 30 }
+    }
+  ]
+}

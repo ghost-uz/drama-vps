@@ -1121,7 +1121,7 @@
           "title_en": "Backups (DB + media) & restore drill, staging env",
           "title_uz": "Backup (DB + media) va tiklash mashqi, staging muhit",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P13-T2"],
           "description_uz": "PostgreSQL avtomatik backup (pg_dump/WAL), GCS media versiyalash, tiklash mashqi (drill) hujjatlangan. Staging muhit (prod'ga o'xshash) deploy oldidan sinov uchun.",
           "acceptance_criteria": [

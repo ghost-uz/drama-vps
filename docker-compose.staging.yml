@@ -1,0 +1,24 @@
+# ==============================================================================
+# Staging muhiti [P13-T3] — prod'ga o'xshash, IZOLYATSIYALANGAN stack.
+# Deploy oldidan yangi image'ni prod'ga o'xshash sharoitda sinash uchun.
+#
+#   docker compose --env-file .env.staging \
+#     -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.staging.yml \
+#     up -d
+#
+# `name: drama-staging` -> alohida konteyner/volume/network (prod'ga tegmaydi).
+# `--env-file .env.staging` -> ${...} interpolatsiyasi (DB, IMAGE_TAG, portlar)
+# staging qiymatlaridan. nginx boshqa portda (default 8080). db-backup o'chiq.
+# Batafsil: docs/ops/backup.md
+# ==============================================================================
+
+name: drama-staging
+
+services:
+  nginx:
+    ports:
+      - "${STAGING_PORT:-8080}:80"
+
+  # Staging'da avtomatik backup shart emas (bu sinov muhiti)
+  db-backup:
+    profiles: ["disabled"]

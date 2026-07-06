@@ -44,3 +44,33 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  # Avtomatik kunlik DB backup [P13-T3] — busybox crond har kun 03:00 da
+  # scripts/backup.sh ni ishga tushiradi (pg_dump + saqlash siyosati + GCS).
+  # pg_dump postgres image'ida bor -> web image'iga postgres-client kerak emas.
+  db-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ${DB_USER:-drama_user}
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD .env'da bo'lishi shart}
+      PGDATABASE: ${DB_NAME:-drama_db}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      GCS_BACKUP_BUCKET: ${GCS_BACKUP_BUCKET:-}
+    volumes:
+      - ./scripts:/scripts:ro
+      - dbbackups:/backups
+    # busybox crond: crontab yozadi, keyin oldenda ishlaydi (-f), log darajasi 8
+    entrypoint:
+      - sh
+      - -c
+      - 'echo "0 3 * * * sh /scripts/backup.sh" > /etc/crontabs/root && exec crond -f -l 8'
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+# db-backup sidecar uchun backup dump'lari volume'i [P13-T3]
+volumes:
+  dbbackups:
