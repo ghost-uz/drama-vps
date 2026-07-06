@@ -56,3 +56,34 @@ m2m_changed.connect(
 m2m_changed.connect(
     invalidate_on_m2m, sender=Movie.genres.through, dispatch_uid="catalog_m2m_movie_genres"
 )
+
+
+# --- FTS search_vector yangilash [P8-T1] ---
+
+
+def schedule_search_vector_update(sender, instance, **kwargs):
+    """Movie o'zgardi -> FTS vektorini fon (Celery)da qayta qurish.
+
+    Task queryset.update() ishlatadi -> post_save qayta otilmaydi (loop yo'q).
+    """
+    from drama.tasks import update_search_vector
+
+    transaction.on_commit(partial(update_search_vector.delay, instance.pk))
+
+
+def schedule_on_actors_change(sender, instance, action, **kwargs):
+    """actors M2M o'zgarishi (B-vazn) — faqat forward (instance=Movie) tomonda.
+
+    Reverse (actor.acted_movies.add) holatida instance=Actor bo'ladi — uning
+    pk'sini Movie deb yuborish noto'g'ri; admin oqimi forward ishlatadi.
+    """
+    if isinstance(instance, Movie) and action in ("post_add", "post_remove", "post_clear"):
+        schedule_search_vector_update(sender, instance, **kwargs)
+
+
+post_save.connect(
+    schedule_search_vector_update, sender=Movie, dispatch_uid="search_vector_movie_save"
+)
+m2m_changed.connect(
+    schedule_on_actors_change, sender=Movie.actors.through, dispatch_uid="search_vector_actors"
+)

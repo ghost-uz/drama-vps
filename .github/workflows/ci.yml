@@ -95,6 +95,10 @@ jobs:
         run: python manage.py migrate --no-input
       - name: Model-migratsiya drift yo'q
         run: python manage.py makemigrations --check --dry-run
+      - name: Postgres-maxsus testlar (FTS/trigram) [P8-T1]
+        run: pytest -m postgres -q
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test_postgres
 
   docker-build:
     runs-on: ubuntu-latest

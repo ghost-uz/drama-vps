@@ -38,11 +38,29 @@ from .serializers import (
 )
 
 
+class MovieSearchFilter(SearchFilter):
+    """?search= endi FTS+trigram [P8-T1] (postgres; sqlite'da icontains fallback).
+
+    SearchFilter'dan meros — search param nomi va OpenAPI hujjati o'zgarmaydi.
+    Servis o'z relevantlik order_by'sini qo'yadi, shu sabab bu backend
+    OrderingFilter'dan KEYIN turadi (qidiruvda relevantlik ustun).
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        term = (request.query_params.get(self.search_param) or "").strip()
+        if not term:
+            return queryset
+        from drama.services import search as search_service
+
+        return search_service.search_movies(queryset, term)
+
+
 class MovieViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "slug"
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # MovieSearchFilter OXIRIDA: qidiruvda relevantlik tartibi ordering'dan ustun
+    filter_backends = [DjangoFilterBackend, OrderingFilter, MovieSearchFilter]
     filterset_class = MovieFilter
-    search_fields = ["title", "original_title"]
+    search_fields = ["title", "original_title"]  # OpenAPI hujjat uchun saqlangan
     ordering_fields = ["year", "average_rating", "created_at", "mdl_rank"]
     ordering = ["-created_at"]  # default tartib
 

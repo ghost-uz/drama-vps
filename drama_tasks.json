@@ -793,7 +793,7 @@
           "title_en": "PostgreSQL full-text search + trigram fuzzy search",
           "title_uz": "PostgreSQL full-text + trigram (xato-bardosh) qidiruv",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P1-T6"],
           "description_uz": "icontains o'rniga SearchVector/SearchRank + pg_trgm (xato yozuvga bardosh). title, original_title, description, aktyorlar bo'yicha. SearchVectorField + GIN indeks, signal/Celery bilan yangilanadi. uz/en.",
           "acceptance_criteria": [

@@ -93,11 +93,10 @@ def robots_txt(request):
 def live_search(request):
     query = request.GET.get("q", "").strip()
     if len(query) > 1:
-        movies = (
-            Movie.objects.published()
-            .filter(Q(title__icontains=query) | Q(original_title__icontains=query))
-            .distinct()[:5]
-        )
+        # FTS+trigram (postgres) — prefix-tsquery yozish asnosida ham topadi [P8-T1]
+        from drama.services import search as search_service
+
+        movies = search_service.search_movies(Movie.objects.published(), query)[:5]
 
         results = [
             {
@@ -643,16 +642,12 @@ class Search(GenreYearMixin, ListView):
     paginate_by = 12
 
     def get_queryset(self):
+        # FTS+trigram [P8-T1]: relevantlik tartibi servisdan keladi —
+        # bu yerda qo'shimcha order_by QO'YILMAYDI (rank buzilardi).
+        from drama.services import search as search_service
+
         q = self.request.GET.get("q", "").strip()
-        if not q:
-            return Movie.objects.none()
-        return (
-            Movie.objects.published()
-            .filter(Q(title__icontains=q) | Q(original_title__icontains=q))
-            .distinct()
-            .with_card_data()
-            .order_by("-created_at")
-        )
+        return search_service.search_movies(Movie.objects.published().with_card_data(), q)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -125,10 +125,13 @@ def test_mixin_schedules_task_on_save(django_capture_on_commit_callbacks):
 def test_mixin_no_task_without_image(django_capture_on_commit_callbacks):
     with django_capture_on_commit_callbacks(execute=True) as callbacks:
         Movie.objects.create(title="NoImg", description="x", country="KR")
-    # Rasm yo'q — optimize task rejalashtirilmaydi. Yagona callback [P9-T1]
-    # katalog signalining trending-recompute'i (Movie save -> har doim).
-    assert len(callbacks) == 1
-    assert "recompute_trending_tags" in repr(callbacks[0])
+    # Rasm yo'q — optimize task rejalashtirilmaydi. Movie save har doim 2 ta
+    # on_commit callback beradi: [P9-T1] trending-recompute + [P8-T1] FTS vektor.
+    reprs = repr(callbacks)
+    assert len(callbacks) == 2
+    assert "recompute_trending_tags" in reprs
+    assert "update_search_vector" in reprs
+    assert "optimize_image_task" not in reprs
 
 
 # --- P1-T2: Season modeli ---
@@ -1393,3 +1396,32 @@ def test_movie_reviews_page_no_comment_n_plus_one(client, django_assert_num_quer
     with django_assert_num_queries(4):
         resp = client.get(url)
     assert resp.status_code == 200
+
+
+# --- P8-T1: qidiruv servisi (sqlite FALLBACK yo'li; FTS testlari postgres_tests.py da) ---
+
+
+@pytest.mark.django_db
+def test_search_fallback_finds_title_and_original():
+    """sqlite'da servis icontains fallback bilan title/original_title dan topadi."""
+    from drama.factories import MovieFactory
+    from drama.services.search import search_movies
+
+    hit_title = MovieFactory(title="Qora Sarv")
+    hit_orig = MovieFactory(title="Boshqa nom", original_title="Sarv Story")
+    MovieFactory(title="Aloqasiz film")
+
+    res = list(search_movies(Movie.objects.published(), "sarv"))
+    assert {m.pk for m in res} == {hit_title.pk, hit_orig.pk}
+
+
+@pytest.mark.django_db
+def test_search_short_or_empty_query_returns_none():
+    """<2 belgi — bo'sh natija (live-search dropdown qoidasi bilan bir xil)."""
+    from drama.factories import MovieFactory
+    from drama.services.search import search_movies
+
+    MovieFactory(title="A Film")
+    assert list(search_movies(Movie.objects.published(), "a")) == []
+    assert list(search_movies(Movie.objects.published(), "")) == []
+    assert list(search_movies(Movie.objects.published(), None)) == []

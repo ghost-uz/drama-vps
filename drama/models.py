@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.conf import settings
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -262,6 +263,11 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
         choices=Status.choices,
         default=Status.PUBLISHED,
     )
+    # FTS vektori [P8-T1]: title(uz/en)+original=A, aktyorlar=B, tavsif=C
+    # vaznlar bilan. Yozuvchi FAQAT drama.tasks.update_search_vector (signal ->
+    # on_commit); sqlite (dev/test)da bo'sh qoladi — qidiruv icontains fallback.
+    # GIN indeks va pg_trgm migratsiya 0028'da (vendor-guard bilan).
+    search_vector = SearchVectorField(null=True, editable=False)
     publish_at = models.DateTimeField(
         "Chop etish vaqti",
         null=True,

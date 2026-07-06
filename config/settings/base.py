@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "django.contrib.sitemaps",
+    "django.contrib.postgres",  # FTS SearchVectorField/GIN [P8-T1]
     # Authentication
     "allauth",
     "allauth.account",

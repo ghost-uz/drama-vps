@@ -67,6 +67,12 @@ ignore_errors = true
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = "--strict-markers"
+markers = [
+    # P8-T1: faqat real PostgreSQL talab qiladigan testlar (FTS/trigram).
+    # Lokal: Docker db + DJANGO_SETTINGS_MODULE=config.settings.test_postgres pytest -m postgres
+    # CI: migrations-postgres jobida avtomatik. sqlite'da skipif bilan o'tkaziladi.
+    "postgres: real PostgreSQL kerak (sqlite suite'da skip)",
+]
 # Eslatma: test DB sqlite ":memory:" (config/settings/test.py) — eng tez variant,
 # --reuse-db shunda ma'nosiz. Coverage gate CI'da: `pytest --cov` (P13-T1).
 
@@ -76,11 +82,13 @@ source = ["config", "core", "drama", "users", "funding"]
 omit = [
     "*/migrations/*",
     "*/tests.py",
+    "*/postgres_tests.py",
     "*/factories.py",
     "config/wsgi.py",
     "config/asgi.py",
     "config/settings/dev.py",
     "config/settings/prod.py",
+    "config/settings/test_postgres.py",
 ]
 
 [tool.coverage.report]

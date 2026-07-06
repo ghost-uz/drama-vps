@@ -221,3 +221,39 @@ def recompute_trending_tags() -> int:
     )
     cache.set(catalog_key("trending_tags"), tags, 60 * 60 * 24)
     return len(tags)
+
+
+@shared_task
+def update_search_vector(movie_id: int) -> bool:
+    """Movie.search_vector'ni qayta quradi [P8-T1] (signal -> on_commit -> shu task).
+
+    Vaznlar: A=title(uz/en)+original, B=aktyor ismlari, C=tavsif(uz/en).
+    config='simple' — postgres'da o'zbekcha stemmer yo'q; so'zma-so'z indeks +
+    trigram (xato-bardosh) kombinatsiyasi to'g'ri natija beradi.
+    queryset.update() ishlatiladi -> post_save QAYTA otilmaydi (loop yo'q).
+    sqlite (dev/test fallback)da no-op.
+    """
+    from django.db import connection
+
+    if connection.vendor != "postgresql":
+        return False
+
+    from django.contrib.postgres.search import SearchVector
+    from django.db.models import Value
+
+    from drama.models import Movie
+
+    movie = Movie.objects.filter(pk=movie_id).first()
+    if movie is None:
+        return False
+
+    actors_text = " ".join(movie.actors.order_by("name").values_list("name", flat=True))
+    vector = (
+        SearchVector("title", "title_uz", "title_en", "original_title", weight="A", config="simple")
+        + SearchVector(Value(actors_text), weight="B", config="simple")
+        + SearchVector(
+            "description", "description_uz", "description_en", weight="C", config="simple"
+        )
+    )
+    Movie.objects.filter(pk=movie_id).update(search_vector=vector)
+    return True
