@@ -670,7 +670,7 @@
           "title_en": "Email verification ON + strong password policy + login rate-limit",
           "title_uz": "Email tasdiqlash + kuchli parol + login rate-limit",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P3-T3"],
           "description_uz": "ACCOUNT_EMAIL_VERIFICATION 'none' -> 'mandatory' (yoki optional + tasdiqlangan belgisi). Parol min_length 3 -> 8 + validatorlar. django-ratelimit/allauth bilan login urinishlarini cheklash.",
           "acceptance_criteria": [
