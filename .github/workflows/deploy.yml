@@ -1,0 +1,87 @@
+# ==============================================================================
+# CD [P13-T2] — image'ni GHCR'ga build+push, keyin serverga SSH orqali deploy.
+#
+# Ishga tushirish:
+#   - Qo'lda: Actions -> Deploy -> Run workflow (ixtiyoriy image_tag)
+#   - Avtomatik: `v*` teg push qilinganda (release)
+#
+# Kerakli sirlar (Settings -> Secrets and variables -> Actions):
+#   SSH_HOST, SSH_USER, SSH_KEY  — server ulanishi
+#   DEPLOY_PATH                  — serverda repo yo'li (compose+scripts+.env)
+# Sirlarsiz build+push ishlaydi, deploy jobи esa aniq xato bilan to'xtaydi.
+# Batafsil: docs/ops/deploy.md
+# ==============================================================================
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Deploy qilinadigan image tegi (bo'sh -> commit SHA)"
+        required: false
+        default: ""
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false # deploy'ni yarmida uzmaymiz
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/drama-web
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GHCR'ga push
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Image tegini aniqlash
+        id: meta
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          [ -z "$TAG" ] && TAG="${GITHUB_SHA::12}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: GHCR login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build va push (SHA + latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sirlar borligini tekshirish
+        run: |
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "::error::SSH_HOST/SSH_USER/SSH_KEY/DEPLOY_PATH sirlari sozlanmagan — deploy o'tkazib yuborildi."
+            exit 1
+          fi
+      - name: Serverga SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd "${{ secrets.DEPLOY_PATH }}"
+            git pull --ff-only
+            export IMAGE_NAME="${{ env.IMAGE_NAME }}"
+            ./scripts/deploy.sh "${{ needs.build-push.outputs.tag }}"

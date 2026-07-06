@@ -1,0 +1,46 @@
+# ==============================================================================
+# Prod CD override [P13-T2] — registry image + AJRATILGAN migratsiya.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml <buyruq>
+#
+# Zero-downtime tamoyili:
+#   1) migratsiya + collectstatic ALOHIDA bir martalik `migrate` servisida
+#      (web startup'iga bog'liq EMAS) -> eski web ishlab turgan holda bajariladi
+#      (migratsiyalar backward-compatible = expand/contract bo'lishi SHART);
+#   2) keyin web qayta yaratiladi, /healthz sog'lom bo'lgach nginx trafik beradi.
+# Batafsil: docs/ops/deploy.md
+# ==============================================================================
+
+x-prod-env: &prod-env
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  DB_HOST: db
+  DB_PORT: "5432"
+  REDIS_URL: redis://redis:6379/1
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+services:
+  # Web migratsiya QILMAYDI (ajratildi) — faqat gunicorn ishlaydi.
+  web:
+    environment:
+      <<: *prod-env
+      RUN_MIGRATIONS: "0"
+      COLLECTSTATIC: "0"
+
+  # Bir martalik migratsiya + collectstatic. `up` bilan AVTO ishga tushmaydi
+  # (profiles: tools) — deploy skripti `run --rm migrate` bilan chaqiradi.
+  migrate:
+    image: ${IMAGE_NAME:-drama-web}:${IMAGE_TAG:-latest}
+    profiles: ["tools"]
+    restart: "no"
+    env_file: .env
+    environment:
+      <<: *prod-env
+    command: >-
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput"
+    volumes:
+      - staticfiles:/app/staticfiles
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy

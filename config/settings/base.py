@@ -4,7 +4,7 @@ config/settings/base.py — barcha muhitlar uchun umumiy sozlamalar.
 Muhitga xos qismlar: dev.py, prod.py, test.py (ular bu fayldan import qiladi).
 Faol sozlama DJANGO_SETTINGS_MODULE orqali tanlanadi:
   - manage.py            -> config.settings.dev (default)
-  - wsgi/asgi/passenger  -> config.settings.prod (default)
+  - wsgi/asgi (gunicorn) -> config.settings.prod (default)
   - testlar              -> config.settings.test
 """
 

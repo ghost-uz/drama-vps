@@ -9,6 +9,7 @@ staticfiles/
 media/
 node_modules
 drama-key-v2.json
+.deploy/          # deploy holati (current_tag/previous_tag) — serverga xos [P13-T2]
 
 # --- Sirlar / kalitlar (HECH QACHON commit qilinmasin) ---
 *.key.json

@@ -1105,7 +1105,7 @@
           "title_en": "CD: zero-downtime deploy, migrations, collectstatic, rollback",
           "title_uz": "CD: zero-downtime deploy, migratsiya, rollback",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P13-T1", "P0-T6"],
           "description_uz": "Deploy avtomatlashtirish (compose/registry). Migratsiya xavfsiz tartibi, collectstatic, healthcheck'dan keyin trafik. Rollback rejasi. Passenger o'rniga gunicorn/uvicorn + nginx.",
           "acceptance_criteria": [

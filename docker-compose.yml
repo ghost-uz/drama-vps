@@ -18,10 +18,13 @@ x-django-env: &django-env
   CELERY_BROKER_URL: redis://redis:6379/0
   CELERY_RESULT_BACKEND: redis://redis:6379/2
 
+# Image nomi+tegi: dev'da `build` shu nom bilan teglaydi; prod CD'da registry
+# image'ini pull qiladi (IMAGE_NAME=ghcr.io/... IMAGE_TAG=<sha> .env orqali) [P13-T2].
 x-app-build: &app-build
   build:
     context: .
     target: runtime
+  image: ${IMAGE_NAME:-drama-web}:${IMAGE_TAG:-latest}
 
 services:
   db:
