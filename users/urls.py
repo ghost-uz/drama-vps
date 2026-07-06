@@ -78,6 +78,7 @@ urlpatterns = [
     path("topup/", user_views.topup_view, name="topup"),
     path("topup/crypto/", user_views.crypto_topup_view, name="crypto_topup"),
     path("subscription/", user_views.subscription_view, name="subscription"),
+    path("subscription/auto-renew/", user_views.toggle_auto_renew, name="toggle_auto_renew"),
     path("buy-vip/", user_views.buy_premium, name="buy_premium"),
     path("transactions/", user_views.transactions_view, name="transactions"),
 ]

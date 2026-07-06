@@ -351,3 +351,79 @@ class CoinTransaction(models.Model):
     def __str__(self):
         sign = "+" if self.amount >= 0 else ""
         return f"{self.profile.user.username}: {sign}{self.amount} ({self.get_type_display()})"
+
+
+class SubscriptionPlan(models.Model):
+    """Obuna rejasi — admin boshqaradi [P7-T1].
+
+    Reja o'chirilmaydi (Subscription.plan PROTECT) — sotuvdan olish uchun
+    is_active=False qilinadi; tarixiy obunalar va ledger narxlari saqlanadi.
+    """
+
+    name = models.CharField("Nomi", max_length=100)
+    price_coins = models.PositiveIntegerField("Narxi (Coin)")
+    duration_days = models.PositiveIntegerField("Davomiyligi (kun)")
+    perks = models.TextField("Imtiyozlar (har qatorda bittadan)", blank=True)
+    is_active = models.BooleanField("Sotuvda", default=True)
+    sort_order = models.PositiveSmallIntegerField("Tartib", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "price_coins"]
+        verbose_name = "Obuna rejasi"
+        verbose_name_plural = "Obuna rejalari"
+
+    def __str__(self):
+        return f"{self.name} — {self.price_coins} Coin / {self.duration_days} kun"
+
+    @property
+    def perks_list(self) -> list[str]:
+        """Shablon uchun: perks matnini qatorlarga bo'lib beradi."""
+        return [line.strip() for line in self.perks.splitlines() if line.strip()]
+
+
+class Subscription(models.Model):
+    """Foydalanuvchi obunasi — premium holatning HAQIQAT MANBAI [P7-T1].
+
+    Profile.is_premium/premium_until KESH: gating (playback) va shablonlar
+    O(1) o'qiydi; users/services/subscriptions.py har o'zgarishda sinxronlaydi.
+    Obunasiz legacy premium (admin qo'lda bergan) o'z holicha ishlayveradi.
+    end_at=None — muddatsiz (admin sovg'asi).
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Aktiv"
+        EXPIRED = "expired", "Muddati tugagan"
+        CANCELED = "canceled", "Bekor qilingan"
+
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="subscriptions")
+    plan = models.ForeignKey(
+        SubscriptionPlan, on_delete=models.PROTECT, related_name="subscriptions"
+    )
+    status = models.CharField(
+        "Holati", max_length=10, choices=Status.choices, default=Status.ACTIVE
+    )
+    start_at = models.DateTimeField("Boshlanishi")
+    end_at = models.DateTimeField("Tugashi", null=True, blank=True)
+    auto_renew = models.BooleanField("Avto-uzaytirish (balansdan)", default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        # Beat sweep (status + end_at) tez ishlashi uchun
+        indexes = [models.Index(fields=["status", "end_at"])]
+        # Invariant: bitta profilda bir vaqtda faqat bitta ACTIVE obuna
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile"],
+                condition=models.Q(status="active"),
+                name="unique_active_subscription_per_profile",
+            )
+        ]
+        verbose_name = "Obuna"
+        verbose_name_plural = "Obunalar"
+
+    def __str__(self):
+        return f"{self.profile.user.username} — {self.plan.name} ({self.get_status_display()})"

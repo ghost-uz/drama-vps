@@ -13,18 +13,45 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def expire_premium() -> int:
-    """Muddati o'tgan premiumni o'chiradi (is_premium=False)."""
+    """Muddati o'tgan obunalarni yopadi/uzaytiradi + legacy premiumni o'chiradi [P7-T1].
+
+    1) ACTIVE obuna end_at < now: auto_renew bo'lsa balansdan uzaytiradi,
+       aks holda EXPIRED (profil keshi ham sinxronlanadi).
+    2) Legacy (obunasiz, admin qo'lda bergan) premium_until o'tganlar —
+       eski xatti-harakat saqlanadi: is_premium=False.
+    """
     from django.utils import timezone
 
-    from users.models import Profile
+    from users.models import Profile, Subscription
+    from users.services import subscriptions
 
-    count = Profile.objects.filter(
+    now = timezone.now()
+    count = 0
+    stale = Subscription.objects.filter(
+        status=Subscription.Status.ACTIVE, end_at__isnull=False, end_at__lt=now
+    ).select_related("profile", "plan")
+    renewed = expired = 0
+    for sub in stale:
+        result = subscriptions.close_or_renew(sub)
+        renewed += result == "renewed"
+        expired += result == "expired"
+    count = renewed + expired
+
+    legacy = Profile.objects.filter(
         is_premium=True,
         premium_until__isnull=False,
-        premium_until__lt=timezone.now(),
-    ).update(is_premium=False)
+        premium_until__lt=now,
+    ).exclude(subscriptions__status=Subscription.Status.ACTIVE)
+    legacy_count = legacy.update(is_premium=False)
+    count += legacy_count
+
     if count:
-        logger.info("expire_premium: %d profil premiumi tugadi", count)
+        logger.info(
+            "expire_premium: %d uzaytirildi, %d yopildi, %d legacy o'chirildi",
+            renewed,
+            expired,
+            legacy_count,
+        )
     return count
 
 

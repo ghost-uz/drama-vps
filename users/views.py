@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -7,7 +6,6 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 
 from core.ratelimit import ip_key, rate, user_or_ip_key
@@ -21,8 +19,14 @@ from .forms import (
     UserRegisterForm,
     UserUpdateForm,
 )
-from .models import CoinTransaction, CryptoTopUpRequest, TopUpRequest, UserMovieList
-from .services import email_verification, wallet
+from .models import (
+    CoinTransaction,
+    CryptoTopUpRequest,
+    SubscriptionPlan,
+    TopUpRequest,
+    UserMovieList,
+)
+from .services import email_verification, subscriptions, wallet
 
 logger = logging.getLogger(__name__)
 
@@ -242,11 +246,17 @@ def settings_view(request):
 
 
 def subscription_view(request):
+    """Obuna sahifasi — rejalar DB'dan (admin boshqaradi) [P7-T1]."""
+    plans = SubscriptionPlan.objects.filter(is_active=True)
+    current_sub = None
+    if request.user.is_authenticated:
+        current_sub = subscriptions.active_subscription(request.user.profile)
     return render(
         request,
         "pages/subscription.html",
         {
-            "vip_price": 15,
+            "plans": plans,
+            "current_sub": current_sub,
             "title": "VIP Obuna - Premium imkoniyatlar",
         },
     )
@@ -255,45 +265,54 @@ def subscription_view(request):
 @login_required
 @ratelimit(key=user_or_ip_key, rate=rate, group="premium", method="POST", block=True)
 def buy_premium(request):
+    """Reja-asosli obuna xaridi [P7-T1] — mantiq services/subscriptions.py da.
+
+    POST'da `plan` (pk) ixtiyoriy: berilmasa birinchi aktiv reja (eski
+    bir-tugmali forma bilan moslik saqlanadi).
+    """
     if request.method == "POST":
-        VIP_PRICE_1_MONTH = 15
-        profile = request.user.profile
+        plan_id = request.POST.get("plan")
+        plans = SubscriptionPlan.objects.filter(is_active=True)
+        plan = plans.filter(pk=plan_id).first() if plan_id else plans.first()
+
+        if plan is None:
+            messages.error(request, "Obuna rejasi topilmadi yoki sotuvda emas.")
+            return redirect("users:subscription")
 
         try:
-            with transaction.atomic():
-                # Ledger orqali debet — balans yetmasa InsufficientFundsError
-                wallet.debit(
-                    profile,
-                    VIP_PRICE_1_MONTH,
-                    CoinTransaction.Type.VIP,
-                    description="1 oylik VIP obuna",
-                )
-
-                now = timezone.now()
-                if profile.is_premium and profile.premium_until:
-                    if isinstance(profile.premium_until, datetime):
-                        is_active = profile.premium_until > now
-                    else:
-                        is_active = profile.premium_until > now.date()
-
-                    if is_active:
-                        profile.premium_until += timedelta(days=30)
-                    else:
-                        profile.premium_until = now + timedelta(days=30)
-                else:
-                    profile.premium_until = now + timedelta(days=30)
-
-                profile.is_premium = True
-                # balance allaqachon wallet.debit() ichida saqlangan
-                profile.save(update_fields=["is_premium", "premium_until"])
-
-            messages.success(request, "Tabriklaymiz! VIP obuna muvaffaqiyatli xarid qilindi 👑")
+            subscriptions.purchase(
+                request.user.profile,
+                plan,
+                auto_renew=request.POST.get("auto_renew") == "on",
+            )
+            messages.success(
+                request, f"Tabriklaymiz! {plan.name} obunasi muvaffaqiyatli xarid qilindi 👑"
+            )
         except wallet.InsufficientFundsError:
             messages.error(
-                request, f"Hisobingizda mablag' yetarli emas! VIP narxi: {VIP_PRICE_1_MONTH} Coin."
+                request, f"Hisobingizda mablag' yetarli emas! Narxi: {plan.price_coins} Coin."
             )
+        except subscriptions.LifetimeSubscriptionError:
+            messages.info(request, "Sizda muddatsiz VIP mavjud — xarid shart emas.")
 
     return redirect("users:profile", username=request.user.username)
+
+
+@login_required
+def toggle_auto_renew(request):
+    """Aktiv obunada avto-uzaytirishni yoqish/o'chirish [P7-T1]."""
+    if request.method != "POST":
+        return redirect("users:subscription")
+
+    sub = subscriptions.active_subscription(request.user.profile)
+    if sub is None:
+        messages.error(request, "Sizda aktiv obuna yo'q.")
+    else:
+        sub.auto_renew = not sub.auto_renew
+        sub.save(update_fields=["auto_renew", "updated_at"])
+        holat = "yoqildi" if sub.auto_renew else "o'chirildi"
+        messages.success(request, f"Avto-uzaytirish {holat}.")
+    return redirect("users:subscription")
 
 
 @login_required

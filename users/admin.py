@@ -7,7 +7,14 @@ from unfold.admin import ModelAdmin, StackedInline
 # MANA SHU QATORNI QO'SHING:
 from unfold.decorators import display
 
-from .models import CoinTransaction, CryptoTopUpRequest, Profile, TopUpRequest
+from .models import (
+    CoinTransaction,
+    CryptoTopUpRequest,
+    Profile,
+    Subscription,
+    SubscriptionPlan,
+    TopUpRequest,
+)
 
 
 class ProfileInline(StackedInline):
@@ -152,3 +159,48 @@ class CoinTransactionAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(ModelAdmin):
+    """Obuna rejalari — narx/muddat/imtiyozlar admin'da boshqariladi [P7-T1]."""
+
+    list_display = ["name", "price_coins", "duration_days", "is_active", "sort_order"]
+    list_filter = ["is_active"]
+    search_fields = ["name"]
+    ordering = ["sort_order", "price_coins"]
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(ModelAdmin):
+    """Obunalar — holat/muddat nazorati; bekor qilish keshni ham sinxronlaydi [P7-T1]."""
+
+    list_display = ["profile", "plan", "get_status", "start_at", "end_at", "auto_renew"]
+    list_filter = ["status", "auto_renew", "plan"]
+    search_fields = ["profile__user__username", "profile__user__email"]
+    list_select_related = ["profile__user", "plan"]
+    readonly_fields = ["created_at", "updated_at"]
+    actions = ["cancel_subscriptions"]
+
+    @admin.display(description="Holati")
+    def get_status(self, obj):
+        colors = {
+            "active": "bg-green-500 text-white",
+            "expired": "bg-gray-500 text-white",
+            "canceled": "bg-red-500 text-white",
+        }
+        css = colors.get(obj.status, "bg-yellow-500 text-black")
+        return mark_safe(  # noqa: S308 — statik matn, foydalanuvchi kiritmasi emas
+            f'<span class="{css} px-2 py-1 rounded text-xs font-bold">'
+            f"{obj.get_status_display()}</span>"
+        )
+
+    @admin.action(description="BEKOR QILISH (coin qaytarilmaydi, kesh sinxronlanadi)")
+    def cancel_subscriptions(self, request, queryset):
+        from users.services import subscriptions
+
+        count = 0
+        for sub in queryset.filter(status=Subscription.Status.ACTIVE).select_related("profile"):
+            subscriptions.cancel(sub)
+            count += 1
+        self.message_user(request, f"{count} ta obuna bekor qilindi.")

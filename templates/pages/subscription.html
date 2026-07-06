@@ -90,58 +90,86 @@
                 </div>
             </div>
 
-            <div class="glass-card-premium rounded-[3rem] p-8 md:p-12 relative text-center transform hover:scale-[1.02] transition-transform duration-500">
-                <div class="absolute top-0 left-0 w-full h-2 gold-gradient"></div>
-
-                <h3 class="text-gray-400 font-bold uppercase tracking-widest text-sm mb-4">30 Kunlik Obuna</h3>
-                <div class="flex items-end justify-center gap-2 mb-8">
-                    <span class="text-6xl md:text-7xl font-black text-white leading-none">{{ vip_price }}</span>
-                    <span class="text-yellow-500 font-bold text-xl mb-2">Coin</span>
-                </div>
-
-                {% if user.is_authenticated %}
-
-                    {% if user.profile.is_currently_premium %}
-                        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
-                            <p class="text-sm text-gray-400 mb-1">Sizda VIP mavjud.</p>
-                            <p class="text-white font-bold">Amal qiladi: <span class="text-yellow-500">{{ user.profile.premium_until|date:"d M Y" }}</span></p>
-                        </div>
-                    {% else %}
-                        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8 flex justify-between items-center">
-                            <span class="text-gray-400 font-bold text-sm">Shaxsiy balansingiz:</span>
-                            <span class="text-lg font-black {% if user.profile.balance >= vip_price %}text-[#00cc4c]{% else %}text-red-500{% endif %}">
-                                {{ user.profile.balance }} Coin
-                            </span>
-                        </div>
-                    {% endif %}
-
-                    {% if user.profile.balance >= vip_price %}
-                        <form action="{% url 'users:buy_premium' %}" method="POST">
+            <div class="space-y-8">
+                {# Aktiv obuna holati [P7-T1] #}
+                {% if current_sub %}
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                        <p class="text-sm text-gray-400 mb-1">Sizda VIP mavjud.</p>
+                        {% if current_sub.end_at %}
+                            <p class="text-white font-bold">Amal qiladi: <span class="text-yellow-500">{{ current_sub.end_at|date:"d M Y" }}</span></p>
+                        {% else %}
+                            <p class="text-white font-bold"><span class="text-yellow-500">Muddatsiz</span></p>
+                        {% endif %}
+                        <form action="{% url 'users:toggle_auto_renew' %}" method="POST" class="mt-3">
                             {% csrf_token %}
-                            <button type="submit" class="w-full py-5 gold-gradient text-black font-black text-lg uppercase tracking-widest rounded-2xl shadow-[0_10px_30px_rgba(255,215,0,0.3)] hover:shadow-[0_15px_40px_rgba(255,215,0,0.5)] transition-all">
-                                {% if user.profile.is_currently_premium %}Muddati Uzaytirish{% else %}Sotib Olish{% endif %}
+                            <button type="submit" class="text-xs text-gray-400 underline hover:text-yellow-500 transition-colors">
+                                Avto-uzaytirishni {% if current_sub.auto_renew %}o'chirish{% else %}yoqish{% endif %}
                             </button>
                         </form>
-                    {% else %}
-                        <div class="space-y-3">
-                            <p class="text-red-400 text-xs font-bold uppercase tracking-widest"><i class="fas fa-exclamation-circle"></i> Hisobingizda Coin yetarli emas</p>
-                            <a href="{% url 'users:topup' %}" class="block w-full py-5 bg-white/10 text-white font-black text-sm uppercase tracking-widest rounded-2xl border border-white/20 hover:bg-white/20 transition-all">
-                                Hisobni To'ldirish
-                            </a>
-                        </div>
-                    {% endif %}
-
-                {% else %}
-                    <div class="space-y-4 mb-2">
-                        <p class="text-gray-400 text-sm">1 coin == 1 000 uzs</p>
-                        <p class="text-gray-400 text-sm">Xaridni amalga oshirish uchun tizimga kiring.</p>
-                        <a href="{% url 'users:login' %}" class="block w-full py-5 bg-[#00cc4c] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-[0_10px_30px_rgba(0,204,76,0.3)] transition-all">
-                            Saytga Kirish
-                        </a>
+                    </div>
+                {% elif user.is_authenticated %}
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex justify-between items-center">
+                        <span class="text-gray-400 font-bold text-sm">Shaxsiy balansingiz:</span>
+                        <span class="text-lg font-black text-white">{{ user.profile.balance }} Coin</span>
                     </div>
                 {% endif %}
 
-                <p class="text-[10px] text-gray-500 mt-6 uppercase tracking-widest">Xarid qilingan coinlar qaytarilmaydi.</p>
+                {# Rejalar DB'dan — admin boshqaradi [P7-T1] #}
+                {% for plan in plans %}
+                    <div class="glass-card-premium rounded-[3rem] p-8 md:p-10 relative text-center transform hover:scale-[1.02] transition-transform duration-500">
+                        <div class="absolute top-0 left-0 w-full h-2 gold-gradient"></div>
+
+                        <h3 class="text-gray-400 font-bold uppercase tracking-widest text-sm mb-4">{{ plan.name }} — {{ plan.duration_days }} kun</h3>
+                        <div class="flex items-end justify-center gap-2 mb-6">
+                            <span class="text-6xl font-black text-white leading-none">{{ plan.price_coins }}</span>
+                            <span class="text-yellow-500 font-bold text-xl mb-2">Coin</span>
+                        </div>
+
+                        {% if plan.perks_list %}
+                            <ul class="text-sm text-gray-400 space-y-1 mb-6">
+                                {% for perk in plan.perks_list %}
+                                    <li><i class="fas fa-check text-yellow-500 mr-1"></i>{{ perk }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+
+                        {% if user.is_authenticated %}
+                            {% if user.profile.balance >= plan.price_coins %}
+                                <form action="{% url 'users:buy_premium' %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="plan" value="{{ plan.pk }}">
+                                    <label class="flex items-center justify-center gap-2 text-xs text-gray-400 mb-4 cursor-pointer">
+                                        <input type="checkbox" name="auto_renew" class="accent-yellow-500"> Avto-uzaytirish (balansdan)
+                                    </label>
+                                    <button type="submit" class="w-full py-5 gold-gradient text-black font-black text-lg uppercase tracking-widest rounded-2xl shadow-[0_10px_30px_rgba(255,215,0,0.3)] hover:shadow-[0_15px_40px_rgba(255,215,0,0.5)] transition-all">
+                                        {% if current_sub %}Muddatni Uzaytirish{% else %}Sotib Olish{% endif %}
+                                    </button>
+                                </form>
+                            {% else %}
+                                <div class="space-y-3">
+                                    <p class="text-red-400 text-xs font-bold uppercase tracking-widest"><i class="fas fa-exclamation-circle"></i> Hisobingizda Coin yetarli emas</p>
+                                    <a href="{% url 'users:topup' %}" class="block w-full py-5 bg-white/10 text-white font-black text-sm uppercase tracking-widest rounded-2xl border border-white/20 hover:bg-white/20 transition-all">
+                                        Hisobni To'ldirish
+                                    </a>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <a href="{% url 'users:login' %}" class="block w-full py-5 bg-[#00cc4c] text-black font-black text-sm uppercase tracking-widest rounded-2xl shadow-[0_10px_30px_rgba(0,204,76,0.3)] transition-all">
+                                Saytga Kirish
+                            </a>
+                        {% endif %}
+
+                        <p class="text-[10px] text-gray-500 mt-6 uppercase tracking-widest">Xarid qilingan coinlar qaytarilmaydi.</p>
+                    </div>
+                {% empty %}
+                    <div class="glass-card-premium rounded-[3rem] p-10 text-center">
+                        <p class="text-gray-400">Hozircha sotuvda obuna rejalari yo'q.</p>
+                    </div>
+                {% endfor %}
+
+                {% if not user.is_authenticated %}
+                    <p class="text-gray-400 text-sm text-center">1 coin = 1 000 UZS. Xarid uchun tizimga kiring.</p>
+                {% endif %}
             </div>
 
         </div>

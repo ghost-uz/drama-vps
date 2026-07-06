@@ -723,7 +723,7 @@
           "title_en": "Subscription plans & VIP tiers model",
           "title_uz": "Obuna rejalari va VIP darajalar modeli",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P1-T4"],
           "description_uz": "SubscriptionPlan(name, price, duration, perks) va Subscription(user, plan, start, end, status, auto_renew). Hozir is_premium/premium_until bool — buni reja asosli tizimga ko'tarish.",
           "acceptance_criteria": [

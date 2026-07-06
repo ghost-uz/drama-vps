@@ -641,3 +641,250 @@ def test_verification_templates_render(client):
     resp = client.get(reverse("users:login"))
     assert "password-reset" in resp.content.decode()
     cache.clear()
+
+
+# --- P7-T1: reja-asosli obuna (SubscriptionPlan/Subscription) ---
+
+
+def _plan(price=15, days=30, **kwargs):
+    from users.models import SubscriptionPlan
+
+    return SubscriptionPlan.objects.create(
+        name=kwargs.pop("name", f"Test reja {price}"),
+        price_coins=price,
+        duration_days=days,
+        **kwargs,
+    )
+
+
+@pytest.mark.django_db
+def test_purchase_creates_active_subscription():
+    """Xarid: ACTIVE obuna + ledger VIP debet + profil keshi sinxron."""
+    from users.models import Subscription
+    from users.services import subscriptions
+
+    user = _user("obunachi", balance=100)
+    plan = _plan(price=20, days=30)
+    sub = subscriptions.purchase(user.profile, plan)
+
+    assert sub.status == Subscription.Status.ACTIVE
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 80
+    assert user.profile.is_premium is True
+    assert user.profile.premium_until == sub.end_at
+    txn = CoinTransaction.objects.get(profile=user.profile, type="vip")
+    assert txn.amount == -20
+    assert txn.reference == f"subscription:{sub.pk}"
+
+
+@pytest.mark.django_db
+def test_purchase_insufficient_is_atomic():
+    """Balans yetmasa HECH NARSA yozilmaydi (obuna qatori ham)."""
+    from users.models import Subscription
+    from users.services import subscriptions, wallet
+
+    user = _user("kambagal", balance=5)
+    plan = _plan(price=20)
+    with pytest.raises(wallet.InsufficientFundsError):
+        subscriptions.purchase(user.profile, plan)
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 5
+    assert user.profile.is_premium is False
+    assert not Subscription.objects.filter(profile=user.profile).exists()
+
+
+@pytest.mark.django_db
+def test_purchase_extends_active_subscription():
+    """Aktiv obunada qayta xarid — YANGI qator emas, end_at uzayadi (eski semantika)."""
+    from users.models import Subscription
+    from users.services import subscriptions
+
+    user = _user("uzaytiruvchi", balance=100)
+    plan = _plan(price=10, days=30)
+    first = subscriptions.purchase(user.profile, plan)
+    second = subscriptions.purchase(user.profile, plan)
+
+    assert first.pk == second.pk
+    assert Subscription.objects.filter(profile=user.profile).count() == 1
+    assert (second.end_at - second.start_at).days == 60
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 80
+    assert user.profile.premium_until == second.end_at
+
+
+@pytest.mark.django_db
+def test_purchase_lifetime_blocked():
+    """Muddatsiz (end_at=None) obunada xarid rad — coin yechilmaydi."""
+    from django.utils import timezone
+
+    from users.models import Subscription
+    from users.services import subscriptions
+
+    user = _user("cheksiz", balance=100)
+    plan = _plan()
+    Subscription.objects.create(
+        profile=user.profile, plan=plan, start_at=timezone.now(), end_at=None
+    )
+    with pytest.raises(subscriptions.LifetimeSubscriptionError):
+        subscriptions.purchase(user.profile, plan)
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 100
+    assert not CoinTransaction.objects.filter(profile=user.profile, type="vip").exists()
+
+
+@pytest.mark.django_db
+def test_expire_beat_closes_expired_subscription():
+    """Beat: muddati o'tgan ACTIVE -> EXPIRED, profil keshi tozalanadi."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from users.models import Subscription
+    from users.tasks import expire_premium
+
+    user = _user("tugagan")
+    plan = _plan(price=15)
+    now = timezone.now()
+    Subscription.objects.create(
+        profile=user.profile,
+        plan=plan,
+        start_at=now - timedelta(days=31),
+        end_at=now - timedelta(days=1),
+    )
+    user.profile.is_premium = True
+    user.profile.premium_until = now - timedelta(days=1)
+    user.profile.save(update_fields=["is_premium", "premium_until"])
+
+    assert expire_premium() == 1
+    sub = Subscription.objects.get(profile=user.profile)
+    assert sub.status == Subscription.Status.EXPIRED
+    user.profile.refresh_from_db()
+    assert user.profile.is_premium is False
+    assert user.profile.premium_until is None
+
+
+@pytest.mark.django_db
+def test_expire_beat_auto_renews_with_balance():
+    """Beat + auto_renew + balans yetarli: davr UZLUKSIZ uzayadi, debet ledgerda."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from users.models import Subscription
+    from users.tasks import expire_premium
+
+    user = _user("avto", balance=50)
+    plan = _plan(price=15, days=30)
+    now = timezone.now()
+    old_end = now - timedelta(hours=2)
+    Subscription.objects.create(
+        profile=user.profile,
+        plan=plan,
+        start_at=now - timedelta(days=30),
+        end_at=old_end,
+        auto_renew=True,
+    )
+
+    assert expire_premium() == 1
+    sub = Subscription.objects.get(profile=user.profile)
+    assert sub.status == Subscription.Status.ACTIVE
+    assert sub.end_at == old_end + timedelta(days=30)
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 35
+    assert user.profile.is_premium is True
+    assert user.profile.premium_until == sub.end_at
+    txn = CoinTransaction.objects.get(profile=user.profile, type="vip")
+    assert txn.amount == -15
+
+
+@pytest.mark.django_db
+def test_expire_beat_expires_when_balance_insufficient():
+    """Beat + auto_renew, balans YETMASA: EXPIRED, balans o'zgarmaydi."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from users.models import Subscription
+    from users.tasks import expire_premium
+
+    user = _user("pulsiz", balance=5)
+    plan = _plan(price=15)
+    now = timezone.now()
+    Subscription.objects.create(
+        profile=user.profile,
+        plan=plan,
+        start_at=now - timedelta(days=30),
+        end_at=now - timedelta(hours=1),
+        auto_renew=True,
+    )
+
+    assert expire_premium() == 1
+    sub = Subscription.objects.get(profile=user.profile)
+    assert sub.status == Subscription.Status.EXPIRED
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 5
+    assert user.profile.is_premium is False
+
+
+@pytest.mark.django_db
+def test_expire_beat_legacy_profile_without_subscription():
+    """Obunasiz legacy premium — eski xatti-harakat saqlangan: muddat o'tsa o'chadi."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from users.tasks import expire_premium
+
+    user = _user("legacy")
+    user.profile.is_premium = True
+    user.profile.premium_until = timezone.now() - timedelta(days=1)
+    user.profile.save(update_fields=["is_premium", "premium_until"])
+
+    assert expire_premium() == 1
+    user.profile.refresh_from_db()
+    assert user.profile.is_premium is False
+
+
+@pytest.mark.django_db
+def test_buy_premium_view_plan_and_auto_renew(client):
+    """POST plan+auto_renew: tanlangan reja bo'yicha obuna, flag saqlanadi."""
+    from users.models import Subscription
+
+    user = _user("tanlagan", balance=100)
+    client.force_login(user)
+    plan = _plan(price=40, days=90, name="VIP 3 oy")
+    resp = client.post(reverse("users:buy_premium"), {"plan": plan.pk, "auto_renew": "on"})
+    assert resp.status_code == 302
+    sub = Subscription.objects.get(profile=user.profile)
+    assert sub.plan == plan
+    assert sub.auto_renew is True
+    user.profile.refresh_from_db()
+    assert user.profile.balance == 60
+    assert user.profile.is_premium is True
+
+
+@pytest.mark.django_db
+def test_subscription_page_lists_plans(client):
+    """Sahifa rejalarni DB'dan ko'rsatadi (seed 'VIP 1 oy' ham) — render smoke."""
+    _plan(name="Maxsus reja", price=25)
+    resp = client.get(reverse("users:subscription"))
+    assert resp.status_code == 200
+    body = resp.content.decode()
+    assert "Maxsus reja" in body
+    assert "VIP 1 oy" in body  # 0015 seed migratsiyasidan
+
+
+@pytest.mark.django_db
+def test_toggle_auto_renew_view(client):
+    """Aktiv obunada avto-uzaytirish POST bilan almashtiriladi."""
+    from users.models import Subscription
+    from users.services import subscriptions
+
+    user = _user("toggler", balance=50)
+    client.force_login(user)
+    plan = _plan(price=10)
+    subscriptions.purchase(user.profile, plan)
+
+    resp = client.post(reverse("users:toggle_auto_renew"))
+    assert resp.status_code == 302
+    assert Subscription.objects.get(profile=user.profile).auto_renew is True
