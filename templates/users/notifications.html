@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Bildirishnomalar | Drama.uz{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-[#050505] text-white py-12 px-4 md:px-8">
+  <div class="max-w-3xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+        <span class="w-1.5 h-7 bg-[#00cc4c] rounded-full"></span>
+        Bildirishnomalar
+      </h1>
+      {% if page_obj.object_list %}
+      <form action="{% url 'users:notifications_read_all' %}" method="post">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-[#00cc4c] transition-colors">
+          <i class="fas fa-check-double mr-1"></i> Barchasini o'qildi
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="space-y-3">
+      {% for n in page_obj %}
+      <form action="{% url 'users:notification_read' n.pk %}" method="post" class="block">
+        {% csrf_token %}
+        <button type="submit"
+                class="w-full text-left flex items-start gap-4 p-4 rounded-2xl border transition-all
+                {% if n.is_read %}bg-[#0f0f0f] border-white/5 text-gray-400{% else %}bg-[#0f1a12] border-[#00cc4c]/30 hover:border-[#00cc4c]/60{% endif %}">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+              {% if n.is_read %}bg-white/5 text-gray-500{% else %}bg-[#00cc4c]/15 text-[#00cc4c]{% endif %}">
+            <i class="fas {% if n.kind == 'topup' %}fa-coins{% elif n.kind == 'follow' %}fa-user-plus{% elif n.kind == 'new_episode' %}fa-play{% elif n.kind == 'subscription' %}fa-crown{% elif n.kind == 'reply' %}fa-reply{% else %}fa-bell{% endif %}"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-bold text-sm truncate {% if not n.is_read %}text-white{% endif %}">{{ n.title }}</p>
+              {% if not n.is_read %}<span class="w-2 h-2 rounded-full bg-[#00cc4c] flex-shrink-0"></span>{% endif %}
+            </div>
+            {% if n.body %}<p class="text-xs text-gray-500 mt-0.5 truncate">{{ n.body }}</p>{% endif %}
+            <p class="text-[10px] text-gray-600 mt-1 uppercase tracking-widest">{{ n.created_at|timesince }} oldin</p>
+          </div>
+        </button>
+      </form>
+      {% empty %}
+      <div class="py-20 text-center rounded-3xl border border-dashed border-white/10">
+        <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-bell-slash text-gray-600 text-2xl"></i>
+        </div>
+        <p class="text-gray-500 text-sm italic">Hozircha bildirishnoma yo'q.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center items-center gap-2 pt-4">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}"
+         class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">Oldingi</a>
+      {% endif %}
+      <span class="px-4 py-2 text-sm text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}"
+         class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">Keyingi</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

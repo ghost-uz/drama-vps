@@ -83,4 +83,16 @@ urlpatterns = [
     path("subscription/auto-renew/", user_views.toggle_auto_renew, name="toggle_auto_renew"),
     path("buy-vip/", user_views.buy_premium, name="buy_premium"),
     path("transactions/", user_views.transactions_view, name="transactions"),
+    # Bildirishnomalar markazi [P6-T3]
+    path("bildirishnomalar/", user_views.notifications_view, name="notifications"),
+    path(
+        "bildirishnomalar/<int:pk>/read/",
+        user_views.mark_notification_read,
+        name="notification_read",
+    ),
+    path(
+        "bildirishnomalar/read-all/",
+        user_views.mark_all_notifications_read,
+        name="notifications_read_all",
+    ),
 ]

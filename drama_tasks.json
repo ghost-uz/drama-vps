@@ -700,7 +700,7 @@
           "title_en": "User dashboard: continue watching, watchlist, history, notifications",
           "title_uz": "Foydalanuvchi kabineti: davom ettirish, ro'yxat, tarix, bildirishnomalar",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P1-T3", "P5-T1"],
           "description_uz": "Profil sahifasini kuchaytirish: 'Davom ettirish', watchlist statuslar bo'yicha, ko'rish tarixi, Coin tarixi, bildirishnomalar markazi. Mavjud profile/settings shablonlari asosida.",
           "acceptance_criteria": [

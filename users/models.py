@@ -9,14 +9,28 @@ from core.validators import ImageFileValidator, RandomFileName
 
 
 def _send_topup_approved_email(user, points):
-    """Topup tasdiqlanganda foydalanuvchiga email (Celery, commit'dan keyin) [P3-T3]."""
-    if not user.email:
-        return
+    """Topup tasdiqlanganda: ichki bildirishnoma + email [P3-T3 / P6-T3].
+
+    Ichki bildirishnoma (kabinet markazi) emaildan OLDIN — emailsiz Telegram
+    foydalanuvchilari ham xabar oladi.
+    """
     from functools import partial
 
     from django.db import transaction
+    from django.urls import reverse
 
     from core.tasks import send_email_task
+    from users.services import notifications as notif
+
+    notif.notify(
+        user,
+        Notification.Kind.TOPUP,
+        "Hisobingiz to'ldirildi",
+        body=f"{points} Coin qo'shildi. Yoqimli tomosha!",
+        url=reverse("users:transactions"),
+    )
+    if not user.email:
+        return
 
     transaction.on_commit(
         partial(
@@ -429,3 +443,39 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.profile.user.username} — {self.plan.name} ({self.get_status_display()})"
+
+
+class Notification(models.Model):
+    """Sayt ichidagi foydalanuvchi bildirishnomasi (kabinet markazi) [P6-T3].
+
+    Tashqi kanallar (Telegram/email push) core/notifications.py'da — bu MODEL
+    faqat SAYT ICHIDAGI o'qildi/o'qilmadi holatli ro'yxat. Yaratish yagona nuqtasi:
+    users/services/notifications.py :: notify().
+    """
+
+    class Kind(models.TextChoices):
+        SYSTEM = "system", "Tizim"
+        TOPUP = "topup", "Hisob to'ldirildi"
+        FOLLOW = "follow", "Yangi obunachi"
+        SUBSCRIPTION = "subscription", "Obuna"
+        NEW_EPISODE = "new_episode", "Yangi qism"
+        REPLY = "reply", "Izohga javob"
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
+    )
+    kind = models.CharField("Turi", max_length=20, choices=Kind.choices, default=Kind.SYSTEM)
+    title = models.CharField("Sarlavha", max_length=200)
+    body = models.CharField("Matn", max_length=300, blank=True)
+    url = models.CharField("Havola", max_length=300, blank=True)
+    is_read = models.BooleanField("O'qilgan", default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["recipient", "is_read", "-created_at"])]
+        verbose_name = "Bildirishnoma"
+        verbose_name_plural = "Bildirishnomalar"
+
+    def __str__(self):
+        return f"{self.recipient.username}: {self.title}"

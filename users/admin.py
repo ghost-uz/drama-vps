@@ -10,6 +10,7 @@ from unfold.decorators import display
 from .models import (
     CoinTransaction,
     CryptoTopUpRequest,
+    Notification,
     Profile,
     Subscription,
     SubscriptionPlan,
@@ -204,3 +205,15 @@ class SubscriptionAdmin(ModelAdmin):
             subscriptions.cancel(sub)
             count += 1
         self.message_user(request, f"{count} ta obuna bekor qilindi.")
+
+
+@admin.register(Notification)
+class NotificationAdmin(ModelAdmin):
+    """Sayt ichidagi bildirishnomalar [P6-T3]. Admin qo'lda 'system' e'lon yubora oladi."""
+
+    list_display = ["recipient", "kind", "title", "is_read", "created_at"]
+    list_filter = ["kind", "is_read", "created_at"]
+    search_fields = ["recipient__username", "title", "body"]
+    list_select_related = ["recipient"]
+    readonly_fields = ["created_at"]
+    ordering = ["-created_at"]

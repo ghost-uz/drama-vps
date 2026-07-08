@@ -131,13 +131,9 @@ class MoviesView(GenreYearMixin, ListView):
         context["trending_movies"] = recommendations.trending_movies()
         # 'Davom ettirish' + 'siz ko'rganingiz asosida' — faqat kirgan foydalanuvchi
         if self.request.user.is_authenticated:
-            from users.models import WatchProgress
+            from users.selectors import continue_watching
 
-            context["continue_watching"] = (
-                WatchProgress.objects.filter(user=self.request.user, completed=False)
-                .select_related("episode", "episode__movie")
-                .order_by("-updated_at")[:12]
-            )
+            context["continue_watching"] = continue_watching(self.request.user)
             context["recommended_movies"] = recommendations.because_you_watched(self.request.user)
         return context
 

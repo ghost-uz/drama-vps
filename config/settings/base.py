@@ -111,6 +111,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "drama.context_processors.trending_tags",
                 "users.context_processors.social_auth",  # Google/Telegram login [P6-T2]
+                "users.context_processors.notifications",  # nav unread badge [P6-T3]
             ],
         },
     },

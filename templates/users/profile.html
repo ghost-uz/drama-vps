@@ -252,6 +252,45 @@
         </div>
         {% endif %}
 
+        <!-- ===== DAVOM ETTIRISH (faqat o'z profilida) [P6-T3] ===== -->
+        {% if continue_watching %}
+        <div class="space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+                    <span class="w-1.5 h-6 bg-[#00cc4c] rounded-full"></span>
+                    Davom ettirish
+                </h3>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {% for wp in continue_watching %}
+                <a href="{{ wp.episode.movie.get_absolute_url }}"
+                   class="group relative block bg-[#0f0f0f] rounded-3xl overflow-hidden
+                          border border-white/5 hover:border-[#00cc4c]/50 transition-all duration-500 shadow-xl">
+                    <div class="aspect-[2/3] overflow-hidden">
+                        <img src="{{ wp.episode.movie.poster.url }}"
+                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                             alt="{{ wp.episode.movie.title }}">
+                    </div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent opacity-90"></div>
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="w-12 h-12 rounded-full bg-[#00cc4c] text-black flex items-center justify-center shadow-lg">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3">
+                        <p class="text-xs font-bold truncate mb-1">{{ wp.episode.movie.title }}</p>
+                        <p class="text-[9px] text-gray-400 mb-1.5">{{ wp.episode.episode_number }}-qism</p>
+                        <div class="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                            <!-- data-width → JS width ni o'rnatadi (fayl konvensiyasi) -->
+                            <div class="cw-bar h-full bg-[#00cc4c] rounded-full" data-width="{{ wp.percent }}"></div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ===== OXIRGI HARAKATLAR ===== -->
         <div class="space-y-6">
             <div class="flex items-center justify-between">
@@ -404,6 +443,11 @@
                 el.style.width = w + '%';
                 el.style.animation = 'pulse-glow 2s ease-in-out infinite';
             });
+        });
+
+        // ── 'Davom ettirish' progress bar'lari (oddiy width) [P6-T3] ──
+        document.querySelectorAll('.cw-bar[data-width]').forEach(el => {
+            el.style.width = (parseFloat(el.dataset.width) || 0) + '%';
         });
 
     });

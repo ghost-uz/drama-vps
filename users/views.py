@@ -29,11 +29,13 @@ from .forms import (
 from .models import (
     CoinTransaction,
     CryptoTopUpRequest,
+    Notification,
     SubscriptionPlan,
     TopUpRequest,
     UserMovieList,
 )
-from .services import email_verification, subscriptions, telegram_auth, wallet
+from .selectors import continue_watching
+from .services import email_verification, notifications, subscriptions, telegram_auth, wallet
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +181,8 @@ def profile_view(request, username):
         "profile": profile,
         "watched_history": watched_history,
         "is_following": is_following,
+        # 'Davom ettirish' — faqat o'z profilida (shaxsiy progress) [P6-T3]
+        "continue_watching": continue_watching(person, limit=6) if request.user == person else None,
         **stats,
     }
     return render(request, "users/profile.html", context)
@@ -194,7 +198,17 @@ def follow_user(request, username):
 
     # O'zini follow qilishning oldini olish
     if request.user != target_user:
+        # Takroriy follow POST'da bildirishnoma dublikatlanmasligi uchun avval tekshiramiz
+        already = request.user.profile.following.filter(pk=target_user.profile.pk).exists()
         follow(request.user, target_user)
+        if not already:
+            notifications.notify(
+                target_user,
+                Notification.Kind.FOLLOW,
+                "Yangi obunachi",
+                body=f"{request.user.username} sizni kuzatmoqda.",
+                url=reverse("users:profile", args=[request.user.username]),
+            )
 
     return redirect("users:profile", username=username)
 
@@ -476,3 +490,39 @@ def crypto_topup_view(request):
             "title": "Kripto orqali to'ldirish",
         },
     )
+
+
+@login_required
+def notifications_view(request):
+    """Bildirishnomalar markazi [P6-T3] — foydalanuvchining o'z ro'yxati (paginatsiyalangan)."""
+    qs = Notification.objects.filter(recipient=request.user)
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(
+        request,
+        "users/notifications.html",
+        {"page_obj": page_obj, "title": "Bildirishnomalar"},
+    )
+
+
+@login_required
+def mark_notification_read(request, pk):
+    """Bitta bildirishnomani o'qilgan qilib, havolasiga yo'naltiradi (POST) [P6-T3]."""
+    if request.method != "POST":
+        return redirect("users:notifications")
+    # IDOR himoyasi: faqat o'z bildirishnomasi (recipient bo'yicha filtr)
+    notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+    return redirect(notification.url or "users:notifications")
+
+
+@login_required
+def mark_all_notifications_read(request):
+    """Barcha o'qilmaganlarni o'qilgan qiladi (POST) [P6-T3]."""
+    if request.method != "POST":
+        return redirect("users:notifications")
+    notifications.mark_all_read(request.user)
+    messages.success(request, "Barcha bildirishnomalar o'qilgan deb belgilandi.")
+    return redirect("users:notifications")
