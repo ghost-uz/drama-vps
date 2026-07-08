@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",  # Google OAuth [P6-T2]
     # Third party
     "corsheaders",
     "storages",
@@ -109,6 +110,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "drama.context_processors.trending_tags",
+                "users.context_processors.social_auth",  # Google/Telegram login [P6-T2]
             ],
         },
     },
@@ -183,6 +185,30 @@ LOGIN_URL = "users:login"
 LOGIN_REDIRECT_URL = "drama:movie_list"
 LOGOUT_REDIRECT_URL = "users:login"
 
+# -- IJTIMOIY LOGIN: Google OAuth (allauth) [P6-T2] --
+# Kalitlar .env'dan. Sozlanmagan (dev) bo'lsa login sahifasida Google tugmasi
+# ko'rsatilmaydi (users/context_processors.py tekshiradi). APP'ni settings'da
+# berish DB SocialApp + Site moslashtirishni keraksiz qiladi (allauth 65+).
+GOOGLE_OAUTH_CLIENT_ID = config("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_SECRET = config("GOOGLE_OAUTH_SECRET", default="")
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {"client_id": GOOGLE_OAUTH_CLIENT_ID, "secret": GOOGLE_OAUTH_SECRET, "key": ""},
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+        # Google email'lari o'zi tasdiqlangan → EmailAddress verified=True yoziladi
+        # (P6-T1 is_verified() bilan mos).
+        "VERIFIED_EMAIL": True,
+    }
+}
+# Bir bosishli oqim: oraliq "signup"/"continue" sahifalari ko'rsatilmaydi; Profile
+# signal (users/signals.py) yangi hisobni to'ldiradi. Email tasdiqlash ijtimoiy
+# hisobda majburiy emas (birinchi-tomon "optional" siyosati bilan bir xil) [P6-T1].
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_STORE_TOKENS = False
+
 # -- TIL VA VAQT --
 LANGUAGE_CODE = "uz"
 USE_I18N = True
@@ -239,6 +265,7 @@ RATELIMIT_RATES = {
     "funding": "20/h",
     "live_search": "30/m",  # API "search" scope bilan bir xil
     "watch_progress": "30/m",  # pleyer ~6/min yuboradi — keng zaxira
+    "telegram_login": "30/m",  # IP bo'yicha — soxta HMAC / spam hisob himoyasi [P6-T2]
 }
 
 # -- BUNNY STREAM CDN --
@@ -289,6 +316,15 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="admin@drama.uz")
+
+# -- TELEGRAM LOGIN (Login Widget + Mini App) [P6-T2] --
+# HMAC tekshiruvi TELEGRAM_LOGIN_BOT_TOKEN bilan (default: bildirishnoma boti bilan
+# bir xil). Widget uchun bot @username kerak (token EMAS) — data-telegram-login
+# atributi. Sozlanmagan bo'lsa login sahifasida Telegram tugmasi ko'rsatilmaydi.
+TELEGRAM_LOGIN_BOT_USERNAME = config("TELEGRAM_LOGIN_BOT_USERNAME", default="")
+TELEGRAM_LOGIN_BOT_TOKEN = config("TELEGRAM_LOGIN_BOT_TOKEN", default=TELEGRAM_BOT_TOKEN)
+# auth_date eskirish chegarasi (sekund) — eski imzolangan payload qayta ishlatilmaydi.
+TELEGRAM_LOGIN_MAX_AGE = config("TELEGRAM_LOGIN_MAX_AGE", default=86400, cast=int)
 
 # -- MISC --
 

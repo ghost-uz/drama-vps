@@ -10,6 +10,7 @@ tzdata==2026.2
 
 # --- Auth / admin / i18n / forms ---
 django-allauth==65.14.0
+cryptography==49.0.0  # allauth Google provider — ID token (JWT) tekshiruvi [P6-T2]
 django-unfold==0.77.1
 django-modeltranslation==0.19.19
 django-crispy-forms==2.5

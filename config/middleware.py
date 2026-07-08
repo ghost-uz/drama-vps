@@ -62,11 +62,13 @@ class SecurityHeadersMiddleware:
                 # 'unsafe-inline' — inline handler'lar refaktor bo'lguncha (docstring).
                 # unpkg/tailwindcss OLIB TASHLANDI [P5-T1] — htmx/Alpine/Tailwind endi
                 # vendorlangan/build qilingan ('self'); jsdelivr: swiper+hls.js uchun.
+                # telegram.org — Telegram Login Widget skripti [P6-T2].
                 "script-src 'self' 'unsafe-inline'"
                 " cdn.jsdelivr.net"
                 " cdnjs.cloudflare.com"
                 " mc.yandex.ru"
-                " mc.yandex.com;",
+                " mc.yandex.com"
+                " telegram.org;",
                 # Stillar: o'zimiz + Google Fonts + FA + jsdelivr + inline stillar
                 "style-src 'self' 'unsafe-inline'"
                 " fonts.googleapis.com"
@@ -96,6 +98,7 @@ class SecurityHeadersMiddleware:
                 f" {bunny_cdn}"
                 f" *.bunnycdn.com"
                 f" iframe.mediadelivery.net"
+                f" oauth.telegram.org"  # Telegram Login Widget iframe [P6-T2]
                 f" *.youtube.com"
                 f" *.youtube-nocookie.com;",
                 # KIM BIZNI iframe'lay oladi: o'zimiz + Telegram Web [P10-T1]

@@ -5,6 +5,7 @@ attrs==26.1.0
 billiard==4.2.4
 celery==5.6.3
 certifi==2026.1.4
+cffi==2.1.0
 cfgv==3.5.0
 charset-normalizer==3.4.4
 click==8.4.1
@@ -15,6 +16,7 @@ colorama==0.4.6
 coverage==7.14.2
 crispy-bootstrap5==2025.6
 cron-descriptor==1.4.5
+cryptography==49.0.0
 distlib==0.4.3
 Django==6.0.1
 django-allauth==65.14.0
@@ -70,6 +72,7 @@ protobuf==6.33.4
 psycopg2-binary==2.9.11
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
+pycparser==3.0
 Pygments==2.20.0
 PyJWT==2.13.0
 pytest==9.1.1

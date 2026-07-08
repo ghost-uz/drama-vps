@@ -48,6 +48,10 @@ urlpatterns = [
     ),
     # 3. App yo'llari (Namespace bilan)
     path("users/", include("users.urls", namespace="users")),
+    # allauth — Google OAuth callback yo'llari (/accounts/google/login/...) [P6-T2].
+    # Birinchi-tomon login/register MAXSUS (users:) — allauth account view'lariga
+    # havola qilinmaydi; faqat socialaccount oqimi ishlatiladi.
+    path("accounts/", include("allauth.urls")),
     path("billing/", include("billing.urls")),  # checkout + Payme webhook [P7-T2]
     # 4. REST API (P2)
     path("api/v1/", include("config.api_urls")),

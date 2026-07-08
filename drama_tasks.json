@@ -685,7 +685,7 @@
           "title_en": "Social login: Google + Telegram login",
           "title_uz": "Social login: Google + Telegram",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P6-T1"],
           "description_uz": "allauth socialaccount: Google OAuth. Telegram Login Widget/Mini App auth (telegram_id mavjud) bilan bog'lash. Mavjud Telegram WebView konteksti hisobga olinadi.",
           "acceptance_criteria": [

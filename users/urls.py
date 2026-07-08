@@ -35,6 +35,8 @@ urlpatterns = [
     path(
         "logout/", auth_views.LogoutView.as_view(template_name="users/logout.html"), name="logout"
     ),
+    # Telegram orqali kirish (Login Widget GET + Mini App POST) [P6-T2]
+    path("telegram/login/", user_views.telegram_login, name="telegram_login"),
     # Parol tiklash [P6-T1] — Django built-in view'lar, email fon (Celery)da ketadi.
     # DIQQAT: default template/success_url'lar namespace'SIZ nom reverse qiladi —
     # shu sabab success_url va email shablonlari aniq ko'rsatilgan.

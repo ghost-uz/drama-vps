@@ -1,11 +1,18 @@
+import json
 import logging
 
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 
 from core.ratelimit import ip_key, rate, user_or_ip_key
@@ -26,7 +33,7 @@ from .models import (
     TopUpRequest,
     UserMovieList,
 )
-from .services import email_verification, subscriptions, wallet
+from .services import email_verification, subscriptions, telegram_auth, wallet
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +99,59 @@ def resend_verification(request):
         email_verification.send_verification_email(request.user, request)
         messages.success(request, "Tasdiqlash havolasi qayta yuborildi.")
     return redirect("users:settings")
+
+
+_MODELBACKEND = "django.contrib.auth.backends.ModelBackend"
+
+
+def _safe_next(request, fallback="drama:movie_list"):
+    """?next= ochiq-redirectdan xavfsiz bo'lsa qaytaradi, aks holda fallback."""
+    nxt = request.GET.get("next") or request.POST.get("next")
+    if nxt and url_has_allowed_host_and_scheme(
+        nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return nxt
+    return reverse(fallback)
+
+
+@csrf_exempt
+@ratelimit(key=ip_key, rate=rate, group="telegram_login", method=["GET", "POST"], block=True)
+def telegram_login(request):
+    """Telegram orqali kirish [P6-T2].
+
+    GET  — Login Widget (data-auth-url) imzolangan query params bilan yo'naltiradi.
+    POST — Mini App: `init_data` (initData query-string) form yoki JSON bilan.
+
+    HMAC imzo autentifikatsiya vazifasini bajaradi (bot token'siz soxtalab bo'lmaydi)
+    → csrf_exempt (widget cross-site GET; Mini App fetch). Yaroqli bo'lsa hisob
+    topiladi/yaratiladi/bog'lanadi va login qilinadi.
+    """
+    bot_token = settings.TELEGRAM_LOGIN_BOT_TOKEN
+    max_age = settings.TELEGRAM_LOGIN_MAX_AGE
+    current = request.user if request.user.is_authenticated else None
+
+    if request.method == "POST":
+        init_data = request.POST.get("init_data", "")
+        if not init_data and request.content_type == "application/json":
+            try:
+                init_data = json.loads(request.body or b"{}").get("init_data", "")
+            except (ValueError, TypeError):
+                init_data = ""
+        tg = telegram_auth.verify_webapp_init_data(init_data, bot_token=bot_token, max_age=max_age)
+        if tg is None:
+            return JsonResponse({"ok": False, "detail": "Telegram imzosi yaroqsiz."}, status=403)
+        user, _ = telegram_auth.get_or_create_user(tg, current_user=current)
+        auth_login(request, user, backend=_MODELBACKEND)
+        return JsonResponse({"ok": True, "redirect": _safe_next(request)})
+
+    tg = telegram_auth.verify_login_widget(request.GET.dict(), bot_token=bot_token, max_age=max_age)
+    if tg is None:
+        messages.error(request, "Telegram orqali kirishda xatolik (imzo yaroqsiz yoki eskirgan).")
+        return redirect("users:login")
+    user, _created = telegram_auth.get_or_create_user(tg, current_user=current)
+    auth_login(request, user, backend=_MODELBACKEND)
+    messages.success(request, f"Xush kelibsiz, {user.username}! Telegram orqali kirdingiz.")
+    return redirect(_safe_next(request))
 
 
 def profile_view(request, username):

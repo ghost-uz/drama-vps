@@ -26,6 +26,7 @@
                             <button class="btn btn-primary btn-lg rounded-pill" type="submit">Kirish</button>
                         </div>
                     </form>
+                    {% include 'users/_social_login.html' %}
                     <div class="text-center mt-3">
                         <small><a href="{% url 'users:password_reset' %}" class="text-decoration-none">Parolni unutdingizmi?</a></small>
                     </div>

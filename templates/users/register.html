@@ -18,6 +18,7 @@
                             <button class="btn btn-primary btn-lg rounded-pill" type="submit">Hozir qo'shilish</button>
                         </div>
                     </form>
+                    {% include 'users/_social_login.html' %}
                     <hr class="my-4">
                     <div class="text-center">
                         <small class="text-muted">Profilingiz bormi? <a href="{% url 'users:login' %}" class="text-decoration-none">Kirish</a></small>
