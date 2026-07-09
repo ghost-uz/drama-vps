@@ -72,6 +72,9 @@ markers = [
     # Lokal: Docker db + DJANGO_SETTINGS_MODULE=config.settings.test_postgres pytest -m postgres
     # CI: migrations-postgres jobida avtomatik. sqlite'da skipif bilan o'tkaziladi.
     "postgres: real PostgreSQL kerak (sqlite suite'da skip)",
+    # P11-T4: Playwright E2E (live_server + brauzer). Default'da SKIP (conftest hook);
+    # `pytest -m e2e` bilan ishga tushiriladi (chromium + sekin). CI: alohida job.
+    "e2e: uchdan-uchgacha brauzer testi (pytest -m e2e; default skip)",
 ]
 # Eslatma: test DB sqlite ":memory:" (config/settings/test.py) — eng tez variant,
 # --reuse-db shunda ma'nosiz. Coverage gate CI'da: `pytest --cov` (P13-T1).
