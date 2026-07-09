@@ -1,0 +1,19 @@
+{% load static %}{
+  "name": "Drama.Uz — Korea va Osiyo dramalari",
+  "short_name": "Drama.Uz",
+  "description": "Koreys va osiyo dramalarini o'zbek tilida yuqori sifatda tomosha qiling.",
+  "lang": "uz",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "categories": ["entertainment", "video"],
+  "icons": [
+    {"src": "{% static 'img/pwa-icon-192.png' %}", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "{% static 'img/pwa-icon-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "{% static 'img/pwa-maskable-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

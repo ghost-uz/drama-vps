@@ -6,6 +6,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
 from core.health import healthz, readyz
+from core.pwa import manifest, offline, service_worker
 from drama.sitemaps import (
     ActorSitemap,
     CategorySitemap,
@@ -57,6 +58,10 @@ urlpatterns = [
     path("api/v1/", include("config.api_urls")),
     # 5. Tashqi webhook'lar (P3)
     path("webhooks/bunny/", bunny_webhook, name="bunny_webhook"),
+    # PWA [P5-T6] — drama catch-all'dan OLDIN (aks holda "offline/" -> <slug>/ ga tushardi)
+    path("manifest.webmanifest", manifest, name="manifest"),
+    path("sw.js", service_worker, name="service_worker"),
+    path("offline/", offline, name="offline"),
     path("", include("drama.urls", namespace="drama")),
     path("funding/", include("funding.urls")),
 ]

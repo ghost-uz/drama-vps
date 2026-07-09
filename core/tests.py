@@ -231,3 +231,77 @@ def test_index_uses_built_assets(client):
     assert "js/vendor/alpine-csp.min.js" in html
     assert "js/vendor/htmx.min.js" in html
     assert 'x-data="searchBar"' in html  # Alpine komponenti ulangan
+
+
+# --- P5-T6: PWA (manifest, service worker, offline) + a11y ---
+
+
+def test_manifest_served_as_manifest_json(client):
+    import json
+
+    from django.urls import reverse
+
+    resp = client.get(reverse("manifest"))
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == "application/manifest+json"
+    data = json.loads(resp.content)
+    assert data["name"] and data["short_name"]
+    assert data["display"] == "standalone"
+    assert data["start_url"] == "/"
+    sizes = {i["sizes"] for i in data["icons"]}
+    assert {"192x192", "512x512"} <= sizes  # o'rnatish uchun zarur o'lchamlar
+    assert any(i["purpose"] == "maskable" for i in data["icons"])
+
+
+def test_service_worker_root_scope(client):
+    from django.urls import reverse
+
+    resp = client.get(reverse("service_worker"))
+    assert resp.status_code == 200
+    assert "javascript" in resp["Content-Type"]
+    # Ildiz-scope: SW o'z papkasidan yuqorini boshqarishi uchun SHART
+    assert resp["Service-Worker-Allowed"] == "/"
+    body = resp.content.decode()
+    assert "addEventListener" in body and "/offline/" in body
+
+
+def test_offline_page_self_contained(client):
+    from django.urls import reverse
+
+    body = client.get(reverse("offline")).content.decode()
+    assert "Internet aloqasi yo'q" in body
+    # Oflaynda yuklanadigan tashqi bog'liqlik BO'LMASLIGI kerak
+    assert "<link" not in body
+    assert "cdnjs" not in body and "googleapis" not in body
+
+
+def test_pwa_icons_exist():
+    from django.contrib.staticfiles import finders
+
+    assert finders.find("img/pwa-icon-192.png")
+    assert finders.find("img/pwa-icon-512.png")
+    assert finders.find("img/pwa-maskable-512.png")
+
+
+@pytest.mark.django_db
+def test_base_links_manifest_and_registers_sw(client):
+    from django.core.cache import cache
+
+    cache.clear()
+    html = client.get("/").content.decode()
+    assert 'rel="manifest"' in html
+    assert "serviceWorker" in html
+    assert 'href="#main"' in html  # skip-link
+    assert 'id="main"' in html  # skip-link nishoni
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_mobile_nav_marks_active_section(client):
+    from django.core.cache import cache
+    from django.urls import reverse
+
+    cache.clear()
+    html = client.get(reverse("drama:explore")).content.decode()
+    assert 'aria-current="page"' in html  # Katalog bo'limi faol belgilanadi
+    cache.clear()

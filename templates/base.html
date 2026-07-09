@@ -46,6 +46,9 @@
     <link rel="icon" type="image/png" sizes="192x192" href="{% static 'img/android-chrome-192x192.png' %}">
     <link rel="icon" type="image/png" sizes="512x512" href="{% static 'img/android-chrome-512x512.png' %}">
 
+    {# PWA [P5-T6] — o'rnatiladigan ilova manifesti #}
+    <link rel="manifest" href="{% url 'manifest' %}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'">
@@ -73,6 +76,16 @@
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .iq-green { color: #00cc4c; }
+
+        /* a11y [P5-T6]: klaviatura fokusi aniq ko'rinsin (sichqoncha bosishda emas) */
+        :focus-visible { outline: 3px solid #00cc4c; outline-offset: 2px; border-radius: 4px; }
+        /* Skip-link: fokusga kelganda ko'rinadi -> klaviatura foydalanuvchisi kontentga sakraydi */
+        .skip-link {
+            position: absolute; left: 12px; top: -70px; z-index: 300;
+            background: #00cc4c; color: #000; font-weight: 800; padding: 12px 20px;
+            border-radius: 10px; transition: top 0.2s ease; text-decoration: none;
+        }
+        .skip-link:focus { top: 12px; }
 
         /* HEADER */
         .glass-header {
@@ -176,6 +189,9 @@
 </head>
 
 <body>
+    {# a11y [P5-T6]: klaviatura/skrin-reader foydalanuvchisi to'g'ridan asosiy kontentga #}
+    <a href="#main" class="skip-link">Asosiy kontentga o'tish</a>
+
     {% if messages %}
     <div id="toast-container" class="fixed top-24 right-4 md:right-8 z-[200] flex flex-col gap-3 pointer-events-none">
         {% for message in messages %}
@@ -269,24 +285,28 @@
         </div>
     </header>
 
+    {# Mobil bottom-nav [P5-T6]: faol bo'lim joriy URL'dan aniqlanadi (aria-current="page"),
+       dekorativ ikonlar aria-hidden — skrin-reader faqat matnni o'qiydi #}
     <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 flex justify-around items-center py-3 z-[90] pb-safe" aria-label="Mobil menyu">
-        <a href="/" class="flex flex-col items-center iq-green transition-transform hover:-translate-y-1">
-            <i class="fas fa-home text-xl mb-1"></i>
+        {% with rm=request.resolver_match %}
+        <a href="/" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.url_name == 'movie_list' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.url_name == 'movie_list' %} aria-current="page"{% endif %}>
+            <i class="fas fa-home text-xl mb-1" aria-hidden="true"></i>
             <span class="text-[10px] font-bold">Asosiy</span>
         </a>
-        <a href="{% url 'drama:explore' %}" class="flex flex-col items-center text-gray-500 hover:text-white transition-all hover:-translate-y-1">
-            <i class="fas fa-compass text-xl mb-1"></i>
+        <a href="{% url 'drama:explore' %}" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.url_name == 'explore' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.url_name == 'explore' %} aria-current="page"{% endif %}>
+            <i class="fas fa-compass text-xl mb-1" aria-hidden="true"></i>
             <span class="text-[10px] font-bold">Katalog</span>
         </a>
-        <a href="{% if user.is_authenticated %}{% url 'users:profile' username=user.username %}{% else %}{% url 'users:register' %}{% endif %}" class="flex flex-col items-center text-gray-500 hover:text-white transition-all hover:-translate-y-1">
-            <i class="fas fa-user text-xl mb-1"></i>
+        <a href="{% if user.is_authenticated %}{% url 'users:profile' username=user.username %}{% else %}{% url 'users:register' %}{% endif %}" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.namespace == 'users' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.namespace == 'users' %} aria-current="page"{% endif %}>
+            <i class="fas fa-user text-xl mb-1" aria-hidden="true"></i>
             <span class="text-[10px] font-bold">Profil</span>
         </a>
+        {% endwith %}
     </nav>
 
     {% block slayder %}{% endblock slayder %}
 
-    <main class="pb-24 md:pb-10 min-h-[60vh]">
+    <main id="main" class="pb-24 md:pb-10 min-h-[60vh]">
         {% block content %}{% endblock content %}
     </main>
 
@@ -549,6 +569,16 @@
             setupLiveSearch('live-search-input', 'live-search-results');
             setupLiveSearch('mobile-live-search', 'mobile-search-results');
         });
+    </script>
+
+    {# PWA [P5-T6]: service worker'ni ro'yxatga olish (offline shell; ixtiyoriy — xatoni jim yut) #}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('{% url "service_worker" %}', { scope: '/' })
+                    .catch(function () {});
+            });
+        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>
