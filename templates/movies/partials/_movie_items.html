@@ -1,0 +1,16 @@
+{% comment %}
+Katalog kartalari + cheksiz skroll sentineli [P5-T3].
+To'liq sahifada grid ichiga include qilinadi; HX-so'rovda (skrollda keyingi sahifa yoki
+explore filtr almashuvi) bu partial YAKKA O'ZI qaytariladi — base.html'siz. Grid wrapper
+(ustun sinflari) chaqiruvchi shablonda turadi, shuning uchun partial grid-agnostik:
+faqat grid bolalarini (kartalar + col-span-full sentinel/empty) chiqaradi.
+{% endcomment %}
+{% for movie in movies %}
+    {% include 'movies/movies_card.html' %}
+{% empty %}
+    <div class="col-span-full py-16 md:py-20 text-center text-gray-500">
+        <i class="fas fa-film text-3xl md:text-5xl mb-4 opacity-40"></i>
+        <p class="text-sm md:text-base uppercase font-black tracking-widest">Hech narsa topilmadi</p>
+    </div>
+{% endfor %}
+{% include 'movies/partials/_load_more.html' %}

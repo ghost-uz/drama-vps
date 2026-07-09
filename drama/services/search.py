@@ -55,10 +55,14 @@ def search_movies(qs: QuerySet, raw_query: str) -> QuerySet:
         return qs.none()
 
     if not _is_postgres():
-        # Fallback (sqlite dev/test): eski xulq bilan teng icontains
-        return qs.filter(
-            Q(title__icontains=raw_query) | Q(original_title__icontains=raw_query)
-        ).distinct()
+        # Fallback (sqlite dev/test): eski xulq bilan teng icontains.
+        # order_by("-id") — pagination (cheksiz skroll [P5-T3]) barqaror sahifalar
+        # bersin (Movie'da Meta.ordering yo'q); postgres yo'li quyida rank bilan tartiblaydi.
+        return (
+            qs.filter(Q(title__icontains=raw_query) | Q(original_title__icontains=raw_query))
+            .distinct()
+            .order_by("-id")
+        )
 
     from django.contrib.postgres.search import SearchRank, TrigramSimilarity
     from django.db.models import F

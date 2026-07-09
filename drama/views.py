@@ -70,6 +70,23 @@ class GenreYearMixin:
         return context
 
 
+class HxPartialListMixin:
+    """Cheksiz skroll [P5-T3] — htmx so'rovda faqat kartalar+sentinel partial'i.
+
+    To'liq sahifa (oddiy GET) -> view'ning o'z template_name'i (base.html bilan).
+    htmx so'rovi (skrollda keyingi sahifa YOKI explore filtr/sort almashuvi) ->
+    _movie_items.html: kartalar + keyingi-sahifa sentineli, base.html'siz. Sentinel
+    JS-siz oddiy <a href="?page=N"> bo'lgani uchun progressive enhancement saqlanadi.
+    """
+
+    hx_partial_template = "movies/partials/_movie_items.html"
+
+    def get_template_names(self):
+        if self.request.headers.get("HX-Request"):
+            return [self.hx_partial_template]
+        return super().get_template_names()
+
+
 # 2. TIZIM FUNKSIYALARI
 def error_404(request, exception):
     return render(request, "404.html", status=404)
@@ -112,7 +129,7 @@ def live_search(request):
 
 
 # 3. ASOSIY VIEWLAR (Klasslar)
-class MoviesView(GenreYearMixin, ListView):
+class MoviesView(HxPartialListMixin, GenreYearMixin, ListView):
     model = Movie
     # [P9-T2] Karta faqat poster/title/yil/davlat/qism-soni ko'rsatadi:
     # select_related(category) + prefetch(genres, tags) ISHLATILMAY turib
@@ -139,7 +156,7 @@ class MoviesView(GenreYearMixin, ListView):
 
 
 # drama/views.py
-class TagDetailView(GenreYearMixin, ListView):
+class TagDetailView(HxPartialListMixin, GenreYearMixin, ListView):
     template_name = "movies/movie_list.html"  # Mavjud list shablonini ishlatamiz
     context_object_name = "movies"
     paginate_by = 12
@@ -163,7 +180,7 @@ class TagDetailView(GenreYearMixin, ListView):
         return context
 
 
-class GenreDetailView(GenreYearMixin, ListView):
+class GenreDetailView(HxPartialListMixin, GenreYearMixin, ListView):
     template_name = "movies/movie_list.html"
     context_object_name = "movies"
     paginate_by = 12
@@ -503,7 +520,7 @@ class AddReview(View):
 # drama/views.py
 
 
-class FilterMoviesView(GenreYearMixin, ListView):
+class FilterMoviesView(HxPartialListMixin, GenreYearMixin, ListView):
     template_name = "movies/explore_list.html"
     context_object_name = "movies"
     paginate_by = 12
@@ -517,10 +534,7 @@ class FilterMoviesView(GenreYearMixin, ListView):
     }
     DEFAULT_SORT = "new"
 
-    def get_template_names(self):
-        if self.request.headers.get("HX-Request"):
-            return ["movies/partials/movie_grid.html"]
-        return [self.template_name]
+    # get_template_names -> HxPartialListMixin (HX'da _movie_items.html) [P5-T3]
 
     def _current_sort(self) -> str:
         sort = self.request.GET.get("sort", self.DEFAULT_SORT)
@@ -658,7 +672,7 @@ def send_gift_to_actor(request, actor_id):
         return redirect(actor.get_absolute_url())
 
 
-class Search(GenreYearMixin, ListView):
+class Search(HxPartialListMixin, GenreYearMixin, ListView):
     template_name = "movies/explore_list.html"
     context_object_name = "movies"
     paginate_by = 12

@@ -1698,3 +1698,167 @@ def test_explore_renders_facet_counts_and_selection(client):
     assert 'value="melo-f" class="hidden peer" checked' in body
     assert resp.context["selected_genres"] == ["melo-f"]
     cache.clear()
+
+
+# =========================================================================
+# P5-T3: Cheksiz skroll (HTMX infinite scroll) + progressive enhancement
+# =========================================================================
+
+
+@pytest.mark.django_db
+def test_explore_hx_request_returns_partial(client):
+    """HX-so'rov -> _movie_items.html partial'i (base.html'siz), kartalar bilan."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory(title="HX Kino")
+    resp = client.get(reverse("drama:explore"), headers={"HX-Request": "true"})
+    body = resp.content.decode()
+    assert resp.status_code == 200
+    assert "HX Kino" in body
+    # Partial base.html'ni O'RAMAYDI (to'liq sahifa emas)
+    assert "<html" not in body.lower()
+    assert "<!doctype" not in body.lower()
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_explore_sentinel_present_when_more_pages(client):
+    """13 kino (>12 paginate_by) -> 1-sahifada 'load-more' sentineli page=2 ga."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory.create_batch(13)
+    resp = client.get(reverse("drama:explore"))
+    body = resp.content.decode()
+    assert 'id="load-more"' in body
+    assert "page=2" in body
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_explore_no_sentinel_on_single_page(client):
+    """Kam kino (<12) -> keyingi sahifa yo'q -> sentinel render bo'lmaydi."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory.create_batch(3)
+    resp = client.get(reverse("drama:explore"))
+    assert 'id="load-more"' not in resp.content.decode()
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_infinite_scroll_next_page_appends_cards_and_new_sentinel(client):
+    """HX ?page=2 -> kartalar + keyingi (page=3) sentinel; base.html'siz."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory.create_batch(25)  # 3 sahifa (12+12+1)
+    resp = client.get(reverse("drama:explore"), {"page": "2"}, headers={"HX-Request": "true"})
+    body = resp.content.decode()
+    assert resp.status_code == 200
+    assert "<html" not in body.lower()
+    assert 'id="load-more"' in body
+    assert "page=3" in body  # sentinel keyingi sahifaga surildi
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_sentinel_preserves_active_filters(client):
+    """Filtrlangan katalogda sentinel joriy filtrni (genre) + page ni saqlaydi."""
+    from django.core.cache import cache
+
+    from drama.factories import GenreFactory, MovieFactory
+
+    cache.clear()
+    genre = GenreFactory(slug="drama-g")
+    for _ in range(13):
+        MovieFactory().genres.add(genre)
+    resp = client.get(reverse("drama:explore"), {"genre": "drama-g"})
+    body = resp.content.decode()
+    assert 'id="load-more"' in body
+    # {% querystring %} joriy GET'ni saqlaydi -> sentinel URL'da genre ham, page ham bor
+    assert "genre=drama-g" in body
+    assert "page=2" in body
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_sentinel_has_progressive_href(client):
+    """Sentinel oddiy <a href="/explore/?page=2"> — JS-siz progressive enhancement."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory.create_batch(13)
+    resp = client.get(reverse("drama:explore"))
+    body = resp.content.decode()
+    # htmx bo'lmasa ham ishlaydigan haqiqiy havola (hx-get YONIDA)
+    assert 'href="/explore/?page=2"' in body
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_index_infinite_scroll_sentinel_and_partial(client):
+    """Bosh sahifa: to'liq render sentinel bilan; HX -> partial (base.html'siz)."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory.create_batch(13)
+    full = client.get(reverse("drama:movie_list"))
+    assert 'id="load-more"' in full.content.decode()
+
+    part = client.get(reverse("drama:movie_list"), headers={"HX-Request": "true"})
+    body = part.content.decode()
+    assert "<html" not in body.lower()  # partial: slayder/karusel yo'q
+    assert 'id="load-more"' in body
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_genre_page_infinite_scroll(client):
+    """Janr sahifasi (movie_list.html endi yagona kartada): HX -> partial + sentinel."""
+    from django.core.cache import cache
+
+    from drama.factories import GenreFactory, MovieFactory
+
+    cache.clear()
+    genre = GenreFactory(slug="thriller-g")
+    for _ in range(13):
+        MovieFactory().genres.add(genre)
+    url = reverse("drama:genre_detail", kwargs={"slug": "thriller-g"})
+    resp = client.get(url, headers={"HX-Request": "true"})
+    body = resp.content.decode()
+    assert resp.status_code == 200
+    assert "<html" not in body.lower()
+    assert 'id="load-more"' in body
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_explore_filter_has_noscript_progressive_fallback(client):
+    """JS-siz: explore filtri <noscript> submit + method=get bilan ishlaydi."""
+    from django.core.cache import cache
+
+    from drama.factories import MovieFactory
+
+    cache.clear()
+    MovieFactory()
+    resp = client.get(reverse("drama:explore"))
+    body = resp.content.decode()
+    assert "<noscript>" in body
+    assert 'method="get"' in body
+    assert "Filtrlarni qo'llash" in body
+    cache.clear()

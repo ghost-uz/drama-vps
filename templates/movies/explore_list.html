@@ -16,11 +16,13 @@
                 ma'lumot facets.py/GenreYearMixin'da allaqachon keshlangan [P8-T3].
                 {% endcomment %}
                 <form id="filter-form"
+                      method="get" action="{% url 'drama:explore' %}"
                       hx-get="{% url 'drama:explore' %}"
                       hx-target="#movie-grid"
                       hx-trigger="change"
                       hx-include="[name='sort']"
                       hx-indicator="#loading-indicator"
+                      hx-push-url="true"
                       class="space-y-6">
 
                     <div>
@@ -67,6 +69,14 @@
                             {% endfor %}
                         </div>
                     </div>
+
+                    {# JS-siz progressive enhancement: htmx bo'lmasa shu tugma formani oddiy
+                       GET bilan yuboradi (htmx bo'lsa <noscript> umuman render bo'lmaydi) [P5-T3] #}
+                    <noscript>
+                        <button type="submit" class="w-full mt-2 py-3 rounded-xl bg-[#00cc4c] text-black text-xs font-black uppercase tracking-widest">
+                            Filtrlarni qo'llash
+                        </button>
+                    </noscript>
                 </form>
             </div>
         </aside>
@@ -85,6 +95,7 @@
                             hx-trigger="change"
                             hx-include="#filter-form"
                             hx-indicator="#loading-indicator"
+                            hx-push-url="true"
                             class="bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs outline-none focus:border-[#00cc4c] cursor-pointer">
                         {% for key, opt in sort_options.items %}
                         <option value="{{ key }}" {% if key == current_sort %}selected{% endif %}>{{ opt.1 }}</option>
@@ -93,8 +104,10 @@
                 </label>
             </div>
 
-            <div id="movie-grid" class="transition-opacity duration-300">
-                {% include 'movies/partials/movie_grid.html' %}
+            {# #movie-grid = grid'ning O'ZI: filtr almashuvi innerHTML bilan kartalar+sentinel
+               qo'yadi; sentinel esa outerHTML bilan keyingi sahifani shu grid ichiga qo'shadi [P5-T3] #}
+            <div id="movie-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity duration-300">
+                {% include 'movies/partials/_movie_items.html' %}
             </div>
         </main>
     </div>
