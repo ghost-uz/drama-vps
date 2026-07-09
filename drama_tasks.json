@@ -600,7 +600,7 @@
           "title_en": "HTMX UX: infinite scroll, live search, filter without reload, comments",
           "title_uz": "HTMX UX: cheksiz skroll, jonli qidiruv, reloadsiz filtr",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P5-T1"],
           "description_uz": "Katalog/explore'da cheksiz skroll (HTMX), live-search dropdown, filtrlar reloadsiz, izohlar HTMX bilan qo'shiladi. Mavjud HTMX kod kuchaytiriladi.",
           "acceptance_criteria": [
@@ -647,7 +647,7 @@
           "title_en": "Mobile nav, PWA manifest, accessibility (a11y) pass",
           "title_uz": "Mobil navigatsiya, PWA, accessibility",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P5-T1"],
           "description_uz": "Mobil bottom-nav, PWA manifest + service worker (offline shell), a11y (ARIA, fokus, kontrast, klaviatura). Telegram WebView mosligi saqlanadi.",
           "acceptance_criteria": [
@@ -1030,7 +1030,7 @@
           "title_en": "E2E (Playwright): register, watch (gating), subscribe, fund",
           "title_uz": "E2E (Playwright): ro'yxat, ko'rish, obuna, funding",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P5-T2", "P7-T2"],
           "description_uz": "Kritik foydalanuvchi oqimlari: ro'yxatdan o'tish, kino topish, free qism ko'rish, VIP gate, obuna sotib olish (sandbox), funding hissa, davom ettirish.",
           "acceptance_criteria": [

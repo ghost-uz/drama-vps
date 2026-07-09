@@ -1,0 +1,614 @@
+{
+  "meta": {
+    "project_name": "drama.uz",
+    "project_type": "Kino/serial streaming SaaS platforma",
+    "tracker_version": "v2.0",
+    "created": "2026-07-09",
+    "source_project_path": "C:/projects/drama-vps",
+    "parent_tracker": "drama_tasks.json (v1: 15 faza / 65 task; ~55/65 done — P0-P4, P5, P6, P8, P11, P13 to'liq)",
+    "description_uz": "v2 — tayyor fundament (settings split, Redis, Celery, Docker, DRF API, Bunny signed-video, Coin-ledger, VIP obuna, crowdfunding, FTS qidiruv, PWA, E2E) USTIGA yangi biznes-mantiq va funksional app'lar: retention kanallari (yangi-qism bildirishnoma + foydalanuvchi Telegram-boti), hamjamiyat 2.0 (user-to-user izohlar, reaksiyalar, kolleksiyalar), gamifikatsiya (check-in/streak/referral), kontent-import (TMDB, bulk-upload), video-UX (subtitr, intro-skip, treyler), monetizatsiya 2.0 (Click, promo-kod, VIP-sovg'a, Coin-paket) va talab-asosidagi tarjima-ovoz tizimi (crowdfunding pipeline'iga ulanadi).",
+    "v1_open_tasks_note_uz": "v1'dagi OCHIQ tasklar bu yerda DUBLIKAT QILINMAYDI: P0-T2 (sirlar rotatsiyasi — LAUNCH-BLOCKER, foydalanuvchi amali), P7-T3 (kripto-topup avtomatlashtirish), P7-T4 (crowdfunding hardening), P9-T3 (CDN header/cursor pagination/pgbouncer), P10-T4 (admin 2FA/audit-log/gitleaks), P10-T5 (GDPR eksport/o'chirish), P12-T2 (Prometheus/uptime), P14-T2 (scheduling/bulk/preview), P14-T3 (moderatsiya navbati), P14-T4 (admin analitika). v2 task v1 taskiga bog'liq bo'lsa depends_on'da 'v1:<id>' formatida yoziladi.",
+    "instructions_for_agents_uz": "Har task atomik va testlanadigan: (1) testlar yoziladi va o'tadi (pytest; brauzer oqimi bo'lsa pytest -m e2e), (2) migration toza va reversible, (3) ruff/mypy(core) toza, (4) tracker statusi yangilanadi. INVARIANTLAR: har qanday Coin harakati FAQAT users/services/wallet.py (ledger) orqali; ko'rish ruxsati FAQAT drama/services/playback.py orqali; og'ir/sekin ish Celery'da (transaction.on_commit + partial); kesh drama/cache.py versiyalangan kalitlar bilan. COMMIT'ni foydalanuvchi boshqaradi — agent so'ramasdan git commit bajarmaydi.",
+    "status_legend": {
+      "todo": "Boshlanmagan",
+      "in_progress": "Jarayonda",
+      "review": "Tekshiruv kutilmoqda",
+      "done": "Tugallangan",
+      "blocked": "To'sib qo'yilgan"
+    },
+    "priority_legend": {
+      "P1": "Yuqori biznes-qiymat — birinchi navbatda",
+      "P2": "O'rta — mustahkam qo'shimcha qiymat",
+      "P3": "Past — nice-to-have yoki ADR-baholash"
+    }
+  },
+
+  "phases": [
+    {
+      "id": "V2A",
+      "name": "Retention kanallari: bildirishnoma va Telegram",
+      "goal": "Foydalanuvchini qaytarib olib keladigan push-kanallar: yangi qism chiqqanda xabar (in-app -> Telegram -> email). O'zbekiston bozori Telegram-markaz — bot asosiy kanal.",
+      "tasks": [
+        {
+          "id": "V2A-T1",
+          "title_en": "Follow-a-drama + new-episode in-app notifications",
+          "title_uz": "Dramaga obuna + yangi-qism bildirishnomasi (in-app)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Notification modeli va markaz (v1 P6-T3) MAVJUD — endi asosiy event manbai kerak. Obuna manbai: UserMovieList (ko'rmoqda/rejada statuslari) yoki kino sahifasida aniq 'qo'ng'iroq' tugmasi. Yangi Episode READY/published bo'lganda (P3-T1 pipeline yoki webhook) Celery fan-out: obunachilarga Notification bulk_create. Profile'ga per-kanal NotificationPreference (site/telegram/email opt-out).",
+          "acceptance_criteria": [
+            "Yangi qism -> obunachilarga Notification (bulk_create, N+1'siz, on_commit+Celery)",
+            "Header bell badge soni yangilanadi (mavjud notifications_unread context)",
+            "Opt-out qilgan user xabar olmaydi",
+            "Bitta qism uchun ikki marta xabar ketmaydi (idempotent — event kaliti bilan)",
+            "Testlar: fan-out, opt-out, idempotentlik"
+          ],
+          "affected": ["users/models.py", "drama/tasks.py", "drama/webhooks.py", "users/views.py", "templates/"]
+        },
+        {
+          "id": "V2A-T2",
+          "title_en": "User-facing Telegram bot (link account, new-episode push)",
+          "title_uz": "Foydalanuvchi Telegram boti (hisob bog'lash + yangi-qism push)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["V2A-T1"],
+          "description_uz": "Hozir Telegram faqat admin-xabarnoma (core/notifications) va login (P6-T2). Foydalanuvchi boti: /start deep-link token bilan hisobni bog'lash (Profile.telegram_id MAVJUD), V2A-T1 eventlarida shaxsiy push (yangi qism chiqdi -> to'g'ridan kino havolasi), /search inline qidiruv (FTS servisdan). Webhook view (imzo/secret bilan) yoki long-poll management command. Botni bloklagan userlar (403 javob) belgilanadi va o'chiriladi.",
+          "acceptance_criteria": [
+            "Deep-link bog'lash oqimi ishlaydi (token bir martalik, muddatli)",
+            "Yangi qism -> bog'langan user botdan xabar oladi (rate-limit bilan)",
+            "403 (bot bloklangan) -> telegram push o'chiriladi, xato yutilmaydi",
+            "Bot token env'da, webhook secret tekshiriladi",
+            "Testlar: bog'lash, push, 403 handling (API mock)"
+          ],
+          "affected": ["core/telegram_bot.py", "users/views.py", "users/models.py", "config/urls.py", "config/settings/"]
+        },
+        {
+          "id": "V2A-T3",
+          "title_en": "Weekly email digest (new episodes + recommendations)",
+          "title_uz": "Haftalik email-digest (yangi qismlar + tavsiyalar)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["V2A-T1"],
+          "description_uz": "Celery beat haftalik: obuna qilingan dramalar yangi qismlari + P8-T2 tavsiyalar bitta emailda. Faqat email-tasdiqlangan (P6-T1) va opt-in userlarga. Har xatda bir-bosishli unsubscribe (imzolangan token).",
+          "acceptance_criteria": [
+            "Digest faqat verified + opt-in userlarga",
+            "Unsubscribe havolasi login'siz ishlaydi (imzolangan token)",
+            "Bo'sh digest (yangilik yo'q) yuborilmaydi",
+            "Testlar: tarkib, opt-out, unsubscribe"
+          ],
+          "affected": ["users/tasks.py", "templates/emails/", "config/celery.py"]
+        },
+        {
+          "id": "V2A-T4",
+          "title_en": "Web Push (VAPID) evaluation ADR (+ optional MVP)",
+          "title_uz": "Web Push (VAPID) baholash ADR (+ ixtiyoriy MVP)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["V2A-T2"],
+          "description_uz": "PWA (P5-T6) tayyor — service worker'ga push qo'shish texnik mumkin (pywebpush dep). Lekin V2A-T2 Telegram-bot UZ auditoriya uchun kuchli alternativ. ADR: xarajat (dep, VAPID kalit boshqaruvi, permission-UX) vs qo'shimcha qamrov. Qaror ijobiy bo'lsa: subscription saqlash + yuborish task + permission so'rash UX.",
+          "acceptance_criteria": [
+            "docs/adr/ da qaror hujjati (qabul yoki rad, sabablari bilan)",
+            "Joriy etilsa: push subscription CRUD, sw.js push handler, testlar"
+          ],
+          "affected": ["docs/adr/", "templates/pwa/sw.js", "core/"]
+        }
+      ]
+    },
+    {
+      "id": "V2B",
+      "name": "Hamjamiyat 2.0",
+      "goal": "Hozir izoh tizimi bir tomonlama (reply FAQAT superuser — drama/views.py AddReview 403 qaytaradi). Haqiqiy muhokama, reaksiyalar, kolleksiyalar — retention va UGC-SEO.",
+      "tasks": [
+        {
+          "id": "V2B-T1",
+          "title_en": "User-to-user comment replies",
+          "title_uz": "Foydalanuvchilararo izoh javoblari",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "AddReview'da parent_id faqat superuser'ga ruxsat ('Faqat admin javob yozishi mumkin', 403) — hamjamiyat dialogi IMKONSIZ. Ochish: har authenticated user root-izohga javob yoza oladi (chuqurlik 1 saqlanadi: reply'ga reply -> o'sha thread rootiga). Spam himoya MAVJUD (review throttle 10/soat + honeypot emas — rate-limit) — o'zgarishsiz qoladi. HTMX partial (comment_item) allaqachon reply renderini biladi. Izoh muallifiga Notification (V2A-T1 modeli).",
+          "acceptance_criteria": [
+            "Oddiy user reply yoza oladi (403 yo'q); chuqurlik 1 dan oshmaydi",
+            "Reply'da 'javob berdi' badge faqat admin uchun emas — muallif nomi ko'rinadi",
+            "Root-izoh muallifiga bildirishnoma boradi (o'ziga-o'zi javobda EMAS)",
+            "Throttle saqlangan; anonim 401",
+            "Testlar: reply, chuqurlik-cheklov, notification, throttle"
+          ],
+          "affected": ["drama/views.py", "templates/movies/partials/comment_item.html", "templates/movies/movie_detail.html"]
+        },
+        {
+          "id": "V2B-T2",
+          "title_en": "Comment reactions (like) + sort by top",
+          "title_uz": "Izoh reaksiyalari (like) + top-saralash",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["V2B-T1"],
+          "description_uz": "ReviewReaction(user, review, unique_together) — like toggle (HTMX, login talab). Review.like_count denormal (F() bilan atomik yangilanadi). Izohlar saralash: Yangi (default, hozirgi -id) / Eng foydali (like_count). N+1 yo'q: foydalanuvchining o'z reaksiyalari bitta so'rovda prefetch.",
+          "acceptance_criteria": [
+            "Like toggle idempotent (ikki bosishda qaytadi), anonim 401",
+            "like_count atomik (F expression), race'da to'g'ri",
+            "Saralash Top/Yangi ishlaydi, assertNumQueries qotirilgan",
+            "Testlar: toggle, count, sort, permission"
+          ],
+          "affected": ["drama/models.py", "drama/views.py", "templates/movies/partials/comment_item.html"]
+        },
+        {
+          "id": "V2B-T3",
+          "title_en": "Episode-level comments + spoiler protection",
+          "title_uz": "Epizod-darajali izohlar + spoyler himoyasi",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["V2B-T1"],
+          "description_uz": "Review'ga episode FK (null=True — eski izohlar kino-darajada qoladi). Qism sahifasida 'Shu qism muhokamasi' filtri (?episode konteksti allaqachon bor). is_spoiler flag: yozishda checkbox, ko'rsatishda blur + 'Spoylerni ochish' tugma. Migration reversible.",
+          "acceptance_criteria": [
+            "Qism tanlanganda default shu qism izohlari, 'hammasi' toggle bor",
+            "Spoiler izoh blur bilan keladi, bosilganda ochiladi (JS'siz ham <details> fallback)",
+            "Eski izohlar buzilmaydi (episode=null -> umumiy)",
+            "Testlar: filtr, spoiler render, migration"
+          ],
+          "affected": ["drama/models.py", "drama/views.py", "drama/forms.py", "templates/movies/"]
+        },
+        {
+          "id": "V2B-T4",
+          "title_en": "Public custom collections (shareable lists)",
+          "title_uz": "Ommaviy kolleksiyalar (ulashiladigan ro'yxatlar)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "UserMovieList status-asosli (ko'rmoqda/tugatdi...) — unga qo'shimcha erkin Collection(owner, name, slug, description, is_public) + CollectionItem(position, note) through-model. Public URL /users/<u>/collections/<slug>/ (OG meta bilan — Telegram'da chiroyli preview). Profilda vitrina. Faqat published kinolar ko'rinadi (playback invarianti).",
+          "acceptance_criteria": [
+            "CRUD (yaratish/tahrir/o'chirish/tartiblash), max 100 element",
+            "is_public=False faqat egasiga; public sahifa keshlangan",
+            "OG title/description/image (birinchi poster) to'g'ri",
+            "Testlar: permission, public/private, ordering"
+          ],
+          "affected": ["users/models.py", "users/views.py", "users/urls.py", "templates/users/"]
+        },
+        {
+          "id": "V2B-T5",
+          "title_en": "Comment reporting + user block/mute",
+          "title_uz": "Izoh report + foydalanuvchi bloklash/mute",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["v1:P14-T3"],
+          "description_uz": "Report tugmasi (sabab tanlash) -> v1 P14-T3 moderatsiya navbatiga tushadi. UserBlock(user, blocked_user): bloklangan user izohlari 'yashirilgan' bo'lib keladi (ko'rsatish tugmasi bilan), unga reply yozib bo'lmaydi. Settings'da blok ro'yxati.",
+          "acceptance_criteria": [
+            "Report -> moderatsiya navbatida ko'rinadi, bir user bir izohga bir marta",
+            "Blok qilingan user izohlari collapse holatda",
+            "Blok ro'yxatini boshqarish (qo'shish/olib tashlash)",
+            "Testlar: report dedup, blok filtri"
+          ],
+          "affected": ["drama/models.py", "users/models.py", "drama/views.py", "templates/"]
+        }
+      ]
+    },
+    {
+      "id": "V2C",
+      "name": "Gamifikatsiya va retention mexanikasi",
+      "goal": "Coin-iqtisod (P1-T4 ledger) va XP (mavjud) ustiga kunlik odat mexanikasi: check-in, streak, darajalar, referral. Barcha Coin harakati FAQAT wallet servisi orqali.",
+      "tasks": [
+        {
+          "id": "V2C-T1",
+          "title_en": "Daily check-in Coin bonus with streak",
+          "title_uz": "Kunlik check-in Coin bonusi (streak bilan)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Kuniga 1 marta 'Bonus olish' tugmasi: bazaviy 1-2 Coin, 7-kunlik streak'da oshirilgan bonus. DailyCheckin(profile, date, unique_together) — double-claim DB-darajada imkonsiz. Coin FAQAT wallet.credit orqali, CoinTransaction.Type'ga BONUS qo'shiladi (migration). UI: header yoki profil'da streak ko'rsatkich.",
+          "acceptance_criteria": [
+            "Bir kunda ikki marta olish imkonsiz (unique constraint + atomik)",
+            "Streak uzilishi to'g'ri hisoblanadi (kecha yo'q -> 1 ga qaytadi)",
+            "Ledger yozuvi Type.BONUS bilan; balance==SUM(amount) invariant buziladigan yo'l yo'q",
+            "Testlar: claim, double-claim, streak-reset, ledger"
+          ],
+          "affected": ["users/models.py", "users/services/wallet.py", "users/views.py", "templates/users/"]
+        },
+        {
+          "id": "V2C-T2",
+          "title_en": "Levels and badges (XP showcase)",
+          "title_uz": "Darajalar va badge'lar (XP vitrinasi)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Profile.xp MAVJUD (kino tugatganda +100) lekin hech qayerda ko'rinmaydi. Darajalar jadvali (config konstanta: Yangi tomoshabin -> Drama ustasi...), profilда progress-bar. Badge'lar hisoblanadigan (denormal EMAS): birinchi izoh, 10 drama tugatdi, funding hissadori, 7-kun streak (V2C-T1). Keshlangan property.",
+          "acceptance_criteria": [
+            "Profilda daraja + keyingi darajagacha progress ko'rinadi",
+            "Badge'lar shartlar bajarilganda avtomatik paydo bo'ladi (test bilan har biri)",
+            "Hisoblash keshlangan (per-user, invalidatsiya event'larda)",
+            "XP manbalari hujjatlangan (docstring)"
+          ],
+          "affected": ["users/models.py", "users/views.py", "templates/users/profile.html", "drama/cache.py"]
+        },
+        {
+          "id": "V2C-T3",
+          "title_en": "Referral program",
+          "title_uz": "Referral dasturi (do'stni taklif qil)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Har userga unik referral kod/havola (profil'da, Telegram'ga ulashish tugmasi). Yangi user shu havola bilan ro'yxatdan o'tib EMAIL TASDIQLASA (P6-T1 mavjud) — ikkalasiga Coin (wallet orqali, Type.REFERRAL). Fraud-guard: bitta IP'dan kunlik cap, o'z-o'zini taklif blok, faqat verified'da to'lov. Admin hisobot (top-referrerlar).",
+          "acceptance_criteria": [
+            "Attributsiya to'g'ri (session/cookie orqali, ro'yxatgacha saqlanadi)",
+            "To'lov FAQAT email tasdiqlangandan keyin (bir marta)",
+            "IP-cap va self-referral bloklari testlangan",
+            "Ledger yozuvlari ikkala tomonda; admin ro'yxat"
+          ],
+          "affected": ["users/models.py", "users/views.py", "users/services/wallet.py", "templates/users/"]
+        }
+      ]
+    },
+
+    {
+      "id": "V2D",
+      "name": "Kontent boshqaruvi va discovery",
+      "goal": "Katalogni tez o'stirish (TMDB import, bulk-upload) va topilishini oshirish (efir kalendari, slug-redirect SEO).",
+      "tasks": [
+        {
+          "id": "V2D-T1",
+          "title_en": "TMDB metadata import (admin)",
+          "title_uz": "TMDB'dan metadata import (admin)",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Admin'da 'TMDB import': ID yoki qidiruv -> draft Movie avtomatik to'ladi (title/original_title/year/description/country/genre-mapping/poster GCS'ga yuklab olinadi/asosiy aktyorlar Actor get_or_create). TMDB_API_KEY env. Yuklab olish Celery'da (admin bloklanmaydi). Janr mapping jadvali (TMDB genre id -> lokal Genre). Poster huquqiy eslatma docs'da.",
+          "acceptance_criteria": [
+            "Bitta TMDB ID'dan to'liq draft Movie (status=draft — playback invarianti published talab qiladi)",
+            "Slug to'qnashuvida -yil suffiks; mavjud kino dublikat bo'lmaydi (tmdb_id unique)",
+            "Aktyor dedup (original_name bo'yicha get_or_create)",
+            "API xatolari admin'ga tushunarli xabar; retry",
+            "Testlar: import mapping, dedup, xato (API mock)"
+          ],
+          "affected": ["drama/services/tmdb.py", "drama/admin.py", "drama/tasks.py", "drama/models.py", "config/settings/"]
+        },
+        {
+          "id": "V2D-T2",
+          "title_en": "Bulk episode upload",
+          "title_uz": "Bulk epizod yuklash (bir formada N fayl)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "P3-T1/P14-T1 bitta-video pipeline MAVJUD — endi admin bir formada ko'p fayl tanlaydi: har fayl uchun Episode yaratiladi (episode_number fayl nomidan parse: 'EP01', '01', 'qism-1'; parse bo'lmasa ketma-ket), har biri mavjud process_episode_upload navbatiga. Xato bitta faylda — qolganlari davom etadi.",
+          "acceptance_criteria": [
+            "10 fayl -> 10 Episode + 10 Celery task navbatda",
+            "episode_number parse: EP01/01/qism-1 formatlari; to'qnashuvda xato ko'rsatiladi",
+            "Bitta xato fayl atomik ravishda faqat o'zini to'xtatadi",
+            "Yuklash statusi admin'da (mavjud upload_status badge'lari)",
+            "Testlar: parse, partial-fail, navbat"
+          ],
+          "affected": ["drama/admin.py", "drama/services/bunny_upload.py", "drama/forms.py"]
+        },
+        {
+          "id": "V2D-T3",
+          "title_en": "Airing calendar + ongoing/completed facet",
+          "title_uz": "Efir kalendari ('Tez kunda') + davom etmoqda filtri",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "publish_at (P1-T6 scheduled workflow) MAVJUD — ommaviy /kalendar/ sahifa: shu hafta/keyingi hafta chiqadigan qismlar kun bo'yicha guruhlangan. Explore facet'lariga 'Davom etmoqda / Tugallangan' filtri (live_episode_count vs episodes_count annotatsiyasi ALLAQACHON with_card_data'da bor). Kalendar keshlangan (catalog_ver).",
+          "acceptance_criteria": [
+            "Kalendar sahifa scheduled qismlarni kun bo'yicha ko'rsatadi (faqat published bo'ladigan kontent)",
+            "Explore'da ongoing/completed filtr facet son bilan",
+            "Kesh: kontent o'zgarganda invalidatsiya (mavjud signal)",
+            "SEO meta + sitemap'ga kalendar",
+            "Testlar: guruhlash, filtr, kesh"
+          ],
+          "affected": ["drama/views.py", "drama/facets.py", "drama/urls.py", "templates/movies/"]
+        },
+        {
+          "id": "V2D-T4",
+          "title_en": "Slug change 301 redirects",
+          "title_uz": "Slug o'zgarishida 301 redirect (SEO saqlash)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Movie slug o'zgarsa eski URL 404 bo'ladi — SEO link equity yo'qoladi. SlugRedirect(old_slug unique, movie FK) + Movie.save()'da slug o'zgarishini avtomatik yozish + movie_detail 404 o'rniga oldin redirect jadvalini tekshirish (bitta indexed so'rov).",
+          "acceptance_criteria": [
+            "Slug o'zgarganda eski URL 301 -> yangi",
+            "Zanjir yo'q (A->B->C emas, A->C ga to'g'rilanadi)",
+            "Sitemap faqat joriy slug'larni beradi",
+            "Testlar: redirect, zanjir-tekislash, 404 (umuman yo'q slug)"
+          ],
+          "affected": ["drama/models.py", "drama/views.py", "drama/signals.py"]
+        }
+      ]
+    },
+    {
+      "id": "V2E",
+      "name": "Video UX yaxshilanishlari",
+      "goal": "Pleyer (P5-T2 hls.js + resume + auto-next) ustiga: subtitrlar, intro-skip, treyler, sozlamalar persistensiyasi.",
+      "tasks": [
+        {
+          "id": "V2E-T1",
+          "title_en": "Subtitles (VTT) per episode",
+          "title_uz": "Epizod subtitrlari (VTT, ko'p til)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "EpisodeSubtitle(episode, lang [uz/en/ko...], vtt_file, label) — admin inline'da yuklanadi (P10-T3 validator uslubida: kengaytma+hajm+mazmun tekshiruv). Pleyerda <track kind=subtitles> + til tanlash tugmasi (hls.js native text-track bilan ishlaydi). VTT fayl GCS'dan (CSP media/connect ruxsatlari tekshiriladi). Bunny captions API'ga ko'chirish — ixtiyoriy keyingi qadam.",
+          "acceptance_criteria": [
+            "Admin VTT yuklaydi (validatsiya: faqat .vtt, WEBVTT magic, hajm limit)",
+            "Pleyer til tanlash menyusi; tanlov localStorage'da eslab qolinadi",
+            "Subtitr imzoli video bilan birga ishlaydi (CORS to'g'ri)",
+            "Testlar: model/validator, playback sahifada track render"
+          ],
+          "affected": ["drama/models.py", "drama/admin.py", "core/validators.py", "static/js/player.js", "templates/movies/movie_detail.html"]
+        },
+        {
+          "id": "V2E-T2",
+          "title_en": "Skip-intro markers + next-episode countdown overlay",
+          "title_uz": "Intro-skip markerlari + keyingi-qism countdown overlay",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Episode.intro_start/intro_end (sekund, null=True) — pleyer shu oraliqda 'Intro'ni o'tkazish' tugmasini ko'rsatadi (bosilsa intro_end'ga seek). Auto-next MAVJUD (P5-T2 'ended' event) — uni chiroyli qilish: tugashdan 15s oldin 'Keyingi qism: N' countdown overlay + Bekor tugmasi. Ikkalasi player.js'da, server faqat markerlarni beradi.",
+          "acceptance_criteria": [
+            "Tugma faqat intro oralig'ida ko'rinadi; seek to'g'ri",
+            "Countdown overlay 15s qolganda; Bekor bossa auto-next o'chadi (shu sessiya)",
+            "Markerlari yo'q epizodlarda hech narsa buzilmaydi",
+            "Testlar: kontekst (marker JSON), admin maydonlar; JS smoke (E2E ixtiyoriy)"
+          ],
+          "affected": ["drama/models.py", "drama/admin.py", "static/js/player.js", "templates/movies/movie_detail.html"]
+        },
+        {
+          "id": "V2E-T3",
+          "title_en": "Trailer UI (field exists, no surface)",
+          "title_uz": "Treyler UI (maydon bor — interfeys yo'q)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Movie.bunny_trailer_id (0016 drift-migratsiyada modelga kirgan) va trailer_embed_code MAVJUD lekin UI'da ishlatilmaydi. Detail sahifada 'Treyler' tugma -> modal pleyer. Treyler GATING'SIZ (marketing kontenti — anonim ham ko'radi), lekin URL imzoli (P4-T1 umumiy qoida).",
+          "acceptance_criteria": [
+            "bunny_trailer_id bor kinoda Treyler tugmasi + modal HLS pleyer",
+            "Treyler anonim uchun ham ochiq (gating chetlab O'TILMAYDI — bu asosiy video emas)",
+            "Maydon bo'sh bo'lsa tugma yo'q",
+            "Testlar: kontekst, anonim ko'rish"
+          ],
+          "affected": ["drama/views.py", "templates/movies/movie_detail.html", "static/js/player.js"]
+        },
+        {
+          "id": "V2E-T4",
+          "title_en": "Player preferences persistence + playback speed",
+          "title_uz": "Pleyer sozlamalari persist + tezlik boshqaruvi",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Sifat/ovoz/subtitr-til tanlovi localStorage'da (mavjud player.js'ga qo'shimcha), playback speed 0.75x-2x menyu. Login userda profilga sinxron (kelajak qurilmalararo) — ixtiyoriy bosqich.",
+          "acceptance_criteria": [
+            "Qayta ochilganda oxirgi sifat/tezlik tiklanadi",
+            "Speed HLS bilan to'g'ri ishlaydi (audio pitch normal)",
+            "Testlar: JS smoke (E2E) yoki qo'lda tekshiruv hujjati"
+          ],
+          "affected": ["static/js/player.js", "templates/movies/movie_detail.html"]
+        }
+      ]
+    },
+
+    {
+      "id": "V2F",
+      "name": "Monetizatsiya 2.0",
+      "goal": "To'lov qamrovini kengaytirish (Click), konversiya vositalari (promo, paket, sovg'a) va biznes-modelning yuragi — talab-asosidagi tarjima tanlovi.",
+      "tasks": [
+        {
+          "id": "V2F-T1",
+          "title_en": "Click merchant integration",
+          "title_uz": "Click to'lov provideri integratsiyasi",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["v1:P7-T2"],
+          "description_uz": "billing app provider-agnostik qurilgan (Order UUID holat-mashina, mark_paid/mark_canceled idempotent, select_for_update) — Payme ishlaydi, Click yo'q. Click Merchant API: prepare/complete callback'lar, imzo (md5/sign_string) tekshiruv, error-kod jadvali. Xuddi Payme kabi: muvaffaqiyat -> wallet ledger orqali Coin/obuna.",
+          "acceptance_criteria": [
+            "Checkout Click bilan boshlanadi; prepare/complete to'g'ri javob formatida",
+            "Imzo xato -> rad; double-callback idempotent (mavjud mark_paid kafolati)",
+            "Sandbox'da to'liq oqim test qilingan; testlar (callback mock)",
+            "docs/ops'da Click sozlash runbook"
+          ],
+          "affected": ["billing/providers/click.py", "billing/webhooks.py", "billing/urls.py", "config/settings/", "docs/ops/"]
+        },
+        {
+          "id": "V2F-T2",
+          "title_en": "Promo codes",
+          "title_uz": "Promo-kodlar (bonus Coin / obuna chegirma)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "PromoCode(code unique, type [bonus_coin|sub_discount], value, valid_from/until, max_uses, used_count) + PromoRedemption(user, code, unique_together — bir user bir marta). Topup/obuna sahifasida kod maydoni. Qo'llash atomik (select_for_update: max_uses race'siz). Coin bonusi wallet orqali (Type.BONUS), chegirma Order summasida.",
+          "acceptance_criteria": [
+            "Bir user bir kodni bir marta; max_uses atomik kamayadi",
+            "Muddati o'tgan/limiti tugagan kod aniq xabar bilan rad",
+            "Ledger/Order'da promo izi (reference)",
+            "Admin: kod yaratish, statistika; testlar: race, dedup, muddat"
+          ],
+          "affected": ["billing/models.py", "billing/services.py", "users/views.py", "templates/users/topup.html", "templates/pages/subscription.html"]
+        },
+        {
+          "id": "V2F-T3",
+          "title_en": "Gift VIP subscription",
+          "title_uz": "VIP obunani sovg'a qilish",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Boshqa userga (username bo'yicha) plan sotib berish: xaridor Coin'i wallet.debit (Type.GIFT, reference gift-sub), oluvchiga Subscription yaratiladi (mavjud subscriptions.purchase mantig'i qayta ishlatiladi — muddat mavjud obunaga QOʻSHILADI, P7-T1 qoidasi). Oluvchiga Notification + email. O'z-o'ziga sovg'a bloklanadi.",
+          "acceptance_criteria": [
+            "Atomik: debit + Subscription bitta tranzaksiyada",
+            "Oluvchida is_currently_premium darhol true; muddat stack to'g'ri",
+            "Yetarli Coin yo'q -> InsufficientFunds xabari; o'ziga sovg'a 400",
+            "Notification + email oluvchiga; testlar: stack, atomiklik, bloklar"
+          ],
+          "affected": ["users/services/subscriptions.py", "users/views.py", "users/urls.py", "templates/pages/subscription.html"]
+        },
+        {
+          "id": "V2F-T4",
+          "title_en": "Coin packages + first-purchase bonus",
+          "title_uz": "Coin paketlari + birinchi-xarid bonusi",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": ["v1:P7-T2"],
+          "description_uz": "CoinPackage(name, coins, price_uzs, bonus_percent, is_active, sort_order) — SubscriptionPlan naqshida (admin boshqaradi, o'chirilmaydi is_active=False). Topup sahifada paket kartalari -> Payme/Click Order. Birinchi muvaffaqiyatli xaridda qo'shimcha +N% (ledger'da alohida BONUS yozuv — auditda ajralib turadi).",
+          "acceptance_criteria": [
+            "Paket tanlash -> to'lov -> coins+bonus ledger'da (2 yozuv: topup + bonus)",
+            "Birinchi-xarid bonusi faqat bir marta (tekshiruv ledger'dan)",
+            "Paket narxlari tarixi buzilmaydi (Order snapshot)",
+            "Testlar: bonus bir-martalik, ledger, is_active filtri"
+          ],
+          "affected": ["billing/models.py", "billing/services.py", "users/views.py", "templates/users/topup.html"]
+        },
+        {
+          "id": "V2F-T5",
+          "title_en": "Translation requests + voting -> crowdfunding pipeline",
+          "title_uz": "Tarjima so'rovlari + ovoz berish -> crowdfunding",
+          "priority": "P1",
+          "status": "todo",
+          "depends_on": ["v1:P7-T4"],
+          "description_uz": "Biznes-modelning yuragi: qaysi drama tarjima qilinishini AUDITORIYA tanlaydi. TranslationRequest(title, original_title, tmdb_url ixtiyoriy, created_by, status [open/planned/converted/rejected]) + RequestVote(user, request, unique_together). Top-ovozli ro'yxat sahifasi (keshlangan). Admin action: so'rovni FundingProject'ga aylantirish (P7-T4 hardening'iga tayanadi) — ovoz berganlar avtomatik Notification oladi ('Siz so'ragan drama funding'ga chiqdi!'). Kelajak: coin-stake ovoz (og'irlikli) — hozircha oddiy 1-user-1-ovoz.",
+          "acceptance_criteria": [
+            "So'rov yaratish (rate-limit + dublikat tekshiruv title bo'yicha), 1-user-1-ovoz toggle",
+            "Top sahifa ovoz soni bilan, keshlangan, sahifalangan",
+            "Admin convert action -> FundingProject draft + ovoz berganlarga bildirishnoma",
+            "Spam himoya: yangi user (email tasdiqlanmagan) so'rov ocholmaydi, ovoz beradi",
+            "Testlar: vote dedup, convert oqimi, notification fan-out, rate-limit"
+          ],
+          "affected": ["funding/models.py", "funding/views.py", "funding/admin.py", "funding/urls.py", "templates/funding/"]
+        }
+      ]
+    },
+    {
+      "id": "V2G",
+      "name": "SEO va i18n o'sish",
+      "goal": "Organik trafik: to'liq EN locale (modeltranslation en-maydonlari allaqachon bor), kontent-marketing blogi, qidiruv-talab analitikasi.",
+      "tasks": [
+        {
+          "id": "V2G-T1",
+          "title_en": "Full EN locale with /en/ URLs (i18n_patterns)",
+          "title_uz": "To'liq EN locale (/en/ URL'lar, i18n_patterns)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "P5-T4 hreflang'ni ataylab faqat uz+x-default qoldirgan ('en URL yo'q — i18n_patterns kelganda' — base.html izohi). Joriy etish: config/urls i18n_patterns (uz prefiksiz default, /en/ prefiks), UI stringlar {% trans %} + .po/.mo, hreflang uz/en juftlik to'ldiriladi, til almashtirgich (footer), sitemap alternates. Kontent maydonlari modeltranslation'da ALLAQACHON en'ga ega (bo'sh bo'lsa uz fallback).",
+          "acceptance_criteria": [
+            "/en/ sahifalar EN UI bilan ochiladi; uz URL'lar o'zgarmaydi (prefix_default_language=False)",
+            "hreflang uz/en/x-default uchala variant; canonical to'g'ri",
+            "Sitemap'da alternates; til almashtirgich sessiyada saqlanadi",
+            "Testlar: URL resolve ikkala tilda, hreflang render, fallback"
+          ],
+          "affected": ["config/urls.py", "config/settings/base.py", "templates/base.html", "locale/"]
+        },
+        {
+          "id": "V2G-T2",
+          "title_en": "News/blog app (SEO content marketing)",
+          "title_uz": "Yangiliklar/blog app (SEO kontent-marketing)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "K-drama yangiliklari/sharhlari uchun yengil blog: Post(title, slug, cover, body, tags M2M, status draft/published, publish_at — P1-T6 workflow naqshi). Bosh sahifada 'Yangiliklar' blok, sitemap + RSS feed, JSON-LD Article. Kinolarga ichki havolalar (SEO link-building). Admin'da rich-text (mavjud unfold widget'lari).",
+          "acceptance_criteria": [
+            "CRUD admin; faqat published ommaviy (drafts() naqshi)",
+            "Sitemap + RSS; JSON-LD Article validatsiyadan o'tadi",
+            "Sahifalar keshlangan (versiyalangan kalit)",
+            "Testlar: publish workflow, feed, ko'rinish invarianti"
+          ],
+          "affected": ["blog/ (yangi app)", "config/urls.py", "config/settings/base.py", "templates/blog/", "drama/sitemaps.py"]
+        },
+        {
+          "id": "V2G-T3",
+          "title_en": "Search analytics (zero-result mining)",
+          "title_uz": "Qidiruv analitikasi (natijasiz so'rovlar konchiligi)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "SearchQueryLog(query normalized, results_count, created_at, user null) — live_search va Search view'larida async yozish (so'rovni sekinlashtirmaydi: on_commit yoki Celery). Admin hisobot: top so'rovlar + NATIJASIZ so'rovlar (qaysi drama talab qilinyapti -> V2F-T5 so'rov tizimi va kontent xaridi uchun signal). PII minimal (faqat query), 90-kun retention (beat tozalash).",
+          "acceptance_criteria": [
+            "Log yozish qidiruv latency'siga ta'sir qilmaydi (async)",
+            "Admin: top-20 va zero-result-20 hisobot (davr filtri)",
+            "90 kundan eski loglar beat'da o'chadi",
+            "Testlar: log yozish, normalizatsiya (case/trim), retention task"
+          ],
+          "affected": ["drama/models.py", "drama/views.py", "drama/tasks.py", "drama/admin.py"]
+        }
+      ]
+    },
+
+    {
+      "id": "V2H",
+      "name": "Platforma va ops",
+      "goal": "Xavfsiz rollout (feature-flag), saqlash gigiyenasi (orphan tozalash) va kelajak kanallar (FCM, watch-party) uchun asosli qarorlar.",
+      "tasks": [
+        {
+          "id": "V2H-T1",
+          "title_en": "Feature-flag system",
+          "title_uz": "Feature-flag tizimi (bosqichma-bosqich yoqish)",
+          "priority": "P2",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "V2B/V2C kabi foydalanuvchi-ko'rinadigan featurelarni deploy'siz yoqish/o'chirish: Flag(name unique, is_active, staff_only, percent 0-100) core'da (core'ga birinchi model — migrations papka ochiladi). Kesh bilan o'qish (per-request emas, versiyalangan). API: flags.is_enabled(name, user) + template tag {% flag_enabled %} + view decorator. percent — user.id % 100 deterministik (bir user doim bir tomonda).",
+          "acceptance_criteria": [
+            "Flag admin'dan o'zgartirilsa keshdan keyin darhol amal qiladi (invalidatsiya signal)",
+            "percent-rollout deterministik (bir user doim bir xil natija)",
+            "staff_only rejimi ishlaydi; yo'q flag default False (xavfsiz)",
+            "Testlar: enabled/disabled/percent/staff, kesh invalidatsiya"
+          ],
+          "affected": ["core/models.py", "core/flags.py", "core/templatetags/", "core/migrations/", "drama/cache.py"]
+        },
+        {
+          "id": "V2H-T2",
+          "title_en": "GCS orphan media cleanup",
+          "title_uz": "GCS orphan media tozalash (saqlash gigiyenasi)",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Yillar davomida almashtirilgan poster/avatar/cheklar GCS'da qoladi (xarajat + tartibsizlik). Management command: DB'dagi barcha FileField yo'llari (Movie/Actor/Episode/Profile/TopUp receiptlari + .webp variantlar) vs bucket listing diff -> orphan hisobot. DOIM dry-run default; o'chirish faqat --confirm bilan va faqat 30 kundan eski fayllar. Haftalik beat: hisobotni admin Telegram'ga.",
+          "acceptance_criteria": [
+            "Dry-run to'liq ro'yxat + hajm beradi, HECH NARSA o'chirmaydi",
+            "--confirm faqat DB'da YO'Q va 30+ kun eski fayllarni o'chiradi",
+            "DB'dagi biror fayl hech qachon o'chmasligi testda qotirilgan (mock storage)",
+            "Haftalik hisobot task; docs/ops runbook"
+          ],
+          "affected": ["core/management/commands/cleanup_orphan_media.py", "core/tasks.py", "docs/ops/"]
+        },
+        {
+          "id": "V2H-T3",
+          "title_en": "Mobile push (FCM) evaluation ADR",
+          "title_uz": "Mobil push (FCM) baholash — ADR",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": ["V2A-T2"],
+          "description_uz": "Kelajak mobil ilova (DRF API tayyor) uchun push: DeviceToken app + FCM. ADR: V2A-T2 Telegram-bot UZ auditoriyani qanchalik qoplaydi vs FCM qo'shimcha xarajati (Firebase dep, token lifecycle). Qaror ijobiy bo'lsa: DeviceToken CRUD API (JWT) + yuborish task + V2A-T1 fan-out'ga kanal sifatida ulash.",
+          "acceptance_criteria": [
+            "docs/adr/ da qaror (qabul/rad/keyinga, sabablari bilan)",
+            "Joriy etilsa: token API testlari, kanal fan-out testi"
+          ],
+          "affected": ["docs/adr/", "users/api/"]
+        },
+        {
+          "id": "V2H-T4",
+          "title_en": "Watch-party evaluation ADR",
+          "title_uz": "Watch-party (birga ko'rish) baholash — ADR",
+          "priority": "P3",
+          "status": "todo",
+          "depends_on": [],
+          "description_uz": "Differensiator g'oya: do'stlar bir vaqtda ko'rishi (sinxron playback + chat). To'liq variant Django Channels/WebSocket infra talab qiladi (yangi deploy qatlami — daphne/uvicorn ws, redis pubsub). ADR: xarajat vs qiymat; yengil MVP alternativ — polling-sync (har 5-10s WatchProgress solishtirish) yoki faqat 'xona havolasi + jonli izohlar'. Qaror hujjatlashtiriladi, shoshilmasdan.",
+          "acceptance_criteria": [
+            "docs/adr/ da variantlar taqqoslangan qaror",
+            "MVP tanlansa: xona yaratish/qo'shilish + sync smoke E2E"
+          ],
+          "affected": ["docs/adr/"]
+        }
+      ]
+    }
+  ],
+
+  "summary": {
+    "total_phases": 8,
+    "total_tasks": 32,
+    "priority_breakdown": {"P1": 6, "P2": 15, "P3": 11},
+    "tavsiya_tartibi_uz": "1-to'lqin (P1): V2A-T1 -> V2A-T2 (yangi-qism push + Telegram bot — retention yadro) parallel V2D-T1 (TMDB import — katalog o'sish tezligi) va V2F-T1 (Click — to'lov qamrovi 2x); keyin V2F-T5 (tarjima-ovoz — biznes-model yuragi, v1:P7-T4 dan keyin) va V2B-T1 (user-reply — hamjamiyatni ochadi). 2-to'lqin (P2): V2B qolganlari + V2C gamifikatsiya + V2E video-UX + V2F promo/sovg'a/paket + V2D-T2/T3 + V2H-T1 flag. 3-to'lqin (P3): ADR'lar, blog, EN-locale, ops-gigiyena.",
+    "eng_muhim_birinchi_5_uz": [
+      "V2A-T1 + V2A-T2: Yangi-qism bildirishnoma + foydalanuvchi Telegram-boti — epizodik kontentda retention QIROLI; O'zbekiston Telegram-markaz bozor",
+      "V2F-T5: Tarjima so'rovlari + ovoz -> crowdfunding — 'nimani tarjima qilamiz'ni auditoriya hal qiladi, funding konversiyasi talab bilan ta'minlanadi",
+      "V2D-T1: TMDB import — bitta kino kartochkasini qo'lda to'ldirish daqiqalardan soniyalarga tushadi, katalog o'sishi tezlashadi",
+      "V2F-T1: Click integratsiyasi — Payme yoniga ikkinchi milliy to'lov reli, checkout konversiyasi oshadi",
+      "V2B-T1: User-to-user izoh javoblari — hozir dialog IMKONSIZ (reply faqat admin); hamjamiyat jonlanishining eng arzon qulfi"
+    ],
+    "eslatma_uz": "AVVAL v1 P0-T2 (GCS kalit rotatsiyasi) yopilishi SHART — bu launch-blocker va v2'dagi hech narsa uni almashtirmaydi. v2 tasklar mavjud arxitektura naqshlarini QAYTA ISHLATADI: Coin -> faqat wallet ledger; ruxsat -> faqat playback service; og'ir ish -> Celery on_commit; kesh -> versiyalangan kalitlar; publish -> status workflow. Yangi naqsh kiritishdan oldin mavjudini tekshiring — bu v1 davomida uzluksiz saqlangan intizom."
+  }
+}
