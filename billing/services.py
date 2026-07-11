@@ -20,7 +20,7 @@ from users.services import wallet
 UZS_PER_COIN = 1000
 
 # Ledger turi provider bo'yicha (aniq audit izi uchun)
-_LEDGER_TYPE = {
+_LEDGER_TYPE: dict[str, CoinTransaction.Type] = {
     Order.Provider.PAYME: CoinTransaction.Type.PAYME,
     Order.Provider.CLICK: CoinTransaction.Type.CLICK,
 }
