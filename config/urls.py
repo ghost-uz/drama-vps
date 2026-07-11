@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from core.health import healthz, readyz
 from core.monitoring import metrics_view
@@ -14,6 +15,7 @@ from drama.sitemaps import (
     CategorySitemap,
     GenreSitemap,
     MovieSitemap,
+    StaticPagesSitemap,
     VideoSitemap,
 )
 from drama.views import robots_txt
@@ -25,6 +27,7 @@ sitemaps = {
     "actors": ActorSitemap,
     "categories": CategorySitemap,
     "genres": GenreSitemap,
+    "pages": StaticPagesSitemap,
 }
 
 urlpatterns = [
@@ -68,6 +71,13 @@ urlpatterns = [
     path("manifest.webmanifest", manifest, name="manifest"),
     path("sw.js", service_worker, name="service_worker"),
     path("offline/", offline, name="offline"),
+    # Huquqiy sahifalar [P10-T5 qisman] — drama catch-all'dan OLDIN turishi shart
+    path("shartlar/", TemplateView.as_view(template_name="pages/terms.html"), name="terms"),
+    path(
+        "maxfiylik/",
+        TemplateView.as_view(template_name="pages/privacy.html"),
+        name="privacy",
+    ),
     path("", include("drama.urls", namespace="drama")),
     path("funding/", include("funding.urls")),
 ]

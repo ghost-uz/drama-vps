@@ -962,7 +962,7 @@
           "title_en": "GDPR/data privacy: export & delete account",
           "title_uz": "Maxfiylik: ma'lumot eksport va hisobni o'chirish",
           "priority": "P3",
-          "status": "todo",
+          "status": "in_progress",
           "depends_on": ["P2-T3"],
           "description_uz": "Foydalanuvchi o'z ma'lumotini eksport qilishi va hisobni o'chirishi (yoki anonimlashtirish). Maxfiylik siyosati sahifasi.",
           "acceptance_criteria": [

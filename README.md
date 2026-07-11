@@ -176,7 +176,7 @@ celery -A config beat -l info --scheduler django_celery_beat.schedulers:Database
 Reja ikki tracker'da: `drama_tasks.json` (v1: 15 faza / 65 task — **59 done**) va `drama-vps-v2_tasks.json` (v2: 8 faza / 32 task — navbatda). Bosqichlar va ustuvorlik: **`roadmap.md`** (2026-07-10 audit: arxitektura **82/100** · UX **76/100**).
 
 - ✅ **To'liq yopilgan fazalar:** P1 data-model (Coin-ledger · Season · WatchProgress · publish-workflow) · P2 DRF API (JWT · signed playback) · P3 Celery (Bunny upload · webhook · bildirishnoma · beat) · P4 video xavfsizligi (signed URL) · P5 frontend (Alpine · pleyer · SEO · PWA) · P6 auth (email-tasdiqlash · Google/Telegram) · P8 qidiruv (FTS · tavsiyalar) · P11 testlar (321 birlik+API+E2E · coverage-gate) · P13 CI/CD (zero-downtime deploy · backup · staging)
-- ⏳ **Qisman:** P0 8/9 — *qolgan: **P0-T2 sirlar rotatsiyasi (LAUNCH-BLOCKER)** → `docs/ops/secret-rotation.md`* · P7 3/4 (Payme/obuna/funding-hardening ✅; kripto-avto P7-T3 ochiq) · P9 2/3 (P9-T3: pgbouncer/cursor) · P10 4/5 (P10-T5: GDPR) · P12 2/2 ✅ · P14 2/4 (P14-T2/T4: scheduling/analitika)
+- ⏳ **Qisman:** P0 8/9 — *qolgan: **P0-T2 sirlar rotatsiyasi (LAUNCH-BLOCKER)** → `docs/ops/secret-rotation.md`* · P7 3/4 (Payme/obuna/funding-hardening ✅; kripto-avto P7-T3 ochiq) · P9 2/3 (P9-T3: pgbouncer/cursor) · P10 4/5 (P10-T5: oferta/maxfiylik sahifalari ✅, eksport/o'chirish qoldi) · P12 2/2 ✅ · P14 2/4 (P14-T2/T4: scheduling/analitika)
 
 ---
 

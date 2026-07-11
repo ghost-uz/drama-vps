@@ -17,6 +17,10 @@
                         <div class="d-grid mt-4">
                             <button class="btn btn-primary btn-lg rounded-pill" type="submit">Hozir qo'shilish</button>
                         </div>
+                        <p class="text-center text-muted mt-3 mb-0" style="font-size: 0.78rem;">
+                            Ro'yxatdan o'tish orqali <a href="{% url 'terms' %}" class="text-decoration-none">Foydalanish shartlari</a>
+                            va <a href="{% url 'privacy' %}" class="text-decoration-none">Maxfiylik siyosati</a>ga rozilik bildirasiz.
+                        </p>
                     </form>
                     {% include 'users/_social_login.html' %}
                     <hr class="my-4">

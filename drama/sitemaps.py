@@ -1,4 +1,5 @@
 from django.contrib.sitemaps import Sitemap
+from django.urls import reverse
 
 from .models import Actor, Category, Genre, Movie
 
@@ -63,3 +64,16 @@ class VideoSitemap(Sitemap):
 
     def lastmod(self, obj):
         return obj.updated_at
+
+
+class StaticPagesSitemap(Sitemap):
+    """Statik huquqiy sahifalar (oferta/maxfiylik) [P10-T5 qisman]."""
+
+    changefreq = "yearly"
+    priority = 0.3
+
+    def items(self):
+        return ["terms", "privacy"]
+
+    def location(self, item):
+        return reverse(item)
