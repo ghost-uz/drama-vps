@@ -7,6 +7,8 @@ from unfold.admin import ModelAdmin, StackedInline
 # MANA SHU QATORNI QO'SHING:
 from unfold.decorators import display
 
+from core import audit
+
 from .models import (
     CoinTransaction,
     CryptoTopUpRequest,
@@ -82,11 +84,19 @@ class TopUpRequestAdmin(ModelAdmin):
         for req in queryset.filter(status="pending"):
             req.status = "approved"
             req.save()  # save() chaqirilganda modeldagi point qo'shish mantiqi ishlaydi
+            audit.log(
+                request.user,
+                "topup.approve",
+                f"{type(req).__name__}#{req.pk}",
+                details=f"{req.user.username} +{req.points} coin",
+                request=request,
+            )
         self.message_user(request, "Tanlangan so'rovlar tasdiqlandi va pointlar berildi.")
 
     @admin.action(description="Tanlanganlarni RAD ETISH")
     def reject_requests(self, request, queryset):
-        queryset.filter(status="pending").update(status="rejected")
+        updated = queryset.filter(status="pending").update(status="rejected")
+        audit.log(request.user, "topup.reject", details=f"{updated} ta so'rov", request=request)
         self.message_user(request, "Tanlangan so'rovlar rad etildi.")
 
 
@@ -125,11 +135,19 @@ class CryptoTopUpRequestAdmin(ModelAdmin):
         for req in queryset.filter(status="pending"):
             req.status = "approved"
             req.save()
+            audit.log(
+                request.user,
+                "topup.approve",
+                f"{type(req).__name__}#{req.pk}",
+                details=f"{req.user.username} +{req.points} coin",
+                request=request,
+            )
         self.message_user(request, "Tanlangan so'rovlar tasdiqlandi va coinlar berildi.")
 
     @admin.action(description="Tanlanganlarni RAD ETISH")
     def reject_requests(self, request, queryset):
-        queryset.filter(status="pending").update(status="rejected")
+        updated = queryset.filter(status="pending").update(status="rejected")
+        audit.log(request.user, "topup.reject", details=f"{updated} ta so'rov", request=request)
         self.message_user(request, "Tanlangan so'rovlar rad etildi.")
 
 

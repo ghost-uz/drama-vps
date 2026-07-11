@@ -1,7 +1,7 @@
 # ==============================================================================
 # Drama.uz — CI (P13-T1)
 #
-# Har push (main) va har PR'da 4 parallel job:
+# Har push (main) va har PR'da 5 parallel job:
 #   lint                — pre-commit (ruff lint+format, mypy core, gigiyena)
 #                         lokal hook'lar bilan AYNAN bir xil konfiguratsiya.
 #   test                — pytest (sqlite :memory:, tez) + coverage gate
@@ -9,12 +9,13 @@
 #   migrations-postgres — migratsiyalar REAL postgres'da qo'llanadi + drift check
 #                         (sqlite testlar ushlamaydigan postgres-xatolarni topadi).
 #   docker-build        — production image quriladi (push'siz).
+#   security            — pip-audit (ma'lum CVE) + gitleaks (sir skan) [P10-T4].
 #   e2e                 — Playwright E2E (live_server) — FAQAT nightly/qo'lda [P11-T4].
 #
 # "Yashil bo'lmasa merge bloklanadi" uchun (bir martalik, GitHub UI):
 #   Settings -> Branches -> Add branch protection rule (main) ->
 #   Require status checks to pass -> lint, test, migrations-postgres,
-#   docker-build ni belgilang. Batafsil: docs/ops/ci.md
+#   docker-build, security ni belgilang. Batafsil: docs/ops/ci.md
 # ==============================================================================
 name: CI
 
@@ -112,6 +113,24 @@ jobs:
       - name: Production image build (push'siz)
         run: docker build -t drama-web:ci .
 
+  security:
+    # Zaif paket (CVE) + sir skan [P10-T4] — ikkalasidan biri topilsa CI qizil.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # gitleaks push/PR oralig'idagi commitlarni skanerlaydi
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: pip-audit — pinned bog'liqliklarda ma'lum CVE bormi
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements/base.txt -r requirements/prod.txt
+      - name: gitleaks — sir (kalit/token/parol) skan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   e2e:
     # Ixtiyoriy nightly [P11-T4]: PR/push'ni BLOKLAMAYDI — faqat jadval (03:00 UTC)
     # yoki qo'lda (workflow_dispatch). Playwright + live_server, sekin + brauzer.

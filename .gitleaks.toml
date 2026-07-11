@@ -1,0 +1,13 @@
+# gitleaks konfiguratsiyasi [P10-T4] — CI'da sir-skan (security job).
+#
+# DIQQAT (vaqtinchalik allowlist): drama-key-v2.json — MA'LUM eski sir,
+# P0-T2 (rotatsiya + git-tarixni filter-repo bilan tozalash) yopilgach bu
+# allowlist BUTUNLAY o'chirilishi shart. U faqat CI'ni bugun ishlatish uchun:
+# YANGI sirlar baribir bloklanadi.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "P0-T2 kutilmoqda: eski GCS kaliti rotatsiyadan keyin tarixdan o'chiriladi"
+paths = ['''drama-key-v2\.json''']

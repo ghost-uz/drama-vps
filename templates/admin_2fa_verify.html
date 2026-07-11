@@ -1,0 +1,47 @@
+{# Admin 2FA tasdiqlash [P10-T4] — ataylab minimal, mustaqil sahifa (admin/base'siz) #}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Ikki bosqichli tasdiqlash — Drama.Uz</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background:#050505; color:#eee;
+               min-height:100vh; display:flex; align-items:center; justify-content:center; margin:0; }
+        .card { background:#111; border:1px solid #2a2a2a; border-radius:16px;
+                padding:2rem; width:100%; max-width:400px; }
+        h1 { font-size:1.05rem; margin:0 0 1rem; color:#00cc4c; }
+        p { font-size:.85rem; color:#aaa; line-height:1.55; }
+        code { background:#000; padding:2px 6px; border-radius:6px; color:#00cc4c; font-size:.78rem; }
+        select, input { width:100%; box-sizing:border-box; background:#000; color:#fff;
+                border:1px solid #333; border-radius:10px; padding:.6rem .8rem; margin:.3rem 0 .9rem; }
+        button { width:100%; background:#00cc4c; color:#000; font-weight:700; border:0;
+                 border-radius:10px; padding:.7rem; cursor:pointer; font-size:.9rem; }
+        .err { color:#f87171; font-size:.8rem; margin-bottom:.5rem; }
+        label { font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:#888; }
+    </style>
+</head>
+<body>
+<main class="card">
+    <h1>Ikki bosqichli tasdiqlash (2FA)</h1>
+    {% if has_device %}
+        <p>Authenticator ilovangizdagi 6 xonali kodni kiriting.</p>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="err">{{ form.non_field_errors }}</div>{% endif %}
+            {% if form.otp_token.errors %}<div class="err">{{ form.otp_token.errors }}</div>{% endif %}
+            <label for="{{ form.otp_device.id_for_label }}">Qurilma</label>
+            {{ form.otp_device }}
+            <label for="{{ form.otp_token.id_for_label }}">Token</label>
+            {{ form.otp_token }}
+            <button type="submit">Tasdiqlash</button>
+        </form>
+    {% else %}
+        <p>Hisobingizda tasdiqlangan TOTP qurilma yo'q — admin'ga kirish uchun avval serverda qurilma yarating:</p>
+        <p><code>python manage.py bootstrap_totp {{ request.user.username }}</code></p>
+        <p>Chiqqan otpauth-havolani authenticator ilovaga (Google Authenticator, Aegis…) qo'shing va bu sahifani yangilang.</p>
+    {% endif %}
+</main>
+</body>
+</html>

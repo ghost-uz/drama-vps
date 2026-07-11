@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django_ratelimit.exceptions import Ratelimited
 
 
@@ -154,3 +155,32 @@ class SecurityHeadersMiddleware:
         # eski brauzerlarda XSS Auditor'ni suiiste'mol qilish xavfi bor edi.
 
         return response
+
+
+class AdminTwoFactorMiddleware:
+    """/admin/ uchun 2FA (TOTP) sharti [P10-T4].
+
+    Staff parol bilan kirgach, sessiya OTP bilan tasdiqlanmagan bo'lsa
+    /admin-2fa/ sahifasiga yo'naltiriladi (u yerda django-otp token formasi).
+    Login sahifasi anonimga ochiq qoladi (is_authenticated sharti), logout
+    esa tasdiqsiz ham ishlaydi — foydalanuvchi qulflanib qolmasin.
+    ADMIN_REQUIRE_2FA=False (dev/test default) butunlay o'chiradi.
+
+    MUHIM: django_otp.middleware.OTPMiddleware SHU middleware'dan OLDIN
+    turishi shart (is_verified() o'sha yerda paydo bo'ladi).
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if (
+            settings.ADMIN_REQUIRE_2FA
+            and request.path.startswith("/admin/")
+            and not request.path.startswith("/admin/logout")
+            and request.user.is_authenticated
+            and request.user.is_staff
+            and not request.user.is_verified()
+        ):
+            return redirect("admin_2fa_verify")
+        return self.get_response(request)

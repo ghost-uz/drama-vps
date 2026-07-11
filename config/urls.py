@@ -7,6 +7,7 @@ from django.urls import include, path
 
 from core.health import healthz, readyz
 from core.pwa import manifest, offline, service_worker
+from core.twofactor import admin_2fa_verify
 from drama.sitemaps import (
     ActorSitemap,
     CategorySitemap,
@@ -29,6 +30,8 @@ urlpatterns = [
     # 1. Admin va tizim yo'llari
     path("admin/", admin.site.urls),
     path("i18n/", include("django.conf.urls.i18n")),
+    # Admin 2FA tasdiqlash [P10-T4] — ataylab /admin/ TASHQARISIDA (redirect-loop yo'q)
+    path("admin-2fa/", admin_2fa_verify, name="admin_2fa_verify"),
     # Health / readiness (monitoring + Docker healthcheck)
     path("healthz", healthz, name="healthz"),
     path("readyz", readyz, name="readyz"),

@@ -60,6 +60,9 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     "django_htmx",
     "django_celery_beat",
+    # Admin 2FA — TOTP [P10-T4]
+    "django_otp",
+    "django_otp.plugins.otp_totp",
     # REST API (P2)
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
@@ -83,6 +86,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",  # request.user.is_verified() [P10-T4]
+    "config.middleware.AdminTwoFactorMiddleware",  # /admin/ 2FA sharti [P10-T4]
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
@@ -254,12 +259,18 @@ STORAGES = {
 # Markazlashgan tezliklar — core/ratelimit.py `rate` callable shu yerdan o'qiydi.
 # REST API tezliklari ALOHIDA: REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].
 # Hisoblagichlar default cache'da (dev/prod = Redis, test = LocMem).
+# Admin 2FA [P10-T4]: True -> /admin/ faqat OTP-tasdiqlangan sessiya bilan ochiladi
+# (prod'da default yoqiq — prod.py). Birinchi qurilma: manage.py bootstrap_totp <user>
+ADMIN_REQUIRE_2FA = config("ADMIN_REQUIRE_2FA", default=False, cast=bool)
+
 RATELIMIT_RATES = {
     "login": "10/m",  # brute-force himoya (IP bo'yicha)
     "register": "5/h",  # IP bo'yicha
     "password_reset": "5/h",  # IP bo'yicha — email bombing oldini oladi [P6-T1]
     "resend_verify": "3/h",  # user bo'yicha (anonim: IP) [P6-T1]
     "review": "10/h",  # API "review" scope bilan bir xil
+    "report": "20/h",  # izoh shikoyati — abuse himoyasi [P14-T3]
+    "otp_verify": "10/m",  # TOTP token brute-force himoyasi [P10-T4]
     "gift": "20/h",
     "premium": "10/h",
     "topup": "10/h",  # oddiy + kripto BITTA chelak

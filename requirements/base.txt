@@ -3,13 +3,13 @@
 # To'liq qulflangan ro'yxat: requirements/lock.txt (pip freeze).
 
 # --- Django yadrosi ---
-Django==6.0.1
+Django==6.0.7  # 6.0.x eski patchlar: CVE-2026-25673/25674 + 4 PYSEC [P10-T4 pip-audit]
 python-decouple==3.8
 psycopg2-binary==2.9.11
 tzdata==2026.2
 
 # --- Auth / admin / i18n / forms ---
-django-allauth==65.14.0
+django-allauth==65.14.1  # 65.14.0: PYSEC-2026-56 [P10-T4 pip-audit]
 cryptography==49.0.0  # allauth Google provider — ID token (JWT) tekshiruvi [P6-T2]
 django-unfold==0.77.1
 django-modeltranslation==0.19.19
@@ -21,8 +21,8 @@ django-htmx==1.27.0
 django-cors-headers==4.9.0
 django-storages==1.14.6
 google-cloud-storage==3.8.0
-Pillow==12.1.0
-requests==2.32.5
+Pillow==12.2.0  # 12.1.0: 7 ta CVE/PYSEC [P10-T4 pip-audit]
+requests==2.33.0  # 2.32.5: CVE-2026-25645 [P10-T4 pip-audit]
 
 # --- REST API ---
 djangorestframework==3.17.1
@@ -38,3 +38,5 @@ django-celery-beat==2.9.0
 
 # --- Security ---
 django-ratelimit==4.1.0
+django-otp==1.7.0  # admin 2FA (TOTP) [P10-T4]
+qrcode==8.2  # TOTPDevice admin'da QR provisioning [P10-T4]

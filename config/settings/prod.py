@@ -31,6 +31,10 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # (config/middleware.py); Telegram mobil/desktop nativ WebView (iframe emas).
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
+# Admin 2FA prod'da DEFAULT YOQIQ [P10-T4] — birinchi kirishdan oldin serverda
+# `manage.py bootstrap_totp <username>` bajarilishi SHART (aks holda qulf).
+ADMIN_REQUIRE_2FA = config("ADMIN_REQUIRE_2FA", default=True, cast=bool)
+
 # -- Cookie (Telegram WebView cross-site uchun) --
 CSRF_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SAMESITE = "None"
