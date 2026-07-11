@@ -20,7 +20,9 @@
             {% else %}
                 {{ review.text }}
             {% endif %}
-        </div>
+            {% include 'movies/partials/_report_form.html' %}
+    </div>
+        {% include 'movies/partials/_report_form.html' %}
     </div>
 {% else %}
     <div class="bg-white/3 p-7 rounded-[2.5rem] border border-white/5 space-y-5" id="review-{{ review.id }}">
@@ -50,13 +52,16 @@
                 </div>
             </div>
 
-            {% if request.user.is_superuser %}
-                <button type="button"
-                        onclick="prepareReply('{{ review.user.username }}', '{{ review.id }}')"
-                        class="text-[10px] font-black text-[#00cc4c] uppercase hover:underline flex items-center gap-1 bg-[#00cc4c]/10 px-3 py-1.5 rounded-xl transition-all">
-                    <i class="fas fa-reply"></i> Javob berish
-                </button>
-            {% endif %}
+            <div class="flex items-start gap-3">
+                {% if request.user.is_superuser %}
+                    <button type="button"
+                            onclick="prepareReply('{{ review.user.username }}', '{{ review.id }}')"
+                            class="text-[10px] font-black text-[#00cc4c] uppercase hover:underline flex items-center gap-1 bg-[#00cc4c]/10 px-3 py-1.5 rounded-xl transition-all">
+                        <i class="fas fa-reply"></i> Javob berish
+                    </button>
+                {% endif %}
+                {% include 'movies/partials/_report_form.html' %}
+            </div>
         </div>
 
         <div class="text-gray-300 text-sm leading-relaxed ml-2">

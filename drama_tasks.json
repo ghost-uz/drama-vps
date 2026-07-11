@@ -769,7 +769,7 @@
           "title_en": "Crowdfunding flow hardening (atomic contribute, access, refunds)",
           "title_uz": "Crowdfunding oqimini mustahkamlash (atomik hissa, ruxsat, qaytarish)",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P1-T4"],
           "description_uz": "FundingProject/Contributor: hissa qo'shish atomik (ledger orqali Coin yechiladi), collected_amount yangilanadi, access beriladi. Maqsadga yetganda status o'zgaradi + bildirishnoma. Bekor bo'lsa refund mantiqi.",
           "acceptance_criteria": [
@@ -947,7 +947,7 @@
           "title_en": "Admin 2FA, audit logging, dependency & secret scanning in CI",
           "title_uz": "Admin 2FA, audit log, CI'da dependency/secret skan",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P13-T1"],
           "description_uz": "Admin uchun 2FA (django-otp). Muhim amallar audit logi (kim, nima, qachon). CI'da pip-audit/safety + gitleaks (secret skan).",
           "acceptance_criteria": [
@@ -1174,7 +1174,7 @@
           "title_en": "Review/comment moderation queue",
           "title_uz": "Izoh/sharh moderatsiya navbati",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P10-T2"],
           "description_uz": "Izohlar moderatsiyasi: flag/report, navbat, spam filtri, ban. Hozir faqat admin reply yozadi — moderatsiya qo'shish.",
           "acceptance_criteria": [

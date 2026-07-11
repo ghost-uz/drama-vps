@@ -1,0 +1,5 @@
+{# Shikoyat natijasi — HTMX outerHTML swap javobi [P14-T3] #}
+<span class="text-[10px] font-black uppercase tracking-widest {% if already %}text-gray-500{% else %}text-[#00cc4c]{% endif %} inline-flex items-center gap-1">
+    <i class="fas {% if already %}fa-info-circle{% else %}fa-check-circle{% endif %}" aria-hidden="true"></i>
+    {% if already %}Allaqachon yuborilgan{% else %}Shikoyat yuborildi{% endif %}
+</span>

@@ -26,6 +26,7 @@ from .models import (
     Genre,
     Movie,
     Review,
+    ReviewReport,
     Tag,
     TopSlider,
 )
@@ -155,6 +156,43 @@ class MoviesView(HxPartialListMixin, GenreYearMixin, ListView):
         return context
 
 
+@ratelimit(key=user_or_ip_key, rate=rate, group="report", method="POST", block=True)
+def report_review(request, pk):
+    """Izoh ustidan shikoyat — moderatsiya navbatiga tushadi [P14-T3].
+
+    Dedup: (review, reporter) unique — takror POST yangi yozuv ochmaydi.
+    Filtr: AUTO_HIDE_THRESHOLD ta ochiq shikoyat yig'ilsa izoh admin
+    kutilmasdan avto-yashiriladi (admin rad etsa qayta ochiladi).
+    """
+    if request.method != "POST":
+        return redirect("/")
+    if not request.user.is_authenticated:
+        return HttpResponse("Ruxsat berilmagan", status=401)
+
+    review = get_object_or_404(Review.objects.select_related("movie"), pk=pk)
+    reason = request.POST.get("reason", "")
+    if reason not in ReviewReport.Reason.values:
+        reason = ReviewReport.Reason.OTHER
+
+    report, created = ReviewReport.objects.get_or_create(
+        review=review, reporter=request.user, defaults={"reason": reason}
+    )
+    if created:
+        pending = review.reports.filter(status=ReviewReport.Status.PENDING).count()
+        if not review.is_hidden and pending >= ReviewReport.AUTO_HIDE_THRESHOLD:
+            review.is_hidden = True
+            review.save(update_fields=["is_hidden"])
+
+    if request.headers.get("HX-Request"):
+        return render(request, "movies/partials/_report_done.html", {"already": not created})
+
+    if created:
+        messages.success(request, "Shikoyat yuborildi — moderatorlar ko'rib chiqadi.")
+    else:
+        messages.info(request, "Siz bu izohga allaqachon shikoyat yuborgansiz.")
+    return redirect(review.movie.get_absolute_url())
+
+
 # drama/views.py
 class TagDetailView(HxPartialListMixin, GenreYearMixin, ListView):
     template_name = "movies/movie_list.html"  # Mavjud list shablonini ishlatamiz
@@ -226,12 +264,14 @@ class MovieDetailView(GenreYearMixin, DetailView):
             .prefetch_related(
                 Prefetch(
                     "reviews",
-                    queryset=Review.objects.filter(parent=None)
+                    queryset=Review.objects.filter(parent=None, is_hidden=False)
                     .select_related("user", "user__profile")
                     .prefetch_related(
                         Prefetch(
                             "replies",
-                            queryset=Review.objects.select_related("user").order_by("id"),
+                            queryset=Review.objects.filter(is_hidden=False)
+                            .select_related("user")
+                            .order_by("id"),
                         )
                     )
                     .order_by("-id"),
@@ -471,10 +511,15 @@ class MovieReviewsView(GenreYearMixin, ListView):
         # 2. Shu kinoga tegishli, faqat asosiy izohlarni (parent=None) eng yangilaridan boshlab olamiz
         # [P9-T2] user__profile (avatar) + replies prefetch — komment N+1 yo'q
         return (
-            Review.objects.filter(movie=self.movie, parent=None)
+            Review.objects.filter(movie=self.movie, parent=None, is_hidden=False)
             .select_related("user", "user__profile")
             .prefetch_related(
-                Prefetch("replies", queryset=Review.objects.select_related("user").order_by("id"))
+                Prefetch(
+                    "replies",
+                    queryset=Review.objects.filter(is_hidden=False)
+                    .select_related("user")
+                    .order_by("id"),
+                )
             )
             .order_by("-id")
         )

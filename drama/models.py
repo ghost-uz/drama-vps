@@ -455,10 +455,63 @@ class Review(TimeStampedModel):
     parent = models.ForeignKey(
         "self", on_delete=models.SET_NULL, blank=True, null=True, related_name="replies"
     )
+    # Moderatsiya [P14-T3]: yashirin izoh ommaviy ro'yxatlarda chiqmaydi.
+    # O'chirilmaydi — shikoyat tarixi va qaror auditi saqlanib qoladi.
+    is_hidden = models.BooleanField("Yashirilgan (moderatsiya)", default=False)
 
     class Meta:
         # Detail/fikrlar sahifasi: filter(movie=..., parent=None) [P9-T2]
         indexes = [models.Index(fields=["movie", "parent"])]
+
+
+class ReviewReport(models.Model):
+    """Izoh ustidan shikoyat — moderatsiya navbati elementi [P14-T3].
+
+    Oqim: foydalanuvchi report yuboradi (bir izohga bir marta — unique) ->
+    navbat admin'da (status=PENDING) -> admin qabul qiladi (izoh yashiriladi)
+    yoki rad etadi. AUTO_HIDE_THRESHOLD ta ochiq shikoyat yig'ilsa izoh
+    admin kutilmasdan avto-yashiriladi (rad etilsa qayta ochiladi).
+    """
+
+    # Shu miqdor ochiq shikoyatda izoh avto-yashiriladi (himoya admindan tezroq)
+    AUTO_HIDE_THRESHOLD = 3
+
+    class Reason(models.TextChoices):
+        SPAM = "spam", "Spam / reklama"
+        ABUSE = "abuse", "Haqorat / xafa qiluvchi"
+        SPOILER = "spoiler", "Belgisiz spoyler"
+        OTHER = "other", "Boshqa"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Kutilmoqda"
+        ACCEPTED = "accepted", "Qabul qilindi (izoh yashirildi)"
+        REJECTED = "rejected", "Rad etildi"
+
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="reports")
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="review_reports"
+    )
+    reason = models.CharField("Sabab", max_length=20, choices=Reason.choices, default=Reason.OTHER)
+    status = models.CharField(
+        "Holat", max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            # Bir foydalanuvchi bir izohga BIR marta — report-bombing dedup
+            models.UniqueConstraint(fields=["review", "reporter"], name="review_report_once"),
+        ]
+        indexes = [
+            # Moderatsiya navbati: status bo'yicha filtr, yangi birinchi
+            models.Index(fields=["status", "-created_at"]),
+        ]
+        verbose_name = "Izoh shikoyati"
+        verbose_name_plural = "Izoh shikoyatlari (moderatsiya)"
+
+    def __str__(self):
+        return f"{self.reporter.username} -> review#{self.review_id} ({self.reason})"
 
 
 class ActorGift(models.Model):

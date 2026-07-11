@@ -6,6 +6,8 @@ from modeltranslation.admin import TranslationAdmin
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 
+from core import audit
+
 from .models import (
     Actor,
     ActorGift,
@@ -17,6 +19,7 @@ from .models import (
     Rating,
     RatingStar,
     Review,
+    ReviewReport,
     Season,
     Tag,
     TopSlider,
@@ -320,15 +323,17 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
     def unpublish_movies(self, request, queryset):
         from drama.cache import bump_catalog_version
 
-        queryset.update(status=Movie.Status.DRAFT)
+        count = queryset.update(status=Movie.Status.DRAFT)
         bump_catalog_version()  # .update() signal chaqirmaydi [P9-T1]
+        audit.log(request.user, "movie.unpublish", details=f"{count} ta kino", request=request)
 
     @admin.action(description=_("Nashr etish"))
     def publish_movies(self, request, queryset):
         from drama.cache import bump_catalog_version
 
-        queryset.update(status=Movie.Status.PUBLISHED)
+        count = queryset.update(status=Movie.Status.PUBLISHED)
         bump_catalog_version()  # .update() signal chaqirmaydi [P9-T1]
+        audit.log(request.user, "movie.publish", details=f"{count} ta kino", request=request)
 
 
 @admin.register(Episode)
@@ -393,11 +398,31 @@ class SeasonAdmin(ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(ModelAdmin):
-    list_display = ("user_link", "movie_link", "parent_info", "created_at_formatted", "short_text")
-    list_filter = ("created_at", "movie")
+    list_display = (
+        "user_link",
+        "movie_link",
+        "parent_info",
+        "created_at_formatted",
+        "short_text",
+        "is_hidden",
+    )
+    list_filter = ("is_hidden", "created_at", "movie")
     search_fields = ("text", "user__username", "movie__title")
     autocomplete_fields = ["movie", "user"]
     readonly_fields = ("user", "movie", "parent", "created_at")
+    actions = ["hide_reviews", "unhide_reviews"]
+
+    @admin.action(description=_("Yashirish (moderatsiya)"))
+    def hide_reviews(self, request, queryset):
+        updated = queryset.update(is_hidden=True)
+        audit.log(request.user, "review.hide", details=f"{updated} izoh", request=request)
+        self.message_user(request, f"{updated} izoh yashirildi.")
+
+    @admin.action(description=_("Qayta ochish"))
+    def unhide_reviews(self, request, queryset):
+        updated = queryset.update(is_hidden=False)
+        audit.log(request.user, "review.unhide", details=f"{updated} izoh", request=request)
+        self.message_user(request, f"{updated} izoh qayta ochildi.")
 
     @display(description=_("Foydalanuvchi"))
     def user_link(self, obj):
@@ -470,3 +495,71 @@ class ActorGiftAdmin(ModelAdmin):
 
 admin.site.register(Rating)
 admin.site.register(RatingStar)
+
+
+@admin.register(ReviewReport)
+class ReviewReportAdmin(ModelAdmin):
+    """Moderatsiya navbati [P14-T3]: Holat=Kutilmoqda filtri bilan ishlanadi.
+
+    Qabul qilish -> izoh yashiriladi (shu izohning BARCHA ochiq shikoyatlari
+    yopiladi — navbat toza qoladi). Rad etish -> agar izoh avto-yashirilgan
+    bo'lib, unda boshqa ochiq/qabul shikoyat qolmasa, qayta ochiladi.
+    """
+
+    list_display = ("review_excerpt", "movie_title", "reporter", "reason", "status", "created_at")
+    list_filter = ("status", "reason")
+    search_fields = ("review__text", "reporter__username", "review__movie__title")
+    list_select_related = ("review", "review__movie", "reporter")
+    readonly_fields = ("review", "reporter", "reason", "created_at")
+    actions = ["accept_and_hide", "reject_reports"]
+
+    @display(description=_("Izoh"))
+    def review_excerpt(self, obj):
+        text = obj.review.text
+        return (text[:80] + "…") if len(text) > 80 else text
+
+    @display(description=_("Kino"))
+    def movie_title(self, obj):
+        return obj.review.movie.title
+
+    @admin.action(description=_("Qabul qilish — izohni yashirish"))
+    def accept_and_hide(self, request, queryset):
+        review_ids = set(queryset.values_list("review_id", flat=True))
+        Review.objects.filter(id__in=review_ids).update(is_hidden=True)
+        updated = ReviewReport.objects.filter(
+            review_id__in=review_ids, status=ReviewReport.Status.PENDING
+        ).update(status=ReviewReport.Status.ACCEPTED)
+        audit.log(
+            request.user,
+            "review.moderate.accept",
+            details=f"{len(review_ids)} izoh yashirildi, {updated} shikoyat",
+            request=request,
+        )
+        self.message_user(
+            request, f"{len(review_ids)} izoh yashirildi, {updated} shikoyat qabul qilindi."
+        )
+
+    @admin.action(description=_("Rad etish — asossiz shikoyat"))
+    def reject_reports(self, request, queryset):
+        updated = queryset.filter(status=ReviewReport.Status.PENDING).update(
+            status=ReviewReport.Status.REJECTED
+        )
+        # Avto-yashirish asossiz chiqqan holat: ochiq/qabul shikoyat qolmagan
+        # yashirin izohlarni qayta ochamiz
+        review_ids = set(queryset.values_list("review_id", flat=True))
+        reopened = 0
+        for review in Review.objects.filter(id__in=review_ids, is_hidden=True):
+            if not review.reports.exclude(status=ReviewReport.Status.REJECTED).exists():
+                review.is_hidden = False
+                review.save(update_fields=["is_hidden"])
+                reopened += 1
+        audit.log(
+            request.user,
+            "review.moderate.reject",
+            details=f"{updated} shikoyat rad, {reopened} izoh qayta ochildi",
+            request=request,
+        )
+        msg = f"{updated} shikoyat rad etildi."
+        if reopened:
+            msg += f" {reopened} izoh qayta ochildi."
+        self.message_user(request, msg)
