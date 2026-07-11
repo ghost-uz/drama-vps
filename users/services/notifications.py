@@ -33,3 +33,16 @@ def unread_count(user) -> int:
 def mark_all_read(user) -> int:
     """Barcha o'qilmaganlarni o'qilgan qiladi; yangilangan yozuvlar sonini qaytaradi."""
     return Notification.objects.filter(recipient=user, is_read=False).update(is_read=True)
+
+
+def notify_bulk(recipient_ids, kind, title, *, body="", url=""):
+    """Bir xil xabarni ko'p oluvchiga BITTA so'rovda yozadi (fan-out) [P7-T4].
+
+    recipient_ids — user id'lari (takrorlar tartib saqlagan holda yutiladi).
+    Yaratish yagona-nuqta doktrinasi saqlanadi: fan-out ham shu moduldan o'tadi.
+    """
+    unique_ids = list(dict.fromkeys(recipient_ids))
+    return Notification.objects.bulk_create(
+        Notification(recipient_id=rid, kind=kind, title=title, body=body, url=url)
+        for rid in unique_ids
+    )

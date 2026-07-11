@@ -460,6 +460,7 @@ class Notification(models.Model):
         SUBSCRIPTION = "subscription", "Obuna"
         NEW_EPISODE = "new_episode", "Yangi qism"
         REPLY = "reply", "Izohga javob"
+        FUNDING = "funding", "Crowdfunding"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
