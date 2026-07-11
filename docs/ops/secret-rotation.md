@@ -40,6 +40,7 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 
 ### 2.3 DB paroli, Bunny API, Telegram token
 - PostgreSQL: `ALTER USER drama_user WITH PASSWORD '<yangi>';` → `.env` `DB_PASSWORD`.
+  - ⚠️ **Lokal Docker stack'da ham**: `drama_pgdata` volume ESKI parol bilan qoladi (`POSTGRES_PASSWORD` faqat volume birinchi init'ida amal qiladi) → parolni konteyner ichida yangilang: `docker exec drama-db-1 psql -U drama_user -d drama_db -c "ALTER USER drama_user WITH PASSWORD '<yangi>';"` — aks holda web `password authentication failed` bilan restart-loop'da qoladi.
 - Bunny: dashboard → Account → API Key → Regenerate → `.env` `BUNNY_STREAM_API_KEY`.
 - Telegram: @BotFather → `/revoke` → yangi token → `.env` `TELEGRAM_BOT_TOKEN`.
 
