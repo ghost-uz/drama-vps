@@ -183,6 +183,13 @@ def _run_video_upload(task, app_label: str, model_name: str, pk: int):
     # Tugadi: vaqtinchalik (lokal) faylni tozalab, ready holatga o'tkazamiz
     obj.video_file.delete(save=False)
     model.objects.filter(pk=pk).update(upload_status=UploadStatus.READY, video_file="")
+    if model_name.lower() == "episode":
+        # Yangi qism tayyor -> obunachilarga xabar [V2A-T1] (task idempotent)
+        from functools import partial
+
+        from django.db import transaction
+
+        transaction.on_commit(partial(notify_new_episode_followers.delay, pk))
 
 
 @shared_task(bind=True, max_retries=20, default_retry_delay=30)
@@ -276,3 +283,56 @@ def update_search_vector(movie_id: int) -> bool:
     )
     Movie.objects.filter(pk=movie_id).update(search_vector=vector)
     return True
+
+
+@shared_task
+def notify_new_episode_followers(episode_id: int) -> int:
+    """Yangi qism READY -> obunachilarga sayt-ichi bildirishnoma [V2A-T1].
+
+    Obuna manbai: UserMovieList (Ko'ryapman/Rejada) — foydalanuvchi ro'yxatiga
+    qo'shgan kino uning "kuzatuvi" hisoblanadi; profil sozlamasidagi
+    notify_new_episode=False opt-out qiladi. Fan-out bitta bulk_create (N+1 yo'q).
+
+    IDEMPOTENT: Episode.followers_notified_at qulf ostida tekshirilib qo'yiladi —
+    webhook + poll ikkalasi trigger qilsa ham xabar BIR marta ketadi.
+    Draft kinoga xabar ham, belgi ham qo'yilmaydi (kino keyin publish bo'lsa,
+    admin qismni qayta READY qilib xabarni qo'lda trigger qila oladi).
+    """
+    from django.db import transaction
+    from django.utils import timezone
+
+    from drama.models import Episode, Movie
+    from users.models import Notification, UserMovieList
+    from users.services import notifications
+
+    with transaction.atomic():
+        try:
+            episode = Episode.objects.select_for_update().select_related("movie").get(pk=episode_id)
+        except Episode.DoesNotExist:
+            return 0
+        if episode.followers_notified_at is not None:
+            return 0
+        movie = episode.movie
+        if movie.status != Movie.Status.PUBLISHED:
+            return 0
+
+        user_ids = list(
+            UserMovieList.objects.filter(
+                movie=movie,
+                status__in=UserMovieList.FOLLOW_STATUSES,
+                profile__notify_new_episode=True,
+            )
+            .values_list("profile__user_id", flat=True)
+            .distinct()
+        )
+        episode.followers_notified_at = timezone.now()
+        episode.save(update_fields=["followers_notified_at"])
+        if user_ids:
+            notifications.notify_bulk(
+                user_ids,
+                Notification.Kind.NEW_EPISODE,
+                f"{movie.title}: {episode.episode_number}-qism chiqdi!",
+                body="Yangi qism tomosha uchun tayyor — davom eting.",
+                url=f"{movie.get_absolute_url()}?episode={episode.episode_number}",
+            )
+    return len(user_ids)

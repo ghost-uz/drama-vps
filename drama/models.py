@@ -382,6 +382,11 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
         null=True,
         validators=[ImageFileValidator()],
     )
+    # [V2A-T1] Obunachilarga xabar KETGAN vaqt — fan-out idempotentlik kaliti:
+    # webhook + poll ikkalasi trigger qilsa ham xabar bir marta ketadi.
+    followers_notified_at = models.DateTimeField(
+        "Obunachilarga xabar berilgan", null=True, blank=True
+    )
 
     class Meta:
         # FIX: Bir serialda bir xil qism raqami bo'lishini oldini olish

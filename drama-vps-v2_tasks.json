@@ -34,7 +34,7 @@
           "title_en": "Follow-a-drama + new-episode in-app notifications",
           "title_uz": "Dramaga obuna + yangi-qism bildirishnomasi (in-app)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Notification modeli va markaz (v1 P6-T3) MAVJUD — endi asosiy event manbai kerak. Obuna manbai: UserMovieList (ko'rmoqda/rejada statuslari) yoki kino sahifasida aniq 'qo'ng'iroq' tugmasi. Yangi Episode READY/published bo'lganda (P3-T1 pipeline yoki webhook) Celery fan-out: obunachilarga Notification bulk_create. Profile'ga per-kanal NotificationPreference (site/telegram/email opt-out).",
           "acceptance_criteria": [

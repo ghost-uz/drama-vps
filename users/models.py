@@ -65,6 +65,14 @@ class Profile(ImageOptimizationMixin, models.Model):
     bio = models.TextField(max_length=500, null=True, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     telegram_id = models.CharField(max_length=30, null=True, blank=True)
+    # Bildirishnoma sozlamalari [V2A-T1] — per-kanal opt-out. Telegram kanalini
+    # V2A-T2 (foydalanuvchi boti) ishlatadi; sxema oldindan tayyor.
+    notify_new_episode = models.BooleanField(
+        "Yangi qism chiqqanda xabar berish (saytda)", default=True
+    )
+    notify_new_episode_telegram = models.BooleanField(
+        "Yangi qism chiqqanda xabar berish (Telegram)", default=True
+    )
     xp = models.PositiveIntegerField(default=0)
     is_premium = models.BooleanField(default=False)
     premium_until = models.DateTimeField(null=True, blank=True)
@@ -104,6 +112,11 @@ class UserMovieList(models.Model):
         (4, "Ko'rish to'xtatilgan"),
         (5, "Menga qiziq emas"),
     ]
+    # Nomlangan konstantalar [V2A-T1] — "sehrli son"larga murojaat o'rniga
+    WATCHING = 1
+    PLANNED = 3
+    # Shu statuslar kino "kuzatuvi" hisoblanadi -> yangi qism xabari boradi
+    FOLLOW_STATUSES = (WATCHING, PLANNED)
 
     # User o'rniga bevosita Profile ga bog'laymiz
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="movie_list")

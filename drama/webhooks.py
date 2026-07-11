@@ -59,6 +59,17 @@ def bunny_webhook(request):
         from drama.cache import bump_catalog_version
 
         bump_catalog_version()
+
+        # Obunachilarga yangi-qism xabari [V2A-T1] — task idempotent
+        # (followers_notified_at), shu sabab poll bilan poyga xavfsiz.
+        from functools import partial
+
+        from django.db import transaction
+
+        from drama.tasks import notify_new_episode_followers
+
+        for ep_id in Episode.objects.filter(bunny_video_id=guid).values_list("pk", flat=True):
+            transaction.on_commit(partial(notify_new_episode_followers.delay, ep_id))
     logger.info(
         "bunny_webhook: guid=%s status=%s -> %s (%d obyekt)", guid, status_code, new_status, updated
     )
