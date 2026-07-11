@@ -6,6 +6,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
 from core.health import healthz, readyz
+from core.monitoring import metrics_view
 from core.pwa import manifest, offline, service_worker
 from core.twofactor import admin_2fa_verify
 from drama.sitemaps import (
@@ -35,6 +36,8 @@ urlpatterns = [
     # Health / readiness (monitoring + Docker healthcheck)
     path("healthz", healthz, name="healthz"),
     path("readyz", readyz, name="readyz"),
+    # Prometheus metrikalari [P12-T2] — METRICS_TOKEN yoki staff sessiya bilan
+    path("metrics", metrics_view, name="metrics"),
     # 2. Maxsus SEO fayllar
     path("robots.txt", robots_txt, name="robots_txt"),
     path(

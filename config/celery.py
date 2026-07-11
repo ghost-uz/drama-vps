@@ -48,6 +48,16 @@ app.conf.beat_schedule = {
         "task": "drama.tasks.recompute_trending_movies",
         "schedule": crontab(minute=0, hour="*/2"),
     },
+    # Dead-man heartbeat [P12-T2] — tashqi provider ping kutadi (har 5 daqiqa)
+    "monitoring-heartbeat": {
+        "task": "core.tasks.heartbeat_task",
+        "schedule": crontab(minute="*/5"),
+    },
+    # Kritik alert tekshiruvi [P12-T2] — navbat/qotgan-topup/kesh (har 10 daqiqa)
+    "monitoring-alerts": {
+        "task": "core.tasks.monitoring_alerts_task",
+        "schedule": crontab(minute="*/10"),
+    },
 }
 
 

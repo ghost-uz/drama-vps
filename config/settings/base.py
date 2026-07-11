@@ -263,6 +263,14 @@ STORAGES = {
 # (prod'da default yoqiq — prod.py). Birinchi qurilma: manage.py bootstrap_totp <user>
 ADMIN_REQUIRE_2FA = config("ADMIN_REQUIRE_2FA", default=False, cast=bool)
 
+# -- Monitoring [P12-T2] --
+# /metrics himoyasi: bo'sh = faqat staff sessiya (tashqi scrape yopiq).
+METRICS_TOKEN = config("METRICS_TOKEN", default="")
+# Dead-man heartbeat ping URL (healthchecks.io kabi); bo'sh = o'chiq.
+HEARTBEAT_URL = config("HEARTBEAT_URL", default="")
+# Celery navbati shu sondan oshsa Telegram alert.
+MONITORING_QUEUE_ALERT_THRESHOLD = config("MONITORING_QUEUE_ALERT_THRESHOLD", default=100, cast=int)
+
 RATELIMIT_RATES = {
     "login": "10/m",  # brute-force himoya (IP bo'yicha)
     "register": "5/h",  # IP bo'yicha

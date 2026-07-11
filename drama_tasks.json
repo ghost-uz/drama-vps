@@ -1067,7 +1067,7 @@
           "title_en": "Metrics & uptime: Prometheus/health, alerting",
           "title_uz": "Metrikalar va uptime: Prometheus/health, alert",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T9"],
           "description_uz": "django-prometheus yoki metrik endpoint (request, DB, Celery queue). Uptime monitor (healthz). Asosiy alert (xato darajasi, queue backlog).",
           "acceptance_criteria": [
