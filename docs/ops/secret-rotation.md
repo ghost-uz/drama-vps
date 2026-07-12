@@ -23,9 +23,10 @@ hardcoded nusxalar orqali baribir tarqagan.
 ### 2.1 GCS service-account kaliti
 1. GCP Console → IAM & Admin → Service Accounts → akkaunt → "Keys".
 2. Eski kalitni (drama-key-v2) **DELETE**.
-3. "Add Key" → JSON → yuklab ol. Faylni **repo TASHQARISIDA** saqla
-   (masalan serverda `/etc/drama/gcs.json`).
-4. `.env` ga: `GS_CREDENTIALS_FILE=/etc/drama/gcs.json` (prod.py shu env'ni o'qiydi).
+3. "Add Key" → JSON → yuklab ol. Serverda `<repo>/secrets/gcs.json` ga qo'y
+   (papka .gitignore'da; docker-compose.prod.yml uni konteynerlarga
+   read-only mount qiladi).
+4. `.env` ga: `GS_CREDENTIALS_FILE=/app/secrets/gcs.json` (konteyner-ichki yo'l).
 
 ### 2.2 Django SECRET_KEY
 `.env` ga (chatda berilgan yangi qiymatni qo'ying):

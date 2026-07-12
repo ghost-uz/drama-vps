@@ -20,11 +20,24 @@ x-prod-env: &prod-env
 
 services:
   # Web migratsiya QILMAYDI (ajratildi) — faqat gunicorn ishlaydi.
+  # GCS service-account kaliti [P0-T2]: serverda <repo>/secrets/gcs.json
+  # (gitignore'da) -> konteynerga read-only mount; .env:
+  #   GS_CREDENTIALS_FILE=/app/secrets/gcs.json
   web:
     environment:
       <<: *prod-env
       RUN_MIGRATIONS: "0"
       COLLECTSTATIC: "0"
+    volumes:
+      - ./secrets:/app/secrets:ro
+
+  celery-worker:
+    volumes:
+      - ./secrets:/app/secrets:ro
+
+  celery-beat:
+    volumes:
+      - ./secrets:/app/secrets:ro
 
   # Bir martalik migratsiya + collectstatic. `up` bilan AVTO ishga tushmaydi
   # (profiles: tools) — deploy skripti `run --rm migrate` bilan chaqiradi.
@@ -41,6 +54,7 @@ services:
     volumes:
       - staticfiles:/app/staticfiles
       - media:/app/media
+      - ./secrets:/app/secrets:ro
     depends_on:
       db:
         condition: service_healthy

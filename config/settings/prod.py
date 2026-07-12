@@ -1,5 +1,7 @@
 """Prod muhiti — DEBUG=False, qat'iy xavfsizlik, GCS storage, SMTP email."""
 
+from decouple import Csv
+from django.core.exceptions import ImproperlyConfigured
 from google.oauth2 import service_account
 
 from config.logging import build_logging
@@ -16,10 +18,21 @@ ALLOWED_HOSTS = [
     "www.drama.uz",
     "207.154.194.231",
 ]
+# Qo'shimcha hostlar .env'dan — yangi server IP'sini DNS'gacha sinash uchun:
+#   EXTRA_ALLOWED_HOSTS=164.92.1.2,staging.drama.uz
+ALLOWED_HOSTS += config("EXTRA_ALLOWED_HOSTS", default="", cast=Csv())  # noqa: F405
+# Konteyner healthcheck'i (curl http://localhost:8000/healthz) uchun SHART —
+# bularsiz web hech qachon "healthy" bo'lmaydi va deploy.sh har safar
+# rollback qiladi [P13-T2 health-gate].
+ALLOWED_HOSTS += ["localhost", "127.0.0.1"]
 
 # -- SSL / HTTPS (Cloudflare orqali) --
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
+# healthz/readyz http'da TO'G'RIDAN javob beradi: aks holda konteyner-ichki
+# http-probe 301 oladi (curl -f 3xx'ni "o'tdi" deb oladi — soxta-sog'lik,
+# app holati tekshirilmay qoladi) [P13-T2].
+SECURE_REDIRECT_EXEMPT = [r"^healthz$", r"^readyz$"]
 SECURE_HSTS_SECONDS = 31536000  # 1 yil
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
@@ -67,12 +80,20 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")  # noqa: F405
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="admin@drama.uz")  # noqa: F405
 
 # -- Google Cloud Storage (CDN) --
-# NOTE: P0-T2 da kalit repodan olib tashlanadi va rotatsiya qilinadi.
-GS_CREDENTIALS_FILE = config(  # noqa: F405
-    "GS_CREDENTIALS_FILE",
-    default=str(BASE_DIR / "drama-key-v2.json"),  # noqa: F405
+# Kalit yo'li: .env GS_CREDENTIALS_FILE (prod'da /app/secrets/gcs.json —
+# docker-compose.prod.yml mount qiladi). Bo'sh/berilmagan -> eski default yo'l
+# (P0-T2 rotatsiyagacha). Fayl yo'q bo'lsa TUSHUNARLI xato bilan darhol yiqiladi.
+GS_CREDENTIALS_FILE = config("GS_CREDENTIALS_FILE", default="") or str(  # noqa: F405
+    BASE_DIR / "drama-key-v2.json"  # noqa: F405
 )
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file(GS_CREDENTIALS_FILE)
+try:
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(GS_CREDENTIALS_FILE)
+except FileNotFoundError as exc:
+    raise ImproperlyConfigured(
+        f"GCS kaliti topilmadi: {GS_CREDENTIALS_FILE!r}. Yangi kalitni serverda "
+        "<repo>/secrets/gcs.json ga qo'yib, .env'da GS_CREDENTIALS_FILE="
+        "/app/secrets/gcs.json bering (docs/ops/secret-rotation.md §2.1)."
+    ) from exc
 
 # Static/media obyektlarga cache header — collectstatic/yuklashda GCS'ga yoziladi,
 # cdn.drama.uz shu bilan xizmat qiladi (1 kun; fayl nomlari hash'lanmagani uchun
