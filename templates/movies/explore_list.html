@@ -70,8 +70,9 @@
                         </div>
                     </div>
 
-                    {# JS-siz progressive enhancement: htmx bo'lmasa shu tugma formani oddiy
-                       GET bilan yuboradi (htmx bo'lsa <noscript> umuman render bo'lmaydi) [P5-T3] #}
+                    {% comment %} JS-siz progressive enhancement: htmx bo'lmasa shu tugma
+                    formani oddiy GET bilan yuboradi (htmx bo'lsa <noscript> umuman
+                    render bo'lmaydi) [P5-T3] {% endcomment %}
                     <noscript>
                         <button type="submit" class="w-full mt-2 py-3 rounded-xl bg-[#00cc4c] text-black text-xs font-black uppercase tracking-widest">
                             Filtrlarni qo'llash
@@ -104,8 +105,9 @@
                 </label>
             </div>
 
-            {# #movie-grid = grid'ning O'ZI: filtr almashuvi innerHTML bilan kartalar+sentinel
-               qo'yadi; sentinel esa outerHTML bilan keyingi sahifani shu grid ichiga qo'shadi [P5-T3] #}
+            {% comment %} #movie-grid = grid'ning O'ZI: filtr almashuvi innerHTML bilan
+            kartalar+sentinel qo'yadi; sentinel esa outerHTML bilan keyingi sahifani
+            shu grid ichiga qo'shadi [P5-T3] {% endcomment %}
             <div id="movie-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6 transition-opacity duration-300">
                 {% include 'movies/partials/_movie_items.html' %}
             </div>

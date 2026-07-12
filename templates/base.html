@@ -285,8 +285,9 @@
         </div>
     </header>
 
-    {# Mobil bottom-nav [P5-T6]: faol bo'lim joriy URL'dan aniqlanadi (aria-current="page"),
-       dekorativ ikonlar aria-hidden — skrin-reader faqat matnni o'qiydi #}
+    {% comment %} Mobil bottom-nav [P5-T6]: faol bo'lim joriy URL'dan aniqlanadi
+    (aria-current="page"), dekorativ ikonlar aria-hidden — skrin-reader faqat
+    matnni o'qiydi. ({# #} ko'p qatorda MATN bo'lib chiqadi — leak edi!) {% endcomment %}
     <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 flex justify-around items-center py-3 z-[90] pb-safe" aria-label="Mobil menyu">
         {% with rm=request.resolver_match %}
         <a href="/" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.url_name == 'movie_list' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.url_name == 'movie_list' %} aria-current="page"{% endif %}>
