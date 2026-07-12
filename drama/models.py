@@ -257,6 +257,9 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
         Category, on_delete=models.SET_NULL, null=True, related_name="movies"
     )
     slug = models.SlugField(max_length=160, unique=True)
+    # TMDB import kaliti [V2D-T1]: "tv/1396" / "movie/27205" (TMDB URL yo'li
+    # bilan bir xil ko'rinish). Unique — bir yozuv ikki marta import qilinmaydi.
+    tmdb_id = models.CharField("TMDB ID", max_length=32, unique=True, null=True, blank=True)
     status = models.CharField(
         "Holat",
         max_length=10,

@@ -126,6 +126,12 @@ class SecurityHeadersMiddleware:
             "script-src 'self' 'unsafe-inline'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         )
+        # [V2D-T1] TMDB import qidiruvida poster-thumbnail'lar image.tmdb.org'dan
+        # keladi — faqat admin (staff-only) CSP'siga qo'shiladi, ommaviy sayt emas.
+        self.csp_admin = self.csp_admin.replace(
+            "img-src 'self' data: blob:",
+            "img-src 'self' data: blob: image.tmdb.org",
+        )
 
     def __call__(self, request):
         response = self.get_response(request)

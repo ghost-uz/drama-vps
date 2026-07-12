@@ -1,10 +1,12 @@
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from modeltranslation.admin import TranslationAdmin
 from unfold.admin import ModelAdmin, TabularInline
-from unfold.decorators import display
+from unfold.decorators import action, display
 
 from core import audit
 
@@ -211,7 +213,7 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
         "display_status",
     )
     list_filter = ("status", "is_vip", "year", "category", "genres", "tags")
-    search_fields = ("title", "original_title")
+    search_fields = ("title", "original_title", "tmdb_id")
     list_full_width = True
     prepopulated_fields = {"slug": ("title",)}
 
@@ -221,6 +223,8 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
     inlines = [SeasonInline, MovieShotsInline, EpisodeInline, ReviewInline]
     save_on_top = True
     actions = ["publish_movies", "unpublish_movies", "retry_bunny_upload", "refresh_bunny_status"]
+    # Changelist tepasidagi tugma [V2D-T1] — unfold url_path bo'yicha URL'ni o'zi ulaydi.
+    actions_list = ["tmdb_import_view"]
 
     fieldsets = (
         (
@@ -272,7 +276,7 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
                 "fields": (
                     ("year", "country"),
                     ("duration", "episodes_count", "age_limit"),
-                    "category",
+                    ("category", "tmdb_id"),
                 ),
             },
         ),
@@ -334,6 +338,63 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
         count = queryset.update(status=Movie.Status.PUBLISHED)
         bump_catalog_version()  # .update() signal chaqirmaydi [P9-T1]
         audit.log(request.user, "movie.publish", details=f"{count} ta kino", request=request)
+
+    @action(description=_("TMDB'dan import"), url_path="tmdb-import", icon="download")
+    def tmdb_import_view(self, request):
+        """TMDB qidiruv/ID -> draft Movie [V2D-T1].
+
+        Metadata sinxron (xato darhol admin'da ko'rinadi [AC-4]), poster va
+        aktyor rasmlari Celery'da (tmdb_download_images) — admin bloklanmaydi.
+        """
+        from drama.services import tmdb
+
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": _("TMDB'dan import"),
+            "query": "",
+            "media_type": "tv",
+            "results": [],
+        }
+
+        if request.method == "POST":
+            try:
+                media_type, tmdb_id = tmdb.parse_ref(
+                    request.POST.get("tmdb_ref", ""),
+                    default_type=request.POST.get("media_type", "tv"),
+                )
+                movie = tmdb.import_movie(media_type, tmdb_id)
+            except tmdb.TmdbError as exc:
+                messages.error(request, str(exc))
+            else:
+                audit.log(
+                    request.user,
+                    "movie.tmdb_import",
+                    details=f"{movie.tmdb_id} -> {movie.title} (pk={movie.pk})",
+                    request=request,
+                )
+                messages.success(
+                    request,
+                    f"«{movie.title}» qoralama sifatida import qilindi — poster va "
+                    "aktyor rasmlari fonda yuklanmoqda.",
+                )
+                return redirect(reverse("admin:drama_movie_change", args=[movie.pk]))
+            return render(request, "admin/drama/movie/tmdb_import.html", context)
+
+        query = request.GET.get("q", "").strip()
+        media_type = request.GET.get("media_type", "tv")
+        if media_type not in ("tv", "movie"):
+            media_type = "tv"
+        context["query"], context["media_type"] = query, media_type
+        if query:
+            try:
+                context["results"] = tmdb.search_or_lookup(query, media_type)
+            except tmdb.TmdbError as exc:
+                messages.error(request, str(exc))
+        return render(request, "admin/drama/movie/tmdb_import.html", context)
 
 
 @admin.register(Episode)

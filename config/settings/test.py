@@ -28,6 +28,7 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 # Kerak bo'lgan test o'z qiymatini `settings` fixture bilan beradi.
 TELEGRAM_BOT_TOKEN = ""
 TELEGRAM_ADMIN_CHAT_ID = ""
+TMDB_API_KEY = ""  # TMDB ham: bo'sh kalit guard'i darhol TmdbError beradi, tarmoq yo'q
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

@@ -361,3 +361,45 @@ def notify_new_episode_followers(episode_id: int) -> int:
             for chat_id in chat_ids:
                 transaction.on_commit(partial(send_telegram_push_task.delay, chat_id, push_text))
     return len(user_ids)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def tmdb_download_images(self, movie_id: int, poster_path: str, actor_paths: dict):
+    """TMDB poster/aktyor rasmlarini yuklab biriktiradi [V2D-T1].
+
+    Import'ning sekin qismi — admin request'idan ajratilgan (on_commit -> shu).
+    IDEMPOTENT: rasmi allaqachon bor obyekt O'TKAZIB yuboriladi — retry xavfsiz.
+    Tarmoq xatosi -> retry (3x, 30s). Rasm biriktirish .save() orqali odatdagi
+    ImageOptimizationMixin webp-siqish pipeline'iga tushadi [P1-T1].
+    Eslatma: JSON serializer actor_paths kalitlarini str qiladi — pk filtrga
+    str tushsa ham Django o'zi cast qiladi.
+    """
+    import requests
+    from django.core.files.base import ContentFile
+
+    from drama.models import Actor, Movie
+    from drama.services import tmdb
+
+    try:
+        movie = Movie.objects.get(pk=movie_id)
+    except Movie.DoesNotExist:
+        return "movie_gone"  # import'dan keyin o'chirilgan — yuklash shart emas
+    try:
+        if poster_path and not movie.poster:
+            content = tmdb.download_image(poster_path, size="original")
+            # FieldFile.save() EMAS: u faylni model.save()dan OLDIN commit qiladi
+            # va ImageOptimizationMixin yangi-yuklash deb bilmaydi. Descriptor'ga
+            # tayinlash — odatdagi upload yo'li: save() webp-siqishni navbatlaydi.
+            movie.poster = ContentFile(content, name=f"tmdb-{movie.pk}.jpg")
+            movie.save(update_fields=["poster", "updated_at"])
+        for actor_pk, profile_path in (actor_paths or {}).items():
+            actor = Actor.objects.filter(pk=actor_pk).first()
+            if actor is None or actor.image or not profile_path:
+                continue
+            content = tmdb.download_image(profile_path, size="w500")
+            actor.image = ContentFile(content, name=f"tmdb-{actor.pk}.jpg")
+            actor.save(update_fields=["image"])
+    except requests.RequestException as exc:
+        logger.warning("tmdb_download_images xato (movie=%s): %s", movie_id, exc)
+        raise self.retry(exc=exc) from exc
+    return "ok"

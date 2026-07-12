@@ -355,6 +355,14 @@ TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
 # Bot xabarlari va boshqa kanal-tashqarisidagi absolyut havolalar bazasi.
 SITE_URL = config("SITE_URL", default="https://drama.uz").rstrip("/")
 
+# -- TMDB IMPORT [V2D-T1] --
+# api.themoviedb.org kaliti: v3 kalit (api_key param) ham, v4 Read Access Token
+# ("eyJ..." bilan boshlanadi — Bearer header) ham qabul qilinadi.
+TMDB_API_KEY = config("TMDB_API_KEY", default="")
+# Import qilinadigan metadata tili (title/tavsif). K-drama uz'da deyarli yo'q —
+# staff qoralamani baribir tahrir qiladi; ru-RU ham mumkin.
+TMDB_LANGUAGE = config("TMDB_LANGUAGE", default="en-US")
+
 # -- MISC --
 
 # -- UNFOLD ADMIN --

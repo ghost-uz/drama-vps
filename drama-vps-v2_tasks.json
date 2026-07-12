@@ -249,7 +249,7 @@
           "title_en": "TMDB metadata import (admin)",
           "title_uz": "TMDB'dan metadata import (admin)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Admin'da 'TMDB import': ID yoki qidiruv -> draft Movie avtomatik to'ladi (title/original_title/year/description/country/genre-mapping/poster GCS'ga yuklab olinadi/asosiy aktyorlar Actor get_or_create). TMDB_API_KEY env. Yuklab olish Celery'da (admin bloklanmaydi). Janr mapping jadvali (TMDB genre id -> lokal Genre). Poster huquqiy eslatma docs'da.",
           "acceptance_criteria": [

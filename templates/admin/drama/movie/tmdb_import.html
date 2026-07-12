@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}TMDB'dan import{% endblock %}
+
+{% block content %}
+{# TMDB import [V2D-T1]: qidiruv (GET) + tanlangan yozuvni import (POST) #}
+<div style="max-width: 760px">
+  <form method="get" style="display:flex; gap:8px; margin-bottom:16px">
+    <input type="text" name="q" value="{{ query }}" style="flex:1; padding:8px"
+           placeholder="Nomi, TMDB ID yoki havola (masalan: Vincenzo, 71712, themoviedb.org/tv/71712)" />
+    <select name="media_type" style="padding:8px">
+      <option value="tv" {% if media_type == "tv" %}selected{% endif %}>Serial (TV)</option>
+      <option value="movie" {% if media_type == "movie" %}selected{% endif %}>Film</option>
+    </select>
+    <button type="submit" class="button default">Qidirish</button>
+  </form>
+
+  {% if results %}
+    <table style="width:100%; border-collapse:collapse">
+      <tbody>
+        {% for r in results %}
+        <tr style="border-top:1px solid #8882">
+          <td style="padding:8px; width:56px">
+            {% if r.poster_url %}<img src="{{ r.poster_url }}" width="46" alt=""
+                                      style="border-radius:4px; display:block" />{% endif %}
+          </td>
+          <td style="padding:8px">
+            <strong>{{ r.title }}</strong>
+            {% if r.original_title and r.original_title != r.title %} — {{ r.original_title }}{% endif %}
+            {% if r.year %} ({{ r.year }}){% endif %}
+            <br /><small style="opacity:.7">{{ r.overview }}</small>
+          </td>
+          <td style="padding:8px; width:90px; text-align:right">
+            <form method="post">{% csrf_token %}
+              <input type="hidden" name="tmdb_ref" value="{{ r.tmdb_ref }}" />
+              <button type="submit" class="button default">Import</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% elif query %}
+    <p>«{{ query }}» bo'yicha hech narsa topilmadi.</p>
+  {% endif %}
+
+  <p style="margin-top:20px; opacity:.6; font-size:12px">
+    Import <strong>qoralama</strong> yaratadi — tekshirib, tarjima qilib, keyin nashr etasiz.
+    Poster va rasm huquqlari haqida: <code>docs/ops/tmdb-import.md</code>.
+  </p>
+</div>
+{% endblock %}
