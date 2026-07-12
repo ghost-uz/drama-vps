@@ -176,6 +176,33 @@
                                 </div>
                             </div>
 
+                            {# Telegram bot ulanishi [V2A-T2] — asosiy formadan TASHQARIDA (alohida POST) #}
+                            <div class="bg-black/40 rounded-2xl p-4 border border-[#1f1f1f] flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-[#229ED9]/10 flex items-center justify-center text-[#229ED9]">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="text-left flex-1">
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold">Telegram bot</p>
+                                    {% if user.profile.telegram_chat_id %}
+                                        <p class="text-sm text-[#00cc4c] font-bold flex items-center gap-1">
+                                            <i class="fas fa-check-circle text-xs"></i> Ulangan
+                                        </p>
+                                        <form method="POST" action="{% url 'users:telegram_bot_unlink' %}" class="mt-1">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-[11px] text-gray-500 underline hover:text-red-400 transition-colors">Uzish</button>
+                                        </form>
+                                    {% else %}
+                                        <p class="text-xs text-gray-400 mb-1.5">Yangi qism chiqqanda botdan xabar oling</p>
+                                        <form method="POST" action="{% url 'users:telegram_bot_link' %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-[11px] font-black text-[#229ED9] uppercase tracking-widest hover:underline">
+                                                Botga ulash <i class="fas fa-arrow-right text-[9px]"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+
                             <div class="bg-black/40 rounded-2xl p-4 border border-[#1f1f1f] text-left">
                                 <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Biografiya</p>
                                 <p class="text-sm text-gray-400 italic leading-relaxed">

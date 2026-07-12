@@ -346,6 +346,15 @@ TELEGRAM_LOGIN_BOT_TOKEN = config("TELEGRAM_LOGIN_BOT_TOKEN", default=TELEGRAM_B
 # auth_date eskirish chegarasi (sekund) — eski imzolangan payload qayta ishlatilmaydi.
 TELEGRAM_LOGIN_MAX_AGE = config("TELEGRAM_LOGIN_MAX_AGE", default=86400, cast=int)
 
+# -- Foydalanuvchi TELEGRAM BOTI [V2A-T2] --
+# Deep-link (t.me/<username>?start=token) uchun; default — login-bot bilan bitta.
+TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default=TELEGRAM_LOGIN_BOT_USERNAME)
+# setWebhook'da secret_token sifatida beriladi; Telegram har update'da
+# X-Telegram-Bot-Api-Secret-Token header'ida qaytaradi (soxta so'rov 403).
+TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
+# Bot xabarlari va boshqa kanal-tashqarisidagi absolyut havolalar bazasi.
+SITE_URL = config("SITE_URL", default="https://drama.uz").rstrip("/")
+
 # -- MISC --
 
 # -- UNFOLD ADMIN --

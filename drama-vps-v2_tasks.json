@@ -51,7 +51,7 @@
           "title_en": "User-facing Telegram bot (link account, new-episode push)",
           "title_uz": "Foydalanuvchi Telegram boti (hisob bog'lash + yangi-qism push)",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["V2A-T1"],
           "description_uz": "Hozir Telegram faqat admin-xabarnoma (core/notifications) va login (P6-T2). Foydalanuvchi boti: /start deep-link token bilan hisobni bog'lash (Profile.telegram_id MAVJUD), V2A-T1 eventlarida shaxsiy push (yangi qism chiqdi -> to'g'ridan kino havolasi), /search inline qidiruv (FTS servisdan). Webhook view (imzo/secret bilan) yoki long-poll management command. Botni bloklagan userlar (403 javob) belgilanadi va o'chiriladi.",
           "acceptance_criteria": [

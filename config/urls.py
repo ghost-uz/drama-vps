@@ -9,6 +9,7 @@ from django.views.generic import TemplateView
 from core.health import healthz, readyz
 from core.monitoring import metrics_view
 from core.pwa import manifest, offline, service_worker
+from core.telegram_bot import telegram_webhook
 from core.twofactor import admin_2fa_verify
 from drama.sitemaps import (
     ActorSitemap,
@@ -67,6 +68,7 @@ urlpatterns = [
     path("api/v1/", include("config.api_urls")),
     # 5. Tashqi webhook'lar (P3)
     path("webhooks/bunny/", bunny_webhook, name="bunny_webhook"),
+    path("webhooks/telegram/", telegram_webhook, name="telegram_webhook"),
     # PWA [P5-T6] — drama catch-all'dan OLDIN (aks holda "offline/" -> <slug>/ ga tushardi)
     path("manifest.webmanifest", manifest, name="manifest"),
     path("sw.js", service_worker, name="service_worker"),

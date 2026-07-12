@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
 from core.ratelimit import ip_key, rate, user_or_ip_key
@@ -526,3 +527,31 @@ def mark_all_notifications_read(request):
     notifications.mark_all_read(request.user)
     messages.success(request, "Barcha bildirishnomalar o'qilgan deb belgilandi.")
     return redirect("users:notifications")
+
+
+@login_required
+@require_POST
+def telegram_bot_link(request):
+    """Bot deep-link'iga yo'naltiradi [V2A-T2] — token 15 daqiqalik, bir martalik.
+
+    POST (GET emas): havola bosilganda token yaratilishi CSRF himoyasida bo'lsin.
+    Muvaffaqiyatda foydalanuvchi to'g'ridan Telegram ilovasiga tushadi.
+    """
+    from core import telegram_bot
+
+    if not settings.TELEGRAM_BOT_USERNAME:
+        messages.error(request, "Telegram bot hali sozlanmagan.")
+        return redirect("users:settings")
+    token = telegram_bot.make_link_token(request.user.id)
+    return redirect(telegram_bot.bot_deep_link(token))
+
+
+@login_required
+@require_POST
+def telegram_bot_unlink(request):
+    """Bot ulanishini uzadi [V2A-T2] — push kanali darhol to'xtaydi."""
+    profile = request.user.profile
+    profile.telegram_chat_id = None
+    profile.save(update_fields=["telegram_chat_id"])
+    messages.success(request, "Telegram bot uzildi — endi botdan xabar kelmaydi.")
+    return redirect("users:settings")

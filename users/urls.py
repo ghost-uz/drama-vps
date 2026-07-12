@@ -77,6 +77,13 @@ urlpatterns = [
     path("dramalist/<str:username>/", user_views.user_full_list, name="user_drama_list"),
     # Hisob
     path("settings/", user_views.settings_view, name="settings"),
+    # Telegram bot ulash/uzish [V2A-T2]
+    path("settings/telegram-bot/link/", user_views.telegram_bot_link, name="telegram_bot_link"),
+    path(
+        "settings/telegram-bot/unlink/",
+        user_views.telegram_bot_unlink,
+        name="telegram_bot_unlink",
+    ),
     path("topup/", user_views.topup_view, name="topup"),
     path("topup/crypto/", user_views.crypto_topup_view, name="crypto_topup"),
     path("subscription/", user_views.subscription_view, name="subscription"),

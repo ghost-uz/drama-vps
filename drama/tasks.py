@@ -316,15 +316,22 @@ def notify_new_episode_followers(episode_id: int) -> int:
         if movie.status != Movie.Status.PUBLISHED:
             return 0
 
-        user_ids = list(
+        # Bitta so'rov IKKALA kanal (sayt-ichi + Telegram) uchun — so'rov soni
+        # obunachi soniga bog'liq emas; opt-out'lar mustaqil, ajratish Python'da.
+        followers = list(
             UserMovieList.objects.filter(
                 movie=movie,
                 status__in=UserMovieList.FOLLOW_STATUSES,
-                profile__notify_new_episode=True,
             )
-            .values_list("profile__user_id", flat=True)
+            .values_list(
+                "profile__user_id",
+                "profile__notify_new_episode",
+                "profile__notify_new_episode_telegram",
+                "profile__telegram_chat_id",
+            )
             .distinct()
         )
+        user_ids = [uid for uid, in_app, _tg, _chat in followers if in_app]
         episode.followers_notified_at = timezone.now()
         episode.save(update_fields=["followers_notified_at"])
         if user_ids:
@@ -335,4 +342,22 @@ def notify_new_episode_followers(episode_id: int) -> int:
                 body="Yangi qism tomosha uchun tayyor — davom eting.",
                 url=f"{movie.get_absolute_url()}?episode={episode.episode_number}",
             )
+
+        # Telegram kanali [V2A-T2] — bot orqali TASDIQLANGAN chat'largagina;
+        # har oluvchiga alohida task (rate_limit="20/s" worker'da jilovlaydi).
+        chat_ids = {chat for _uid, _in_app, tg_on, chat in followers if tg_on and chat}
+        if chat_ids:
+            from functools import partial
+
+            from django.conf import settings
+
+            from core.tasks import send_telegram_push_task
+
+            push_text = (
+                f"🎬 {movie.title}\n"
+                f"{episode.episode_number}-qism chiqdi!\n"
+                f"{settings.SITE_URL}{movie.get_absolute_url()}?episode={episode.episode_number}"
+            )
+            for chat_id in chat_ids:
+                transaction.on_commit(partial(send_telegram_push_task.delay, chat_id, push_text))
     return len(user_ids)

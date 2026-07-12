@@ -73,6 +73,12 @@ class Profile(ImageOptimizationMixin, models.Model):
     notify_new_episode_telegram = models.BooleanField(
         "Yangi qism chiqqanda xabar berish (Telegram)", default=True
     )
+    # [V2A-T2] Bot orqali TASDIQLANGAN shaxsiy chat — deep-link /start'da yoziladi.
+    # Erkin telegram_id (matn)dan farqi: bunga yozish MUMKINLIGI kafolatlangan
+    # (foydalanuvchi botda Start bosgan). Bot 403 qaytarsa tozalanadi.
+    telegram_chat_id = models.BigIntegerField(
+        "Telegram bot chat ID", null=True, blank=True, unique=True
+    )
     xp = models.PositiveIntegerField(default=0)
     is_premium = models.BooleanField(default=False)
     premium_until = models.DateTimeField(null=True, blank=True)

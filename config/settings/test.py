@@ -22,6 +22,12 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 # Tashqi bog'liqliksiz cache / email / storage
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+# Telegram — testlar .env qiymatlaridan MUSTAQIL: bo'sh kredensial
+# send_telegram guard'ini ishga tushiradi (skip), tarmoqqa chiqilmaydi.
+# Kerak bo'lgan test o'z qiymatini `settings` fixture bilan beradi.
+TELEGRAM_BOT_TOKEN = ""
+TELEGRAM_ADMIN_CHAT_ID = ""
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

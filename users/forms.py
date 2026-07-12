@@ -74,7 +74,14 @@ class AsyncPasswordResetForm(PasswordResetForm):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ["avatar", "bio", "birth_date", "telegram_id", "notify_new_episode"]
+        fields = [
+            "avatar",
+            "bio",
+            "birth_date",
+            "telegram_id",
+            "notify_new_episode",
+            "notify_new_episode_telegram",
+        ]
         widgets = {
             # 🌟 O'ZGARTIRILGAN QISM
             "birth_date": SelectDateWidget(

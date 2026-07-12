@@ -81,3 +81,30 @@ def monitoring_alerts_task():
         notify_telegram_task.delay(f"🚨 MONITORING: {message}")
         sent += 1
     return sent
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30, rate_limit="20/s")
+def send_telegram_push_task(self, chat_id: int, text: str):
+    """Bitta foydalanuvchiga bot xabari [V2A-T2].
+
+    rate_limit="20/s" — Telegram Bot API ~30 msg/s chegarasidan pastda qolamiz
+    (fan-out har oluvchiga alohida task ochadi, worker tezlikni o'zi jilovlaydi).
+    403 (foydalanuvchi botni bloklagan) -> kanal O'CHIRILADI (chat_id tozalanadi)
+    va ogohlantirish LOG'lanadi — xato jimgina yutilmaydi [AC-3]; qolgan
+    xatolar retry qilinadi.
+    """
+    from core import telegram_bot
+    from users.models import Profile
+
+    try:
+        telegram_bot.send_message(chat_id, text)
+    except telegram_bot.TelegramBlocked:
+        unlinked = Profile.objects.filter(telegram_chat_id=chat_id).update(telegram_chat_id=None)
+        logger.warning(
+            "Telegram push 403 (bot bloklangan): chat=%s -> kanal o'chirildi (%d profil)",
+            chat_id,
+            unlinked,
+        )
+    except Exception as exc:
+        logger.warning("send_telegram_push_task xato (chat=%s): %s", chat_id, exc)
+        raise self.retry(exc=exc) from exc
