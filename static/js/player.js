@@ -1,9 +1,9 @@
-/* Drama.uz — reels pleyer [P5-T2].
+/* Drama.uz — reels pleyer UI (vertikal short-drama) [P5-T2].
  *
- * movie_detail.html dagi inline skriptdan ko'chirilgan (CSP/kesh uchun) va
- * kengaytirilgan: resume (WatchProgress), progressni saqlash (10s + yopilishda
- * sendBeacon), tugaganda avto-keyingi qism, imzoli URL muddati o'tsa xavfsiz
- * playback API'dan yangilash [P2-T4/P4-T1], 'm' mute tugmasi.
+ * Playback-yadro (HLS + imzoli-URL yangilash + resume + progress +
+ * avto-keyingi) endi static/js/player-core.js da [klassik-pleyer refaktori]
+ * — bu faylda faqat reels UI: swipe-navigatsiya, sheet'lar, tap/double-tap,
+ * controls auto-hide, like/bookmark, sifat tugmasi.
  *
  * Ma'lumot manbai: #reelsData JSON (server gating'dan o'tgan imzoli URL'lar).
  */
@@ -16,25 +16,12 @@
 const dataEl = document.getElementById('reelsData');
 if (!dataEl) return; /* boshqa sahifa — pleyer kerak emas */
 
-const _d         = JSON.parse(dataEl.textContent);
-const ALL_EPS    = _d.episodes;
-const CUR_EP_NUM = _d.currentEp;
-const USE_BUNNY  = _d.useBunny;
-const SRC_HLS    = _d.srcHls;
-const SRC_720    = _d.src720;
-const SRC_1080   = _d.src1080;
-const IS_AUTH    = _d.isAuth;
-const LOGIN_URL  = _d.loginUrl;
-const RESUME_POS   = _d.resumePos || 0;
-const PROGRESS_URL = _d.progressUrl || '';
-const PLAYBACK_API = _d.playbackApi || '';
-const CSRF = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
-const BASE_URL   = window.location.pathname;
-const curIdx     = ALL_EPS.indexOf(CUR_EP_NUM);
-const prevEpNum  = curIdx > 0                ? ALL_EPS[curIdx - 1] : null;
-const nextEpNum  = curIdx < ALL_EPS.length-1 ? ALL_EPS[curIdx + 1] : null;
-let   curQual    = '720p';
-let   hlsInst    = null;
+const _d        = JSON.parse(dataEl.textContent);
+const SRC_720   = _d.src720;
+const SRC_1080  = _d.src1080;
+const IS_AUTH   = _d.isAuth;
+const LOGIN_URL = _d.loginUrl;
+let   curQual   = '720p';
 
 /* ─────────────────────────────────────────────────────────
    DOM REFS
@@ -51,6 +38,16 @@ const tapToPlay  = document.getElementById('tapToPlay');
 const controlEls = document.querySelectorAll('.controls-ui');
 
 if (!app) return;
+
+/* ─────────────────────────────────────────────────────────
+   YADRO — HLS/resume/progress/ended [static/js/player-core.js]
+───────────────────────────────────────────────────────── */
+const core = window.DramaPlayerCore(video, _d, {
+    onEnded: function (nextEp) {
+        if (nextEp) navigate('next');
+        else showControls();
+    },
+});
 
 /* ─────────────────────────────────────────────────────────
    CONTROLS AUTO-HIDE  (TikTok uslubi)
@@ -82,13 +79,13 @@ let swipeStartY = 0, swipeStartT = 0;
 let mouseStartY = 0, mouseDown  = false;
 
 function navigate(dir) {
-    const epNum = dir === 'next' ? nextEpNum : prevEpNum;
+    const epNum = dir === 'next' ? core.nextEp : core.prevEp;
     if (!epNum) return;
 
     const cls = dir === 'next' ? 'slide-up' : 'slide-down';
     app.classList.add(cls);
     setTimeout(() => {
-        window.location.href = BASE_URL + '?episode=' + epNum;
+        window.location.href = core.epUrl(epNum);
     }, 270);
 }
 
@@ -119,132 +116,6 @@ document.addEventListener('mouseup', (e) => {
     mouseDown = false;
     if (Math.abs(dy) > 80) navigate(dy > 0 ? 'next' : 'prev');
 });
-
-/* ─────────────────────────────────────────────────────────
-   XAVFSIZ PLAYBACK API — imzoli URL muddati o'tsa yangilash [P5-T2]
-   (token 4 soat amal qiladi [P4-T1]; uzoq sessiyada network-fatal
-   xatoda bir marta yangi URL so'raladi)
-───────────────────────────────────────────────────────── */
-let refreshTried = false;
-async function refreshPlaybackUrl() {
-    if (!PLAYBACK_API || refreshTried) return null;
-    refreshTried = true;
-    try {
-        const resp = await fetch(PLAYBACK_API, { credentials: 'same-origin' });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        return data.hls_url || null;
-    } catch (_) {
-        return null;
-    }
-}
-
-function fallbackToMp4() {
-    if (hlsInst) { hlsInst.destroy(); hlsInst = null; }
-    if (SRC_720) video.src = SRC_720;
-}
-
-/* ─────────────────────────────────────────────────────────
-   HLS.JS INIT — Bunny Stream adaptive streaming
-───────────────────────────────────────────────────────── */
-function initHls() {
-    if (!video || !SRC_HLS) return;
-    if (typeof Hls === 'undefined') {
-        if (SRC_720) video.src = SRC_720;
-        return;
-    }
-    if (Hls.isSupported()) {
-        hlsInst = new Hls({ enableWorker: true, lowLatencyMode: false });
-        hlsInst.loadSource(SRC_HLS);
-        hlsInst.attachMedia(video);
-        hlsInst.on(Hls.Events.ERROR, function (_, data) {
-            if (!data.fatal) return;
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                /* Token muddati o'tgan bo'lishi mumkin — API'dan yangi imzoli URL */
-                refreshPlaybackUrl().then((fresh) => {
-                    if (fresh && hlsInst) {
-                        const pos = video.currentTime;
-                        hlsInst.loadSource(fresh);
-                        hlsInst.startLoad();
-                        video.addEventListener('loadedmetadata', () => {
-                            video.currentTime = pos;
-                        }, { once: true });
-                    } else {
-                        fallbackToMp4();
-                    }
-                });
-                return;
-            }
-            fallbackToMp4();
-        });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        /* Safari — native HLS qo'llab-quvvatlaydi */
-        video.src = SRC_HLS;
-    } else if (SRC_720) {
-        video.src = SRC_720;
-    }
-}
-
-if (USE_BUNNY) initHls();
-
-/* ─────────────────────────────────────────────────────────
-   RESUME — to'xtagan joydan davom etish (WatchProgress) [P5-T2]
-───────────────────────────────────────────────────────── */
-if (video && RESUME_POS > 5) {
-    video.addEventListener('loadedmetadata', () => {
-        /* Deyarli tugagan joyga qaytarmaymiz (boshidan ko'rish tabiiyroq) */
-        if (video.duration && RESUME_POS < video.duration * 0.95) {
-            video.currentTime = RESUME_POS;
-        }
-    }, { once: true });
-}
-
-/* ─────────────────────────────────────────────────────────
-   PROGRESSNI SAQLASH — har 10s + pauza + sahifa yopilishida [P5-T2]
-   (drama:save_watch_progress, P1-T3; faqat login foydalanuvchi)
-───────────────────────────────────────────────────────── */
-let lastSavedPos = -1;
-
-function buildProgressForm(completed) {
-    const form = new FormData();
-    form.append('position_seconds', String(Math.floor(video.currentTime || 0)));
-    form.append('duration_seconds', String(Math.floor(video.duration || 0)));
-    if (completed) form.append('completed', '1');
-    form.append('csrfmiddlewaretoken', CSRF);
-    return form;
-}
-
-function saveProgress(useBeacon, completed) {
-    if (!IS_AUTH || !PROGRESS_URL || !video || !video.duration) return;
-    const pos = Math.floor(video.currentTime);
-    if (!completed && !useBeacon && Math.abs(pos - lastSavedPos) < 5) return;
-    lastSavedPos = pos;
-    const form = buildProgressForm(completed);
-    if (useBeacon && navigator.sendBeacon) {
-        navigator.sendBeacon(PROGRESS_URL, form);
-    } else {
-        fetch(PROGRESS_URL, {
-            method: 'POST', body: form, credentials: 'same-origin', keepalive: true,
-        }).catch(() => {});
-    }
-}
-
-if (video) {
-    setInterval(() => {
-        if (!video.paused && !video.ended) saveProgress(false, false);
-    }, 10000);
-    video.addEventListener('pause', () => saveProgress(false, false));
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') saveProgress(true, false);
-    });
-
-    /* ─── AVTO-KEYINGI QISM: tugaganda [P5-T2] ─── */
-    video.addEventListener('ended', () => {
-        saveProgress(true, true); /* completed=1 — beacon bilan, navigatsiyada yo'qolmaydi */
-        if (nextEpNum) navigate('next');
-        else showControls();
-    });
-}
 
 /* ─────────────────────────────────────────────────────────
    VIDEO PLAYER LOGIC
@@ -349,12 +220,13 @@ function showSeek(side) {
 
 /* ─────────────────────────────────────────────────────────
    QUALITY SWITCH
-   — Bunny (HLS) da: Auto ↔ FHD sifat darajasi
+   — Bunny (HLS) da: Auto ↔ FHD sifat darajasi (yadro hls'i)
    — Eski (MP4) da: 720p ↔ 1080p URL almashtirish
 ───────────────────────────────────────────────────────── */
 window.switchQuality = function () {
     if (!video) return;
     const btn = document.getElementById('rQualBtn');
+    const hlsInst = core.hls();
 
     if (hlsInst) {
         const levels = hlsInst.levels;

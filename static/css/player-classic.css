@@ -1,0 +1,325 @@
+/* Drama.uz — klassik 16:9 pleyer stillari [klassik-pleyer].
+   Pleyer-ichki stil Tailwind'ga bog'lanmagan (build'siz ham butun). */
+
+.cp-wrap {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 14px;
+    overflow: hidden;
+    user-select: none;
+}
+.cp-wrap:fullscreen { border-radius: 0; }
+.cp-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    cursor: pointer;
+}
+
+/* ── Embed fallback (iframe/eski kod) ── */
+.cp-embed, .cp-embed iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* ── Markaziy katta play ── */
+.cp-big-play {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(0, 204, 76, 0.92);
+    color: #000;
+    font-size: 26px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.85);
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 4;
+}
+.cp-big-play i { margin-left: 5px; }
+.cp-paused .cp-big-play {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+}
+.cp-big-play:hover { background: #00e558; }
+
+/* ── Loader ── */
+.cp-loader {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 52px;
+    height: 52px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #00cc4c;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+.cp-loader.on {
+    opacity: 1;
+    animation: cpSpin 0.8s linear infinite;
+}
+@keyframes cpSpin { to { transform: rotate(360deg); } }
+
+/* ── Boshqaruv paneli ── */
+.cp-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 28px 14px 10px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+    transition: opacity 0.25s;
+    z-index: 6;
+}
+.cp-idle .cp-controls { opacity: 0; pointer-events: none; }
+.cp-idle video { cursor: none; }
+
+/* Seek */
+.cp-seek {
+    position: relative;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 6px;
+    touch-action: none;
+}
+.cp-seek-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.22);
+    overflow: visible;
+    transition: height 0.15s;
+}
+.cp-seek:hover .cp-seek-track { height: 6px; }
+.cp-buffered, .cp-played {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+    width: 0;
+}
+.cp-buffered { background: rgba(255, 255, 255, 0.35); }
+.cp-played   { background: #00cc4c; }
+.cp-played::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #00cc4c;
+    transition: transform 0.15s;
+}
+.cp-seek:hover .cp-played::after { transform: translateY(-50%) scale(1); }
+
+/* Tugmalar qatori */
+.cp-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.cp-btn {
+    background: none;
+    border: 0;
+    color: #fff;
+    width: 38px;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.cp-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.cp-btn-text {
+    width: auto;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+}
+.cp-time {
+    color: #ddd;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    margin: 0 6px;
+    white-space: nowrap;
+}
+.cp-spacer { flex: 1; }
+
+/* Ovoz */
+.cp-vol-wrap { display: flex; align-items: center; }
+.cp-vol {
+    width: 0;
+    opacity: 0;
+    transition: width 0.2s, opacity 0.2s;
+    accent-color: #00cc4c;
+    cursor: pointer;
+}
+.cp-vol-wrap:hover .cp-vol, .cp-vol:focus-visible {
+    width: 74px;
+    opacity: 1;
+    margin-right: 4px;
+}
+
+/* Popover menyu (tezlik/sifat) */
+.cp-menu-wrap { position: relative; }
+.cp-menu {
+    position: absolute;
+    bottom: 42px;
+    right: 0;
+    min-width: 96px;
+    background: rgba(18, 18, 18, 0.97);
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 5px;
+    display: none;
+    z-index: 8;
+}
+.cp-menu.open { display: block; }
+.cp-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    color: #ccc;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.cp-menu button:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.cp-menu button.active { color: #00cc4c; font-weight: 700; }
+
+/* ── Keyingi qism countdown overlay ── */
+.cp-next-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 9;
+    text-align: center;
+}
+.cp-next-overlay.open { display: flex; }
+.cp-next-overlay p { color: #bbb; font-size: 14px; }
+.cp-next-overlay .cp-next-num {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid #00cc4c;
+    color: #fff;
+    font-size: 26px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cp-next-cancel {
+    background: none;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 8px 22px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.cp-next-cancel:hover { border-color: #999; color: #fff; }
+
+/* ── Qulf (VIP/funding) paneli ── */
+.cp-lock {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 24px;
+    background:
+        linear-gradient(rgba(5, 5, 5, 0.82), rgba(5, 5, 5, 0.94)),
+        var(--cp-lock-bg, #0a0a0a) center/cover no-repeat;
+}
+.cp-lock-icon {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+.cp-lock h3 { font-size: 22px; font-weight: 900; color: #fff; }
+.cp-lock p { color: #aaa; font-size: 14px; max-width: 420px; }
+.cp-lock-btn {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-weight: 800;
+    font-size: 14px;
+    color: #000;
+    text-decoration: none;
+}
+
+/* ── Qismlar to'ri ── */
+.cp-eps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px;
+}
+.cp-ep {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    border-radius: 10px;
+    background: #161616;
+    border: 1px solid #262626;
+    color: #ccc;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.cp-ep:hover { background: #202020; border-color: #3a3a3a; color: #fff; }
+.cp-ep.active {
+    background: rgba(0, 204, 76, 0.16);
+    border-color: #00cc4c;
+    color: #00cc4c;
+}
+
+/* Mobil */
+@media (max-width: 640px) {
+    .cp-wrap { border-radius: 10px; }
+    .cp-big-play { width: 64px; height: 64px; font-size: 20px; }
+    .cp-time { font-size: 11px; }
+    .cp-btn { width: 34px; }
+}

@@ -244,8 +244,20 @@ class MovieDetailView(GenreYearMixin, DetailView):
     model = Movie
     queryset = Movie.objects.published()
     slug_field = "slug"
-    template_name = "movies/movie_detail.html"
+    template_name = "movies/movie_detail.html"  # reels (vertikal) — tarixiy default
     context_object_name = "movie"
+
+    def get_template_names(self):
+        """Pleyer tanlovi Category.player_type orqali [klassik-pleyer].
+
+        Nomga solishtirish EMAS (Category.name modeltranslation'da — til
+        almashsa buzilardi). Kategoriyasiz kino bugungidek reels'da qoladi:
+        klassik sahifa kategoriya orqali ONGLI yoqiladi.
+        """
+        category = self.object.category
+        if category and category.player_type == Category.PlayerType.CLASSIC:
+            return ["movies/movie_detail_classic.html"]
+        return [self.template_name]
 
     def get_queryset(self):
         # Epizodlarni ham prefetch qilamiz (N+1 muammosini hal qiladi)

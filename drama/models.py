@@ -34,9 +34,23 @@ class TimeStampedModel(models.Model):
 
 
 class Category(models.Model):
+    class PlayerType(models.TextChoices):
+        CLASSIC = "classic", "Klassik (16:9 kino/serial)"
+        REELS = "reels", "Reels (vertikal short-drama)"
+
     name = models.CharField("Kategoriya nomi", max_length=150)
     description = models.TextField("Tavsif", blank=True)
     slug = models.SlugField(max_length=160, unique=True, db_index=True)
+    # Pleyer tanlovi NOMga emas (name tarjima qilinadi — til almashsa
+    # solishtiruv sinadi), aniq maydonga bog'lanadi. Kategoriyasiz (legacy)
+    # kino reels'da qoladi — MovieDetailView.get_template_names.
+    player_type = models.CharField(
+        "Pleyer turi",
+        max_length=10,
+        choices=PlayerType.choices,
+        default=PlayerType.CLASSIC,
+        help_text="Reels — vertikal short-drama (fullscreen pleyer); Klassik — 16:9 kino/serial sahifasi.",
+    )
 
     def save(self, *args, **kwargs):
         if not self.slug:

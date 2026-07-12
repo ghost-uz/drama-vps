@@ -162,7 +162,7 @@ class SeasonInline(TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin, TranslationAdmin):
-    list_display = ("name", "slug", "movie_count")
+    list_display = ("name", "slug", "player_type", "movie_count")
     search_fields = ("name",)
     prepopulated_fields = {"slug": ("name",)}
 

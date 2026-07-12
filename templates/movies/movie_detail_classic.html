@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+{% comment %} Klassik 16:9 kino/serial sahifasi [klassik-pleyer].
+MovieDetailView.get_template_names: Category.player_type == "classic"
+bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
+
+{% block page_title %}{{ movie.title }}{% if active_episode and episodes|length > 1 %} {{ active_episode.episode_number }}-qism{% endif %} - Drama.uz{% endblock %}
+{% block meta_description %}{{ movie.title }} ({{ movie.year }}){% if active_episode and episodes|length > 1 %} {{ active_episode.episode_number }}-qism{% endif %} — onlayn tomosha qiling. {{ movie.description|truncatechars:120 }}{% endblock %}
+{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, onlayn tomosha{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ movie.get_absolute_url }}{% endblock %}
+
+{% block og_title %}{{ movie.title }} - DramaUz{% endblock %}
+{% block og_description %}{{ movie.description|truncatechars:160 }}{% endblock %}
+{% block og_image %}{{ movie.poster.url }}{% endblock %}
+{% block tw_image %}{{ movie.poster.url }}{% endblock %}
+
+{% block schema_markup %}
+{# View'da xavfsiz qurilgan graf (drama/seo.py) — reels bilan bitta manba [P5-T4] #}
+<script type="application/ld+json">{{ seo_jsonld }}</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/player-classic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-6xl">
+
+    {# ── PLEYER ─────────────────────────────────────────── #}
+    <div id="cpWrap" class="cp-wrap">
+        {% if is_restricted %}
+            <div class="cp-lock" style="--cp-lock-bg: url('{{ movie.poster.url }}')">
+                {% if restriction_type == 'funding' %}
+                    <div class="cp-lock-icon" style="background:rgba(0,204,76,0.15);color:#00cc4c;">
+                        <i class="fas fa-seedling"></i>
+                    </div>
+                    <h3>Loyihani qo'llab-quvvatlang</h3>
+                    <p>Ko'rish uchun "O'zbekcha Dublyaj Loyihasi"ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi.</p>
+                    <a href="{{ movie.get_absolute_url }}#crowdfunding-section" class="cp-lock-btn" style="background:#00cc4c;">
+                        To'lov qilish
+                    </a>
+                {% else %}
+                    <div class="cp-lock-icon" style="background:linear-gradient(135deg,#ffd700,#f4d6a1);">
+                        <i class="fas fa-crown" style="color:#5c3e0d;"></i>
+                    </div>
+                    <h3>VIP Bo'lim</h3>
+                    <p>Ushbu qismni ko'rish uchun premium obuna kerak.</p>
+                    <a href="{% url 'users:subscription' %}" class="cp-lock-btn" style="background:linear-gradient(135deg,#ffd700,#f4a01a);">
+                        VIP Olish
+                    </a>
+                {% endif %}
+            </div>
+        {% elif not use_bunny and "<iframe" in video_720 %}
+            <div class="cp-embed">{{ video_720|safe }}</div>
+        {% elif not use_bunny and "embed" in video_720 or not use_bunny and "youtube.com" in video_720 %}
+            <div class="cp-embed">
+                <iframe src="{{ video_720 }}" title="{{ movie.title }}"
+                        allow="autoplay; fullscreen" allowfullscreen></iframe>
+            </div>
+        {% else %}
+            <video id="cpVideo"
+                   poster="{{ video_thumbnail|default:movie.poster.url }}"
+                   playsinline
+                   preload="metadata"
+                   oncontextmenu="return false;"
+                   controlsList="nodownload noremoteplayback">
+                {% if not use_bunny %}
+                <source src="{{ video_720 }}" type="video/mp4">
+                {% if video_1080 and video_1080 != video_720 %}
+                <source src="{{ video_1080 }}" type="video/mp4">
+                {% endif %}
+                {% endif %}
+            </video>
+
+            <button id="cpBigPlay" class="cp-big-play" aria-label="Ijro etish"><i class="fas fa-play"></i></button>
+            <div id="cpLoader" class="cp-loader"></div>
+
+            <div id="cpNextOverlay" class="cp-next-overlay">
+                <p>Keyingi qism boshlanmoqda…</p>
+                <div class="cp-next-num"><span id="cpNextCount">5</span></div>
+                <button id="cpNextCancel" class="cp-next-cancel" type="button">Bekor qilish</button>
+            </div>
+
+            <div id="cpControls" class="cp-controls">
+                <div id="cpSeek" class="cp-seek" aria-label="Vaqt chizig'i">
+                    <div class="cp-seek-track">
+                        <div id="cpBuffered" class="cp-buffered"></div>
+                        <div id="cpPlayed" class="cp-played"></div>
+                    </div>
+                </div>
+                <div class="cp-bar">
+                    <button id="cpPlay" class="cp-btn" aria-label="Ijro / pauza"><i class="fas fa-play"></i></button>
+                    {% if next_episode %}
+                    <button id="cpNextBtn" class="cp-btn" aria-label="Keyingi qism"><i class="fas fa-forward-step"></i></button>
+                    {% endif %}
+                    <div class="cp-vol-wrap">
+                        <button id="cpMute" class="cp-btn" aria-label="Ovoz"><i class="fas fa-volume-up"></i></button>
+                        <input id="cpVol" class="cp-vol" type="range" min="0" max="100" value="100" aria-label="Ovoz balandligi">
+                    </div>
+                    <span id="cpTime" class="cp-time">0:00 / 0:00</span>
+                    <div class="cp-spacer"></div>
+                    <div class="cp-menu-wrap">
+                        <button id="cpSpeedBtn" class="cp-btn cp-btn-text" aria-label="Tezlik">1x</button>
+                        <div id="cpSpeedMenu" class="cp-menu">
+                            <button data-speed="0.5" type="button">0.5x</button>
+                            <button data-speed="0.75" type="button">0.75x</button>
+                            <button data-speed="1" class="active" type="button">1x</button>
+                            <button data-speed="1.25" type="button">1.25x</button>
+                            <button data-speed="1.5" type="button">1.5x</button>
+                            <button data-speed="2" type="button">2x</button>
+                        </div>
+                    </div>
+                    <div class="cp-menu-wrap">
+                        <button id="cpQualBtn" class="cp-btn cp-btn-text" aria-label="Sifat">Avto</button>
+                        <div id="cpQualMenu" class="cp-menu">
+                            <button data-qual="auto" class="active" type="button">Avto</button>
+                            <button data-qual="1080" type="button">1080p</button>
+                            <button data-qual="720" type="button">720p</button>
+                        </div>
+                    </div>
+                    <button id="cpPip" class="cp-btn" aria-label="Kichik oyna"><i class="fas fa-clone"></i></button>
+                    <button id="cpFs" class="cp-btn" aria-label="To'liq ekran"><i class="fas fa-expand"></i></button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ── MA'LUMOT ───────────────────────────────────────── #}
+    <div class="mt-6 grid gap-8 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+            <h1 class="text-2xl md:text-3xl font-black leading-tight">
+                {{ movie.title }}{% if active_episode and episodes|length > 1 %}
+                <span class="text-drama-green">— {{ active_episode.episode_number }}-qism</span>{% endif %}
+            </h1>
+            {% if movie.original_title %}
+            <p class="text-gray-500 mt-1">{{ movie.original_title }}</p>
+            {% endif %}
+
+            <div class="flex flex-wrap items-center gap-2 mt-4 text-xs font-bold">
+                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.year }}</span>
+                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.country }}</span>
+                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.duration }} daqiqa</span>
+                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.age_limit }}+</span>
+                {% if movie.is_vip %}
+                <span class="px-3 py-1.5 rounded-full font-black" style="background:linear-gradient(135deg,#ffd700,#f4a01a);color:#000;">VIP</span>
+                {% endif %}
+                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-yellow-400">
+                    <i class="fas fa-star mr-1"></i>{{ movie.average_rating }} ({{ movie.total_votes }})
+                </span>
+            </div>
+
+            {% if movie.genres.all %}
+            <div class="flex flex-wrap gap-2 mt-3">
+                {% for genre in movie.genres.all %}
+                <a href="{{ genre.get_absolute_url }}"
+                   class="px-3 py-1.5 rounded-full text-xs font-bold bg-drama-green/10 text-drama-green hover:bg-drama-green/20 transition-colors">
+                    {{ genre.name }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <p class="mt-5 text-gray-300 leading-relaxed">{{ movie.description }}</p>
+
+            {% if movie.main_actors.all %}
+            <div class="mt-5">
+                <p class="text-[11px] text-gray-500 uppercase font-black tracking-widest mb-2">Bosh rollarda</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for actor in movie.main_actors.all %}
+                    <a href="{{ actor.get_absolute_url }}"
+                       class="px-3 py-1.5 rounded-full text-xs font-bold bg-card border border-[#262626] text-gray-300 hover:border-drama-green hover:text-white transition-colors">
+                        {{ actor.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <aside class="hidden lg:block">
+            <img src="{{ movie.poster.url }}" alt="{{ movie.title }}"
+                 class="w-full rounded-2xl border border-[#1f1f1f]" loading="lazy" decoding="async">
+        </aside>
+    </div>
+
+    {# ── QISMLAR ────────────────────────────────────────── #}
+    {% if episodes|length > 1 %}
+    <section class="mt-10">
+        <h2 class="text-lg font-black mb-4"><i class="fas fa-list-ol text-drama-green mr-2"></i>Qismlar</h2>
+        <div class="cp-eps">
+            {% for ep in episodes %}
+            <a href="?episode={{ ep.episode_number }}"
+               class="cp-ep {% if ep == active_episode %}active{% endif %}"
+               {% if ep == active_episode %}aria-current="true"{% endif %}>
+                {{ ep.episode_number }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── FIKRLAR (to'liq sahifaga havola) ───────────────── #}
+    <section class="mt-10">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-black"><i class="fas fa-comments text-drama-green mr-2"></i>Fikrlar ({{ movie.reviews.all|length }})</h2>
+            <a href="{% url 'drama:movie_reviews' movie.slug %}" class="text-xs font-bold text-drama-green hover:underline">
+                Barchasi <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        {% for review in movie.reviews.all|slice:":2" %}
+        <div class="bg-card border border-[#1f1f1f] rounded-2xl p-4 mb-3">
+            <p class="text-xs font-black text-gray-400 mb-1">{{ review.user.username }}</p>
+            <p class="text-sm text-gray-300">{{ review.text|truncatechars:220 }}</p>
+        </div>
+        {% empty %}
+        <p class="text-sm text-gray-500">Hozircha fikrlar yo'q — birinchi bo'lib yozing!</p>
+        {% endfor %}
+    </section>
+
+    {# ── O'XSHASH ───────────────────────────────────────── #}
+    {% if similar_movies %}
+    <section class="mt-10">
+        <h2 class="text-lg font-black mb-4"><i class="fas fa-film text-drama-green mr-2"></i>O'xshash dramalar</h2>
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+            {% for sim in similar_movies %}
+            {% include "movies/movies_card.html" with movie=sim %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# HLS.js — vendorlangan (CDN emas) [P5-T2] #}
+<script src="{% static 'js/vendor/hls.min.js' %}" defer></script>
+
+{# Umumiy playback-yadro — reels bilan bitta [player-core.js] #}
+<script src="{% static 'js/player-core.js' %}" defer></script>
+
+{# Django template data — reelsData bilan BIR XIL shakl #}
+<script id="classicData" type="application/json">
+{
+    "episodes":  [{% for ep in episodes %}{{ ep.episode_number }}{% if not forloop.last %},{% endif %}{% endfor %}],
+    "currentEp": {{ active_episode.episode_number|default:1 }},
+    "useBunny":  {% if use_bunny %}true{% else %}false{% endif %},
+    "srcHls":    "{% if not is_restricted and use_bunny %}{{ video_hls|escapejs }}{% endif %}",
+    "src720":    "{% if not is_restricted %}{{ video_720|escapejs }}{% endif %}",
+    "src1080":   "{% if not is_restricted %}{{ video_1080|escapejs }}{% endif %}",
+    "isAuth":    {% if user.is_authenticated %}true{% else %}false{% endif %},
+    "loginUrl":  "{% url 'users:login' %}",
+    "episodeId": {% if active_episode %}{{ active_episode.id }}{% else %}null{% endif %},
+    "resumePos": {{ resume_position|default:0 }},
+    "progressUrl": "{% if active_episode %}{% url 'drama:save_watch_progress' active_episode.id %}{% endif %}",
+    "playbackApi": "{% if active_episode %}/api/v1/episodes/{{ active_episode.id }}/playback/{% endif %}"
+}
+</script>
+
+<script src="{% static 'js/player-classic.js' %}" defer></script>
+{% endblock %}
