@@ -20,7 +20,7 @@ Origin sertifikat brauzerga **hech qachon ko'rinmaydi** — foydalanuvchi
 Cloudflare'ning universal sertifikatini ko'radi. Shu sabab uning ommaviy
 ishonchli emasligi muammo emas.
 
-> **Diqqat:** `https://207.154.194.231` (to'g'ridan IP) ga kirilsa brauzer
+> **Diqqat:** `https://159.89.100.207` (to'g'ridan IP) ga kirilsa brauzer
 > ogohlantiradi — bu **kutilgan** holat, xato emas.
 
 ## Fayllar
@@ -86,7 +86,7 @@ avval `nginx -t`, keyin `up -d`.
 2. **SSL/TLS → Edge Certificates → Always Use HTTPS: ON**
    (yo'naltirish edge'da bo'ladi — origin'gacha yetib kelmaydi).
 3. **Minimum TLS Version: TLS 1.2** (`ssl.conf` ham 1.2+ ni qo'llaydi).
-4. **DNS → A yozuvi `drama.uz` → 207.154.194.231, Proxied (to'q sariq bulut)**
+4. **DNS → A yozuvi `drama.uz` → 159.89.100.207, Proxied (to'q sariq bulut)**
    — kulrang bulut bo'lsa trafik CF'ni chetlab o'tadi va origin sertifikati
    brauzerda ogohlantirish beradi.
 

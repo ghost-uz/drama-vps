@@ -16,7 +16,11 @@ SECRET_KEY = config("SECRET_KEY")  # noqa: F405
 ALLOWED_HOSTS = [
     "drama.uz",
     "www.drama.uz",
-    "207.154.194.231",
+    # Origin server IP — to'g'ridan murojaat (Cloudflare'ni chetlab sinash) uchun.
+    # Server ko'chirilsa SHU YERNI yangilang: serverda faylni qo'lda tahrirlash
+    # HECH NARSA bermaydi — prod'da web kodni image ichidan oladi (manba
+    # bind-mount faqat dev-override'da). Yoki .env: EXTRA_ALLOWED_HOSTS=<ip>.
+    "159.89.100.207",
 ]
 # Qo'shimcha hostlar .env'dan — yangi server IP'sini DNS'gacha sinash uchun:
 #   EXTRA_ALLOWED_HOSTS=164.92.1.2,staging.drama.uz

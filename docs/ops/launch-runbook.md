@@ -318,12 +318,15 @@ dc exec web python manage.py check_bunny_security
 
 ## 13. Launch'dan keyingi hafta (shoshilinch emas)
 
-- [ ] Cloudflare SSL → **Full (strict)** + Origin Certificate (nginx 443)
+- [~] Cloudflare SSL → **Full (strict)** + Origin Certificate (nginx 443)
+      — nginx tomoni TAYYOR (`nginx/ssl.conf`, 443 + Origin CA); QOLDI: CF
+      dashboard'da rejimni `Full (strict)` ga o'tkazish. Batafsil: `ssl.md`
 - [ ] SMTP (`EMAIL_*`) — parol-reset xatlari uchun
 - [ ] `SENTRY_DSN` — xato kuzatuvi
 - [ ] `HEARTBEAT_URL` — dead-man monitoring (9-bo'lim)
 - [ ] Git tarixini tozalash: `git-filter-repo` (secret-rotation.md §4-6)
-- [ ] `prod.py`dan eski `207.154.194.231` IP'ni olib tashlash
+- [x] `prod.py`dagi IP yangilandi: `207.154.194.231` -> `159.89.100.207`
+      (server ko'chirilgan edi; eski IP repo'da qolib ketgandi)
 - [ ] Backup tiklashni BIR MARTA sinab ko'rish (docs/ops/backup.md mashqi)
 
 ## 14. Kundalik foydali buyruqlar
