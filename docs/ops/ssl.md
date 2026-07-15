@@ -57,9 +57,12 @@ openssl x509 -in nginx/certs/origin.pem -noout -dates -ext subjectAltName
 docker compose -f docker-compose.yml -f docker-compose.prod.yml \
   run --rm --no-deps nginx nginx -t
 
-# 5) Qo'llash (faqat nginx qayta yaratiladi — web/db tegilmaydi)
+# 5) Qo'llash — `--no-deps` SHART!
+# Usiz `up -d nginx` depends_on bo'yicha `web`ni ham qamrab oladi va bu shellda
+# IMAGE_TAG yo'q -> compose web image'ini `:latest` deb hisoblab, ishlab turgan
+# SHA-tegli web'ni KUTILMAGANDA qayta yaratadi. --no-deps faqat nginx'ga tegadi.
 docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-  up -d --force-recreate nginx
+  up -d --force-recreate --no-deps nginx
 
 # 6) Origin'ni to'g'ridan sinash (Cloudflare'ni chetlab)
 curl -kI https://localhost/healthz          # 200 kutiladi
