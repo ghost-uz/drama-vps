@@ -16,6 +16,9 @@ secrets/
 *.key.json
 *-key*.json
 *credentials*.json
+# SSH deploy kaliti (GitHub Actions -> server) — private + public
+deploy_key
+deploy_key.pub
 .env.*
 !.env.example
 
