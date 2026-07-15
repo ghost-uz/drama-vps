@@ -318,9 +318,13 @@ dc exec web python manage.py check_bunny_security
 
 ## 13. Launch'dan keyingi hafta (shoshilinch emas)
 
-- [~] Cloudflare SSL → **Full (strict)** + Origin Certificate (nginx 443)
-      — nginx tomoni TAYYOR (`nginx/ssl.conf`, 443 + Origin CA); QOLDI: CF
-      dashboard'da rejimni `Full (strict)` ga o'tkazish. Batafsil: `ssl.md`
+- [x] Cloudflare SSL → **Full (strict)** + Origin Certificate (nginx 443)
+      — 2026-07-15 BAJARILDI va jonli tasdiqlandi (`https://drama.uz/` -> 200
+      + cf-ray; origin'da `https://localhost/healthz` -> HTTP/2 200 + HSTS).
+      Batafsil: `ssl.md`. QOLGAN (ixtiyoriy qattiqlashtirish): origin'ni
+      qulflash — ufw'ni Cloudflare IP oralig'iga cheklash va/yoki
+      Authenticated Origin Pulls (mTLS). Hozir IP'ni bilgan CF'ni chetlab
+      o'tib WAF/rate-limit'ni aylanib o'ta oladi.
 - [ ] SMTP (`EMAIL_*`) — parol-reset xatlari uchun
 - [ ] `SENTRY_DSN` — xato kuzatuvi
 - [ ] `HEARTBEAT_URL` — dead-man monitoring (9-bo'lim)
