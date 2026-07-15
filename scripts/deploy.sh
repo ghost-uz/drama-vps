@@ -60,8 +60,8 @@ if ! IMAGE_TAG="$NEW_TAG" $COMPOSE run --rm migrate; then
     exit 1
 fi
 
-# 3) Yangi kodni ishga tushirish
-IMAGE_TAG="$NEW_TAG" $COMPOSE up -d --no-build web celery-worker celery-beat
+# 3) Yangi kodni ishga tushirish + public proxy (nginx — port 80 "ko'cha eshigi")
+IMAGE_TAG="$NEW_TAG" $COMPOSE up -d --no-build web celery-worker celery-beat nginx
 
 # 4) Sog'liq tekshiruvi — nosozlikda avtomatik rollback
 if wait_healthy; then
