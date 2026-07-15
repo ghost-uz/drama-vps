@@ -64,7 +64,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 Uch marta ishga tushirib, uchta qiymatni yozib oling:
-`BUNNY_WEBHOOK_SECRET`, `TELEGRAM_WEBHOOK_SECRET`, `METRICS_TOKEN` uchun.
+`RopIMcPWKdI-0wn2O6wGmFER50ghz5C4o3U8cMTUooI`, `9dH-CRzebHpG2fb2vuULlORolVIPsbeuG9wqWzU21s4`, `oQV5U1wndRizSiLvqAji2feBvruMO8NrZxKDqYf-e6o` uchun.
 
 ---
 
@@ -227,6 +227,19 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f web
 
 **Muvaffaqiyat belgilari:** workflow yashil; `ps` da `web (healthy)`;
 `curl -H "Host: drama.uz" http://127.0.0.1/healthz` → `{"status": "ok"}`.
+
+**Chuqurroq tekshiruv (birinchi deploy'da SHART):** `/healthz` — faqat *liveness*
+(gunicorn javob beryaptimi, xolos); u DB/Redis'ni TEKSHIRMAYDI va health-gate ham
+aynan shunga tayanadi. Ya'ni Redis noto'g'ri sozlangan bo'lsa ham deploy yashil
+bo'lishi mumkin. Bog'liqliklar rostdan ulanganini `/readyz` bilan tasdiqlang:
+
+```bash
+curl -H "Host: drama.uz" http://127.0.0.1/readyz
+# Kutilgan: {"status":"ready","checks":{"database":"ok","cache":"ok","migrations":"ok"}}
+```
+
+Biror `check` `down`/`pending` bo'lsa — deploy "yashil" bo'lsa-da, 12-bo'lim
+(troubleshooting) bo'yicha o'sha komponentni tuzating.
 
 > Nosozlikda `deploy.sh` avtomatik rollback qiladi — 12-bo'limga qarang.
 
