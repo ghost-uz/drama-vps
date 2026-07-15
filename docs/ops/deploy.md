@@ -7,11 +7,17 @@ qiladi va serverga SSH orqali `scripts/deploy.sh` ni ishga tushiradi.
 ## Arxitektura
 
 ```
-Cloudflare(SSL) -> nginx:80 -> gunicorn(web:8000, 3 worker)
-                     |            +-- celery-worker, celery-beat
-                     +-- /static /media (volume)
-                   db(postgres16)  redis7
+Cloudflare --https(Origin CA)--> nginx:443 -> gunicorn(web:8000, 3 worker)
+                                    |            +-- celery-worker, celery-beat
+                                    +-- /static /media (volume)
+                                  db(postgres16)  redis7
+
+nginx:80 -> 301 https (istisno: /healthz — lokal diagnostika uchun ochiq)
 ```
+
+- TLS origin'da tugaydi: Cloudflare Origin CA sertifikati (`nginx/ssl.conf`).
+  Sertifikatlar serverda `/opt/drama/nginx/certs/` (gitignore'da). Batafsil:
+  [`docs/ops/ssl.md`](ssl.md).
 
 - Image: `ghcr.io/<owner>/drama-web:<tag>` (tag = commit SHA yoki `vX.Y.Z`).
 - `docker-compose.yml` + `docker-compose.prod.yml` (registry image + ajratilgan

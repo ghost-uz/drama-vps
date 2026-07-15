@@ -31,6 +31,12 @@ media/
 drama-key-v2.json
 *-key*.json
 *credentials*.json
+# TLS origin sertifikatlari — runtime'da nginx konteyneriga volume orqali
+# beriladi, image ichida SHART EMAS.
+nginx/certs/
+*.pem
+*.key
+*.crt
 
 # --- Test / lint cache ---
 .pytest_cache/

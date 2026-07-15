@@ -59,6 +59,18 @@ services:
       db:
         condition: service_healthy
 
+  # Prod nginx: TLS terminatsiya Cloudflare Origin CA sertifikati bilan.
+  #  - conf: ssl.conf ni default.conf O'RNIGA mount qilamiz (bir xil target yo'l
+  #    => compose merge'da shu g'olib bo'ladi; base'dagi HTTP-only conf tushadi).
+  #  - certs: serverda /opt/drama/nginx/certs/ (gitignore'da, qo'lda yuklangan).
+  #  - 443 porti base'dagi 80 ustiga QO'SHILADI (ports merge additiv).
+  nginx:
+    ports:
+      - "${WEB_SSL_PORT:-443}:443"
+    volumes:
+      - ./nginx/ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+
   # Avtomatik kunlik DB backup [P13-T3] — busybox crond har kun 03:00 da
   # scripts/backup.sh ni ishga tushiradi (pg_dump + saqlash siyosati + GCS).
   # pg_dump postgres image'ida bor -> web image'iga postgres-client kerak emas.

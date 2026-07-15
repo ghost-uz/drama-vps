@@ -22,6 +22,14 @@ deploy_key.pub
 .env.*
 !.env.example
 
+# --- TLS sertifikat/kalitlar (Cloudflare Origin CA) ---
+# Serverda repo /opt/drama da => nginx/certs/ ish daraxti ICHIDA joylashadi.
+# Sertifikatlar serverga QO'LDA yuklanadi, hech qachon commit qilinmaydi.
+nginx/certs/
+*.pem
+*.key
+*.crt
+
 # --- Test / lint / build artefaktlari ---
 .pytest_cache/
 .mypy_cache/

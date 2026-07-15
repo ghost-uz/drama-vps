@@ -113,7 +113,12 @@ services:
     ports:
       - "${WEB_PORT:-80}:80"
     volumes:
+      # Prod'da docker-compose.prod.yml shu target'ga ssl.conf ni mount qiladi
+      # (bir xil mount-point => override g'olib) — u yerda TLS + Origin cert.
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Umumiy server-tanasi (location'lar/gzip) — HTTP va SSL conf ikkalasi
+      # ham `include /etc/nginx/snippets/app.conf` qiladi.
+      - ./nginx/snippets:/etc/nginx/snippets:ro
       - staticfiles:/app/staticfiles:ro
       - media:/app/media:ro
     depends_on:
