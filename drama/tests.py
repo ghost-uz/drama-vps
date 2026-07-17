@@ -246,6 +246,61 @@ def test_save_progress_requires_login(client):
     assert resp.status_code == 302  # login sahifasiga redirect
 
 
+# --- Smart continue: qism tugatilgach keyingisi 'davom ettirish' navbatiga tushadi ---
+
+
+@pytest.mark.django_db
+def test_completed_episode_queues_next(client):
+    movie, ep1, user = _movie_episode_user(username="next_user")
+    ep2 = Episode.objects.create(movie=movie, episode_number=2, title="E2")
+    client.force_login(user)
+    url = reverse("drama:save_watch_progress", args=[ep1.id])
+    client.post(url, {"position_seconds": 95, "duration_seconds": 100})  # 90%+ -> completed
+    queued = WatchProgress.objects.get(user=user, episode=ep2)
+    assert queued.completed is False and queued.position_seconds == 0
+    # 'Davom ettirish'da endi shu serialdan FAQAT ep2 chiqadi
+    from users.selectors import continue_watching
+
+    assert [wp.episode_id for wp in continue_watching(user)] == [ep2.id]
+
+
+@pytest.mark.django_db
+def test_queue_next_skips_already_completed_episode(client):
+    movie, ep1, user = _movie_episode_user(username="skip_user")
+    ep2 = Episode.objects.create(movie=movie, episode_number=2, title="E2")
+    ep3 = Episode.objects.create(movie=movie, episode_number=3, title="E3")
+    # ep2 allaqachon to'liq ko'rilgan (rewatch stsenariysi) -> navbatga ep3 tushadi
+    WatchProgress.objects.create(
+        user=user, episode=ep2, position_seconds=100, duration_seconds=100, completed=True
+    )
+    client.force_login(user)
+    url = reverse("drama:save_watch_progress", args=[ep1.id])
+    client.post(url, {"position_seconds": 95, "duration_seconds": 100})
+    assert WatchProgress.objects.filter(user=user, episode=ep3, completed=False).exists()
+
+
+@pytest.mark.django_db
+def test_queue_next_does_not_overwrite_partial_next(client):
+    movie, ep1, user = _movie_episode_user(username="keep_user")
+    ep2 = Episode.objects.create(movie=movie, episode_number=2, title="E2")
+    WatchProgress.objects.create(user=user, episode=ep2, position_seconds=40, duration_seconds=100)
+    client.force_login(user)
+    url = reverse("drama:save_watch_progress", args=[ep1.id])
+    client.post(url, {"position_seconds": 95, "duration_seconds": 100})
+    # get_or_create — ep2'ning chala progressi USTIGA YOZILMAGAN
+    assert WatchProgress.objects.get(user=user, episode=ep2).position_seconds == 40
+
+
+@pytest.mark.django_db
+def test_queue_next_noop_when_no_next_episode(client):
+    _movie, ep, user = _movie_episode_user(username="last_user")
+    client.force_login(user)
+    url = reverse("drama:save_watch_progress", args=[ep.id])
+    client.post(url, {"position_seconds": 95, "duration_seconds": 100})
+    # Serial oxiri: yangi qator ochilmaydi, ro'yxat ham bo'sh (completed chiqmaydi)
+    assert WatchProgress.objects.filter(user=user).count() == 1
+
+
 # --- P1-T5: reyting birlashtirish (recompute_movie_rating + signal) ---
 
 

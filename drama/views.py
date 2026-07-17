@@ -782,4 +782,28 @@ def save_watch_progress(request, episode_id):
             "completed": completed,
         },
     )
+    if completed:
+        _queue_next_episode(request.user, episode)
     return JsonResponse({"status": "saved", "completed": completed})
+
+
+def _queue_next_episode(user, episode):
+    """Smart continue: qism tugatilgach KEYINGI ko'rilmagan qism 'davom ettirish'ga
+    0% qator bo'lib tushadi (users.selectors.continue_watching uni kinoning eng
+    so'nggi harakati sifatida ko'rsatadi). Tugatilgan keyingi qismlar sakraladi —
+    rewatch'da birinchi KO'RILMAGANI navbatga tushadi. get_or_create: chala
+    ko'rilgan qism progressi hech qachon ustiga yozilmaydi. Keyingi qism bo'lmasa
+    (serial oxiri) — jim; yangi qism chiqqanda V2A-T1 obuna fan-out xabar beradi.
+    """
+    from users.models import WatchProgress
+
+    from .models import Episode
+
+    next_ep = (
+        Episode.objects.filter(movie_id=episode.movie_id, episode_number__gt=episode.episode_number)
+        .exclude(watch_progress__user=user, watch_progress__completed=True)
+        .order_by("episode_number")
+        .first()
+    )
+    if next_ep is not None:
+        WatchProgress.objects.get_or_create(user=user, episode=next_ep)
