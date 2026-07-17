@@ -148,3 +148,22 @@ def test_audit_admin_is_readonly():
     assert model_admin.has_add_permission(None) is False
     assert model_admin.has_change_permission(None) is False
     assert model_admin.has_delete_permission(None) is False
+
+
+# --- CSP: statika CDN hosti script-src'da ---
+
+
+@pytest.mark.django_db
+def test_csp_script_src_allows_static_cdn(client):
+    """Prod'da STATIC_URL = cdn.drama.uz (GCS CDN) — script-src uni o'z ichiga
+    olmasa brauzer BUTUN birinchi-tomon JS'ni bloklaydi: sayt htmx/Alpine'siz,
+    admin login esa unfold x-cloak sabab butunlay oq ekran. Regressiya qo'riqchisi.
+    """
+    for path in ("/", "/admin/login/"):
+        csp = client.get(path)["Content-Security-Policy"]
+        script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+        assert "cdn.drama.uz" in script_src, path
+
+    # P14-T1 invarianti buzilmadi: eval FAQAT admin variantida
+    assert "'unsafe-eval'" in client.get("/admin/login/")["Content-Security-Policy"]
+    assert "'unsafe-eval'" not in client.get("/")["Content-Security-Policy"]

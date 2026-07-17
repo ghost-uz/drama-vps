@@ -62,9 +62,14 @@ class SecurityHeadersMiddleware:
                 # Skriptlar: o'zimiz + CDN'lar + Yandex Metrika.
                 # 'unsafe-inline' — inline handler'lar refaktor bo'lguncha (docstring).
                 # unpkg/tailwindcss OLIB TASHLANDI [P5-T1] — htmx/Alpine/Tailwind endi
-                # vendorlangan/build qilingan ('self'); jsdelivr: swiper+hls.js uchun.
+                # vendorlangan/build qilingan; jsdelivr: swiper+hls.js uchun.
                 # telegram.org — Telegram Login Widget skripti [P6-T2].
+                # cdn.drama.uz — prod'da STATIC_URL shu hostda (GCS CDN): vendorlangan
+                # birinchi-tomon JS (app.js/htmx/alpine/unfold) 'self'dan EMAS, shu
+                # yerdan keladi; ro'yxatda bo'lmasa brauzer butun sayt JS'ini bloklaydi
+                # (admin login unfold x-cloak sabab butunlay oq ekran bo'lib qoladi).
                 "script-src 'self' 'unsafe-inline'"
+                " cdn.drama.uz"
                 " cdn.jsdelivr.net"
                 " cdnjs.cloudflare.com"
                 " mc.yandex.ru"
