@@ -21,7 +21,7 @@ django-htmx==1.27.0
 django-cors-headers==4.9.0
 django-storages==1.14.6
 google-cloud-storage==3.8.0
-Pillow==12.2.0  # 12.1.0: 7 ta CVE/PYSEC [P10-T4 pip-audit]
+Pillow==12.3.0  # 12.2.0: 8 ta PYSEC (CI pip-audit 2026-07-17)
 requests==2.33.0  # 2.32.5: CVE-2026-25645 [P10-T4 pip-audit]
 
 # --- REST API ---
