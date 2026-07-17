@@ -1077,6 +1077,12 @@ body > main {
 
         {% if user.is_authenticated %}
         <div class="r-comment-form-wrap">
+            {# [V2B-T1] Javob rejimi indikatori — prepareReply ko'rsatadi, cancelReply yashiradi #}
+            <div id="replyIndicator" style="display:none;align-items:center;gap:8px;padding:6px 12px;margin:8px 14px 0;background:rgba(0,204,76,0.08);border:1px solid rgba(0,204,76,0.25);border-radius:12px;font-size:11px;color:#00cc4c;">
+                <i class="fas fa-reply"></i>
+                <span id="replyIndicatorName" style="font-weight:800;"></span>
+                <button type="button" onclick="cancelReply()" aria-label="Javobni bekor qilish" style="margin-left:auto;background:none;border:none;color:#00cc4c;cursor:pointer;font-size:13px;padding:2px;"><i class="fas fa-times"></i></button>
+            </div>
             <form id="rCommentForm"
                   hx-post="{% url 'drama:add_review' movie.id %}"
                   hx-target="#rCommentList"
@@ -1095,7 +1101,9 @@ body > main {
             /* hx-on::after-request o'rniga — hx-on htmx'da new Function talab
                qiladi, CSP endi 'unsafe-eval'siz [P10-T1] */
             document.getElementById('rCommentForm').addEventListener('htmx:afterRequest', function (e) {
-                if (e.target === this) this.reset();
+                /* reset() parent inputni default ("")ga qaytaradi; cancelReply
+                   hx-target'ni ro'yxatga qaytarib indikatorni yashiradi [V2B-T1] */
+                if (e.target === this) { this.reset(); if (window.cancelReply) window.cancelReply(); }
             });
         </script>
         {% else %}

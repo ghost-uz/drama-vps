@@ -325,9 +325,33 @@ document.addEventListener('click', (e) => {
    COMMENT HELPERS (htmx uchun)
 ───────────────────────────────────────────────────────── */
 window.prepareReply = function (name, id) {
-    /* Eski funksiya bilan moslik */
+    /* [V2B-T1] Javob rejimi: parent input to'ldiriladi, HTMX target shu
+       threadning reply-konteyneriga buriladi (server chuqurlik-1'ni kafolatlaydi) */
+    const form = document.getElementById('rCommentForm');
+    if (!form) return;
+    form.querySelector('input[name="parent"]').value = id;
+    form.setAttribute('hx-target', '#replies-' + id);
+    form.setAttribute('hx-swap', 'beforeend');
+    const ind = document.getElementById('replyIndicator');
+    if (ind) {
+        const nameEl = document.getElementById('replyIndicatorName');
+        if (nameEl) nameEl.textContent = name + ' ga javob yozilmoqda';
+        ind.style.display = 'flex';
+    }
+    const text = form.querySelector('textarea[name="text"]');
+    if (text) text.focus();
 };
-window.resetCommentTarget = function () {};
+window.cancelReply = function () {
+    /* Javob rejimidan chiqish — forma default (root-izoh) holatiga qaytadi */
+    const form = document.getElementById('rCommentForm');
+    if (!form) return;
+    form.querySelector('input[name="parent"]').value = '';
+    form.setAttribute('hx-target', '#rCommentList');
+    form.setAttribute('hx-swap', 'afterbegin');
+    const ind = document.getElementById('replyIndicator');
+    if (ind) ind.style.display = 'none';
+};
+window.resetCommentTarget = window.cancelReply;
 window.toggleReviewText = function (btn) {
     const wrap      = btn.parentElement;
     const shortText = wrap.querySelector('.comment-short-text');

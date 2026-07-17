@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView, ListView
@@ -12,7 +13,8 @@ from django.views.generic.base import View
 from django_ratelimit.decorators import ratelimit
 
 from core.ratelimit import ip_key, rate, user_or_ip_key
-from users.models import CoinTransaction, UserMovieList
+from users.models import CoinTransaction, Notification, UserMovieList
+from users.services import notifications as notif
 from users.services import wallet
 
 from .cache import catalog_version, get_or_set_catalog
@@ -559,12 +561,34 @@ class AddReview(View):
             review.movie = movie
             parent_id = request.POST.get("parent")
             is_reply = False
+            parent = None
             if parent_id:
-                if not request.user.is_superuser:
-                    return HttpResponse("Faqat admin javob yozishi mumkin", status=403)
-                review.parent_id = int(parent_id)
+                # [V2B-T1] Har qanday authenticated user javob yoza oladi (ilgari
+                # faqat superuser 403 bilan). Parent SHU kinoniki va yashirilmagan
+                # bo'lishi shart; chuqurlik 1 — reply'ga reply thread ROOT'iga
+                # bog'lanadi (UI reply-tugmani faqat rootda ko'rsatadi, bu server
+                # tomonidagi himoya).
+                try:
+                    parent = Review.objects.select_related("user", "parent__user").get(
+                        id=int(parent_id), movie=movie, is_hidden=False
+                    )
+                except (ValueError, Review.DoesNotExist):
+                    return HttpResponse("Izoh topilmadi", status=404)
+                if parent.parent_id:
+                    parent = parent.parent
+                review.parent = parent
                 is_reply = True
             review.save()
+            if parent is not None and parent.user_id and parent.user_id != request.user.id:
+                # Root-izoh muallifiga sayt-ichki bildirishnoma (o'ziga-o'zi javobda
+                # EMAS; user=None — GDPR-anonimlangan izoh — ham o'tkazib yuboriladi)
+                notif.notify(
+                    parent.user,
+                    Notification.Kind.REPLY,
+                    f"{request.user.username} izohingizga javob berdi",
+                    body=review.text[:200],
+                    url=f"{reverse('drama:movie_reviews', args=[movie.slug])}#review-{parent.id}",
+                )
             if request.headers.get("HX-Request"):
                 return render(
                     request,

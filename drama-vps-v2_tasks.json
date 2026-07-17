@@ -105,7 +105,7 @@
           "title_en": "User-to-user comment replies",
           "title_uz": "Foydalanuvchilararo izoh javoblari",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "AddReview'da parent_id faqat superuser'ga ruxsat ('Faqat admin javob yozishi mumkin', 403) — hamjamiyat dialogi IMKONSIZ. Ochish: har authenticated user root-izohga javob yoza oladi (chuqurlik 1 saqlanadi: reply'ga reply -> o'sha thread rootiga). Spam himoya MAVJUD (review throttle 10/soat + honeypot emas — rate-limit) — o'zgarishsiz qoladi. HTMX partial (comment_item) allaqachon reply renderini biladi. Izoh muallifiga Notification (V2A-T1 modeli).",
           "acceptance_criteria": [

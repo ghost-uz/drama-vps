@@ -111,3 +111,42 @@ def test_vip_purchase_unlocks_gate(live_server, page):
 
     page.goto(ep11)
     assert page.get_by_text("VIP Bo'lim").count() == 0  # xariddan KEYIN ochiq
+
+
+def test_comment_reply_flow(live_server, page):
+    """[V2B-T1] Oddiy user izohga javob yozadi (ilgari superuser-only edi):
+    Fikrlar sheet -> 'Javob berish' -> indikator -> yuborish -> javob thread
+    konteynerida (#replies-<root>) badge bilan ko'rinadi; DB'da parent=root."""
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.models import Review
+    from users.factories import UserFactory
+
+    movie = MovieFactory(title="Reply Drama")
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vid1")
+    author = UserFactory(username="e2e_author")
+    root = Review.objects.create(user=author, movie=movie, text="Zo'r kino ekan!")
+    replier = UserFactory(username="e2e_replier")
+
+    page.goto(f"{live_server.url}/users/login/")
+    page.fill("#id_username", "e2e_replier")
+    page.fill("#id_password", "pass12345")
+    page.click("button[type=submit]")
+    expect(page.get_by_label("Profilga kirish")).to_have_attribute(
+        "href", f"/users/profile/{replier.username}/"
+    )
+
+    page.goto(f"{live_server.url}{movie.get_absolute_url()}")
+    page.locator("#tapToPlay").click()  # play-overlay butun ekranni qoplaydi — yopamiz
+    page.locator('.r-act-item[title="Fikrlar"]').click()  # izohlar sheet'ini ochish
+    page.get_by_role("button", name="Javob berish").click()
+    expect(page.locator("#replyIndicator")).to_be_visible()
+    expect(page.locator("#replyIndicatorName")).to_contain_text("e2e_author")
+
+    page.fill('#rCommentForm textarea[name="text"]', "Roziman!")
+    page.click("#rCommentForm button[type=submit]")
+
+    # HTMX javobni thread konteyneriga beforeend qiladi; indikator yopiladi
+    expect(page.locator(f"#replies-{root.id}")).to_contain_text("Roziman!")
+    expect(page.locator(f"#replies-{root.id}")).to_contain_text("javob berdi")
+    expect(page.locator("#replyIndicator")).to_be_hidden()
+    assert Review.objects.filter(text="Roziman!", parent=root, user=replier).exists()

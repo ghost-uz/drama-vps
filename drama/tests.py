@@ -1917,3 +1917,102 @@ def test_explore_filter_has_noscript_progressive_fallback(client):
     assert 'method="get"' in body
     assert "Filtrlarni qo'llash" in body
     cache.clear()
+
+
+# --- V2B-T1: foydalanuvchilararo izoh javoblari ---
+
+
+def _reply_fixtures(title="ReplyKino"):
+    """Kino + root-izoh muallifi + javob yozuvchi (throttle chelagi toza)."""
+    from django.core.cache import cache
+
+    cache.clear()  # locmem testlar orasida yashaydi — review-throttle bleed bo'lmasin
+    movie = Movie.objects.create(title=title, description="x", country="KR")
+    author = User.objects.create_user("izoh_author", password="pass12345")
+    replier = User.objects.create_user("izoh_replier", password="pass12345")
+    return movie, author, replier
+
+
+@pytest.mark.django_db
+def test_user_can_reply_to_root_comment(client):
+    """Oddiy user reply yoza oladi (403 YO'Q) va HX-javobda badge/ism bor."""
+    movie, author, replier = _reply_fixtures()
+    root = Review.objects.create(user=author, movie=movie, text="Root fikr")
+    client.force_login(replier)
+    resp = client.post(
+        reverse("drama:add_review", args=[movie.id]),
+        {"text": "Qo'shilaman!", "parent": root.id},
+        HTTP_HX_REQUEST="true",
+    )
+    assert resp.status_code == 200
+    reply = Review.objects.get(text="Qo'shilaman!")
+    assert reply.parent_id == root.id and reply.user == replier
+    html = resp.content.decode()
+    assert "javob berdi" in html and "izoh_replier" in html
+
+
+@pytest.mark.django_db
+def test_reply_to_reply_attaches_to_thread_root(client):
+    """Chuqurlik 1: reply'ga reply -> o'sha threadning ROOT'iga bog'lanadi."""
+    movie, author, replier = _reply_fixtures()
+    root = Review.objects.create(user=author, movie=movie, text="Root")
+    mid = Review.objects.create(user=author, movie=movie, text="Reply1", parent=root)
+    client.force_login(replier)
+    client.post(reverse("drama:add_review", args=[movie.id]), {"text": "Reply2", "parent": mid.id})
+    assert Review.objects.get(text="Reply2").parent_id == root.id
+
+
+@pytest.mark.django_db
+def test_reply_notifies_root_author_but_not_self(client):
+    from users.models import Notification
+
+    movie, author, replier = _reply_fixtures()
+    root = Review.objects.create(user=author, movie=movie, text="Root")
+    client.force_login(replier)
+    client.post(reverse("drama:add_review", args=[movie.id]), {"text": "Javob", "parent": root.id})
+    n = Notification.objects.get(recipient=author, kind=Notification.Kind.REPLY)
+    assert "izoh_replier" in n.title and f"#review-{root.id}" in n.url
+    # O'z izohiga o'zi javob yozsa — yangi bildirishnoma YO'Q
+    client.force_login(author)
+    client.post(
+        reverse("drama:add_review", args=[movie.id]), {"text": "O'zimga", "parent": root.id}
+    )
+    assert Notification.objects.filter(recipient=author, kind=Notification.Kind.REPLY).count() == 1
+
+
+@pytest.mark.django_db
+def test_reply_foreign_or_hidden_parent_404(client):
+    """Parent boshqa kinoniki yoki moderatsiyada yashirilgan bo'lsa — 404, reply yaratilmaydi."""
+    movie, author, replier = _reply_fixtures()
+    other = Movie.objects.create(title="BoshqaKino", description="x", country="KR")
+    foreign = Review.objects.create(user=author, movie=other, text="Boshqa kino izohi")
+    hidden = Review.objects.create(user=author, movie=movie, text="Yashirin", is_hidden=True)
+    client.force_login(replier)
+    url = reverse("drama:add_review", args=[movie.id])
+    assert client.post(url, {"text": "x", "parent": foreign.id}).status_code == 404
+    assert client.post(url, {"text": "x", "parent": hidden.id}).status_code == 404
+    assert client.post(url, {"text": "x", "parent": "abc"}).status_code == 404
+    assert not Review.objects.filter(text="x").exists()
+
+
+@pytest.mark.django_db
+def test_reply_requires_auth_401(client):
+    movie, author, _replier = _reply_fixtures()
+    root = Review.objects.create(user=author, movie=movie, text="Root")
+    resp = client.post(
+        reverse("drama:add_review", args=[movie.id]), {"text": "anon", "parent": root.id}
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_review_web_throttle_kept_429(client):
+    """AC: throttle saqlangan — RATELIMIT_RATES['review'] limitidan keyin 429."""
+    from django.conf import settings as dj_settings
+
+    movie, _author, replier = _reply_fixtures()
+    client.force_login(replier)
+    url = reverse("drama:add_review", args=[movie.id])
+    limit = int(dj_settings.RATELIMIT_RATES["review"].split("/")[0])
+    statuses = [client.post(url, {"text": f"fikr {i}"}).status_code for i in range(limit + 1)]
+    assert 429 in statuses
