@@ -44,9 +44,18 @@ wait_healthy() {
     return 1
 }
 
+reload_nginx() {
+    # web qayta yaratilganda YANGI konteyner-IP oladi; nginx esa `web` nomini
+    # faqat config o'qilganda resolve qiladi -> reload'siz eski IP'ga 502
+    # (2026-07-17 hodisasi: health-gate buni KO'RMAYDI — u nginx'ni chetlab
+    # gunicorn'ga uradi). reload = downtime'siz qayta-resolve; fallback restart.
+    $COMPOSE exec -T nginx nginx -s reload || $COMPOSE restart nginx
+}
+
 rollback() {
     echo "!! Deploy NOSOZ — $PREV_TAG ga rollback qilinmoqda..."
     IMAGE_TAG="$PREV_TAG" $COMPOSE up -d --no-build web celery-worker celery-beat
+    reload_nginx
     echo "!! Rollback tugadi ($PREV_TAG)."
     exit 1
 }
@@ -62,6 +71,7 @@ fi
 
 # 3) Yangi kodni ishga tushirish + public proxy (nginx — port 80 "ko'cha eshigi")
 IMAGE_TAG="$NEW_TAG" $COMPOSE up -d --no-build web celery-worker celery-beat nginx
+reload_nginx
 
 # 4) Sog'liq tekshiruvi — nosozlikda avtomatik rollback
 if wait_healthy; then
