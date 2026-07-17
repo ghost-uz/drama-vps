@@ -167,13 +167,51 @@ def test_continue_watching_selector_excludes_completed_and_orders():
     wp2 = WatchProgress.objects.create(
         user=u, episode=ep2, position_seconds=20, duration_seconds=100
     )
-    wp3 = WatchProgress.objects.create(
-        user=u, episode=ep3, position_seconds=30, duration_seconds=100
-    )
+    WatchProgress.objects.create(user=u, episode=ep3, position_seconds=30, duration_seconds=100)
     wp2.position_seconds = 25
-    wp2.save()  # updated_at yangilanadi -> wp2 eng so'nggi bo'ladi
+    wp2.save()  # wp2 serialning ENG SO'NGGI qismi bo'lishi kerak
+    # Qo'shni save'lar soat granulyarligi ichida BIR XIL updated_at olishi mumkin
+    # (Windows'da ayniqsa) -> tartibni aniq qotiramiz; .update() auto_now'ni chetlab o'tadi
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    WatchProgress.objects.filter(pk=wp2.pk).update(
+        updated_at=timezone.now() + timedelta(seconds=10)
+    )
     result = list(continue_watching(u))
-    assert [r.pk for r in result] == [wp2.pk, wp3.pk]  # -updated_at, tugatilgan (ep1) chiqmaydi
+    # Bitta serialdan faqat eng so'nggi ko'rilgan qism; tugatilgan (ep1) chiqmaydi
+    assert [r.pk for r in result] == [wp2.pk]
+
+
+@pytest.mark.django_db
+def test_continue_watching_one_card_per_movie_latest_first():
+    """Serialning bir nechta chala qismi ro'yxatni bosib ketmaydi — har kinoga 1 karta."""
+    u = _user()
+    serial = MovieFactory()
+    film = MovieFactory()
+    s1 = EpisodeFactory(movie=serial, episode_number=1)
+    s2 = EpisodeFactory(movie=serial, episode_number=2)
+    f1 = EpisodeFactory(movie=film, episode_number=1)
+    WatchProgress.objects.create(user=u, episode=s1, position_seconds=10, duration_seconds=100)
+    wp_film = WatchProgress.objects.create(
+        user=u, episode=f1, position_seconds=40, duration_seconds=100
+    )
+    wp_s2 = WatchProgress.objects.create(
+        user=u, episode=s2, position_seconds=30, duration_seconds=100
+    )
+    # Deterministik tartib (soat granulyarligiga tayanmaymiz): s1 < film < s2
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    now = timezone.now()
+    WatchProgress.objects.filter(episode=s1).update(updated_at=now - timedelta(seconds=20))
+    WatchProgress.objects.filter(pk=wp_film.pk).update(updated_at=now - timedelta(seconds=10))
+    WatchProgress.objects.filter(pk=wp_s2.pk).update(updated_at=now)
+    result = list(continue_watching(u))
+    # serialdan faqat s2 (eng so'nggi ko'rilgani), keyin film; s1 ro'yxatda YO'Q
+    assert [r.pk for r in result] == [wp_s2.pk, wp_film.pk]
 
 
 @pytest.mark.django_db
