@@ -888,3 +888,117 @@ def test_toggle_auto_renew_view(client):
     resp = client.post(reverse("users:toggle_auto_renew"))
     assert resp.status_code == 302
     assert Subscription.objects.get(profile=user.profile).auto_renew is True
+
+
+# --- Signal receiverlar (users/signals.py) [drama_test_1] ---
+
+
+@pytest.mark.django_db
+def test_profile_created_by_signal_and_idempotent():
+    """post_save(User): profil avtomatik ochiladi; qayta save duplikat OCHMAYDI."""
+    from users.models import Profile
+
+    user = User.objects.create_user(username="sig_user", password="pass12345")
+    assert Profile.objects.filter(user=user).count() == 1
+    user.first_name = "S"
+    user.save()  # created=False -> get_or_create yangi qator ochmasligi kerak
+    assert Profile.objects.filter(user=user).count() == 1
+
+
+@pytest.mark.django_db
+def test_old_avatar_deleted_on_change():
+    """pre_save(Profile): rasm almashsa ESKI fayl storage'dan o'chadi, yangisi qoladi."""
+    user = User.objects.create_user(username="ava_user", password="pass12345")
+    p = user.profile
+    p.avatar = _image("ava1.jpg")
+    p.save()  # eski qiymat default.jpg edi -> bu saqlashda hech narsa o'chmaydi
+    old_name = p.avatar.name
+    storage = p.avatar.storage
+    assert storage.exists(old_name)
+    p.avatar = _image("ava2.jpg")
+    p.save()
+    assert not storage.exists(old_name)
+    assert storage.exists(p.avatar.name)
+
+
+@pytest.mark.django_db
+def test_default_avatar_never_deleted(monkeypatch):
+    """default.jpg guard: birinchi haqiqiy rasm qo'yilganda delete UMUMAN chaqirilmaydi."""
+    from django.core.files.storage import FileSystemStorage
+
+    calls = []
+    orig = FileSystemStorage.delete
+
+    def spy(self, name):
+        calls.append(name)
+        return orig(self, name)
+
+    monkeypatch.setattr(FileSystemStorage, "delete", spy)
+    user = User.objects.create_user(username="def_user", password="pass12345")
+    p = user.profile  # avatar = profile_pics/default.jpg
+    p.avatar = _image("real.jpg")
+    p.save()
+    assert calls == []
+
+
+@pytest.mark.django_db
+def test_avatar_kept_when_other_field_changes():
+    """Rasm O'ZGARMAGAN oddiy save fayl(lar)ga tegmaydi."""
+    user = User.objects.create_user(username="keep_ava", password="pass12345")
+    p = user.profile
+    p.avatar = _image("keep.jpg")
+    p.save()
+    name = p.avatar.name
+    p.bio = "yangi bio"
+    p.save()
+    assert p.avatar.storage.exists(name)
+
+
+@pytest.mark.django_db
+def test_avatar_deleted_when_profile_deleted():
+    """post_delete(Profile): profil o'chsa rasm ham storage'dan yo'qoladi."""
+    user = User.objects.create_user(username="del_ava", password="pass12345")
+    p = user.profile
+    p.avatar = _image("gone.jpg")
+    p.save()
+    name, storage = p.avatar.name, p.avatar.storage
+    assert storage.exists(name)
+    p.delete()
+    assert not storage.exists(name)
+
+
+@pytest.mark.django_db
+def test_avatar_storage_error_swallowed(monkeypatch):
+    """Storage yiqilsa signal xatoni YUTADI (log) — foydalanuvchi saqlashi buzilmaydi."""
+    from django.core.files.storage import FileSystemStorage
+
+    user = User.objects.create_user(username="err_ava", password="pass12345")
+    p = user.profile
+    p.avatar = _image("e1.jpg")
+    p.save()
+
+    def boom(self, name):
+        raise OSError("bulut o'chdi")
+
+    monkeypatch.setattr(FileSystemStorage, "delete", boom)
+    p.avatar = _image("e2.jpg")
+    p.save()  # exception ko'tarilmasligi kerak
+    assert p.avatar.name.endswith(".jpg")
+
+
+@pytest.mark.django_db
+def test_rating_recomputed_when_score_row_deleted(django_capture_on_commit_callbacks):
+    """post_delete(UserMovieList): baho o'chirilsa reyting 0/0 ga qaytadi."""
+    from users.models import UserMovieList
+
+    movie = Movie.objects.create(title="RateDel", description="x", country="KR")
+    user = User.objects.create_user(username="rate_del", password="pass12345")
+    with django_capture_on_commit_callbacks(execute=True):
+        uml = UserMovieList.objects.create(profile=user.profile, movie=movie, status=2, score="8.0")
+    movie.refresh_from_db()
+    assert movie.total_votes == 1
+    with django_capture_on_commit_callbacks(execute=True):
+        uml.delete()
+    movie.refresh_from_db()
+    assert movie.total_votes == 0
+    assert movie.average_rating == 0

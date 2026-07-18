@@ -1,0 +1,117 @@
+{
+  "project": "drama.uz (drama-vps)",
+  "generated": "2026-07-18",
+  "context": "Signals & crossover test sessiyasi natijalari va keyingi mantiq-blok tavsiyalari. 16 yangi test: users/signals.py (profil/avatar/reyting), drama/signals.py (katalog kesh, trending, FTS m2m guard), crossover (_queue_next_episode fasl/VIP/50% chegaralari, continue_watching ko'p-serial dedup). Jami: 433 birlik + 7 e2e passed, ruff toza. Tavsiyalar mavjud infratuzilmaga tayanadi: Celery on_commit naqshi, Telegram-push (V2A-T2), FTS+pg_trgm (P8-T1), wallet servisi, versiyalangan kesh (P9-T1).",
+  "test_summary": {
+    "yangi_testlar": 16,
+    "fayllar": ["users/tests.py (+7)", "drama/tests.py (+9)"],
+    "qamrov": [
+      "users/signals: profil auto-create idempotent; avatar eski-fayl tozalash (default.jpg guard delete-spy bilan, storage-xato yutilishi, profil-delete tozalash, o'zgarmagan-save daxlsiz); reyting post_delete tomoni 0/0",
+      "drama/signals: katalog kesh post_delete bump; yengil modellar (Genre/Category) bump; trending faqat Movie|Tag (Genre'da yo'q); actors m2m forward-only guard (reverse'da Actor.pk Movie deb ketmasin); tags post_clear",
+      "crossover: fasl chegarasi S1->S2 (episode_number davomiyligi); VIP-qulf keyingi qism navbatga TUSHADI (hujjatlashtirilgan: navbat != ruxsat, gate playback'da); completed bo'lmasa navbat yo'q; continue_watching har serialdan bitta + deterministik tartib"
+    ],
+    "natija": "433 passed / 13 skipped / 0 failed"
+  },
+  "recommendations": [
+    {
+      "id": "REC-01",
+      "sarlavha": "Chala qism eslatma-push (retention)",
+      "soha": "engagement / notifications",
+      "nima_uchun": "continue_watching selector va Telegram-push infra (V2A-T2) allaqachon bor — eng arzon retention dastagi. 48 soat harakatsiz chala progress bor userlarga bitta digest eslatma.",
+      "qanday": "Celery beat task: WatchProgress(completed=False, updated_at<now-48h) userlari -> har userga BITTA xabar (oxirgi 3 serial nomi bilan); Profile'da opt-out flag; rate_limit mavjud naqshda; idempotentlik uchun 'oxirgi eslatma' timestamp.",
+      "hajm": "M",
+      "ustuvorlik": "P1",
+      "bogliq": "V2A-T2 (bot tayyor)"
+    },
+    {
+      "id": "REC-02",
+      "sarlavha": "Davom ettirish kartasida VIP-belgi + upsell",
+      "soha": "UX / monetizatsiya",
+      "nima_uchun": "Yangi test hujjatlashtirdi: VIP-qulf keyingi qism ham navbatga tushadi. Kabinetda bu karta bosilganda user gate'ga uriladi — kutilmagan to'siq o'rniga oldindan VIP badge + 'VIP oching' CTA ko'rsatish konversiyani oshiradi.",
+      "qanday": "continue_watching selector'ga is_vip_locked annotate (episode_number > FREE_LIMIT va movie.is_vip va user obunasiz); template'da badge; playback gate O'ZGARMAYDI.",
+      "hajm": "S",
+      "ustuvorlik": "P2",
+      "bogliq": "users/selectors.py, drama/services/playback.py"
+    },
+    {
+      "id": "REC-03",
+      "sarlavha": "'Siz uchun' shaxsiy tavsiya lentasi",
+      "soha": "recommendations (yangi logic-modul)",
+      "nima_uchun": "similar_movies (tag-moslik) allaqachon bor, lekin faqat kino sahifasida. Ko'rish tarixiga asoslangan bosh-sahifa lentasi retention'ning ikkinchi ustuni.",
+      "qanday": "drama/services/recommendations.py: oxirgi N ko'rilgan kinoning tag/janr to'plami -> vazn bo'yicha kesishma, ko'rilganlar exclude; natija versiyalangan keshda (catalog:v naqshi); sovuq-start: trending fallback. Keyin bosqich-2: birgalikda-ko'rish (collaborative) signali.",
+      "hajm": "M",
+      "ustuvorlik": "P2",
+      "bogliq": "P9-T1 kesh, trending task"
+    },
+    {
+      "id": "REC-04",
+      "sarlavha": "Qidiruv autocomplete + typo-tolerant taklif",
+      "soha": "search",
+      "nima_uchun": "FTS (P8-T1) va pg_trgm testlari allaqachon repoda — foydalanuvchi ko'rinadigan qismi (jonli taklif, 'balki ...ni nazarda tutdingizmi') yo'q.",
+      "qanday": "GET /search/suggest?q= endpoint: prefix match (istartswith, kesh 5 min) + natija kam bo'lsa similarity() trigram fallback; frontend: mavjud htmx bilan debounce input.",
+      "hajm": "M",
+      "ustuvorlik": "P2",
+      "bogliq": "P8-T1 (FTS/trigram)"
+    },
+    {
+      "id": "REC-05",
+      "sarlavha": "To'lov reconciliation logikasi (Payme/Click'dan oldin)",
+      "soha": "billing",
+      "nima_uchun": "V2F-T1 (Click) boshlanishidan OLDIN to'lov holat-mashinasini bitta joyga birlashtirish arzon; keyin ikkita provayder bilan qimmatlashadi. Webhook o'tkazib yuborilgan/ikki marta kelgan holatlar uchun himoya hozir minimal.",
+      "qanday": "payments holat-mashinasi (pending/paid/failed/expired) + Celery beat 'pending > 30min' skanlovchi (provayder status API bilan solishtiradi) + admin qo'lda-solishtirish action; barcha coin-yozuvlar wallet servisi orqali (invariant saqlanadi).",
+      "hajm": "M",
+      "ustuvorlik": "P1 (V2F-T1 bilan birga)",
+      "bogliq": "V2F-T1 Click"
+    },
+    {
+      "id": "REC-06",
+      "sarlavha": "Kunlik streak + coin bonus",
+      "soha": "engagement / wallet",
+      "nima_uchun": "Wallet servisi yagona kirish nuqtasi sifatida tayyor; kunlik qaytish odatini mustahkamlaydi (short-drama auditoriyasi uchun klassik mexanika).",
+      "qanday": "users/services/streak.py: kunlik birinchi ko'rishda (WatchProgress yaratilish signali allaqachon bor joyga minimal hook) DailyVisit(user, date unique) qator + streak hisob; 7-kun bonus wallet.credit orqali; abuse-guard: unique constraint + server sana.",
+      "hajm": "S-M",
+      "ustuvorlik": "P3",
+      "bogliq": "wallet invarianti; eco V3B-T7 streak tajribasi"
+    },
+    {
+      "id": "REC-07",
+      "sarlavha": "Avatar-tozalashni request-yo'lidan Celery'ga ko'chirish",
+      "soha": "signals gigiyena / performance",
+      "nima_uchun": "pre_save signalida sinxron storage.exists()+delete() — GCS'da bu request ichida 2 ta tarmoq so'rovi (profil saqlashni sekinlashtiradi). Endi signal to'plami to'liq testlangan — xavfsiz refaktor mumkin.",
+      "qanday": "Signal faqat eski nomni aniqlaydi -> transaction.on_commit(delete_storage_file_task.delay(name)) (retry 3x, topilmasa jim); default.jpg guard testlari saqlanadi (xatti-harakat o'zgarmaydi).",
+      "hajm": "S",
+      "ustuvorlik": "P3",
+      "bogliq": "yangi signal-testlar (regressiya to'ri tayyor)"
+    },
+    {
+      "id": "REC-08",
+      "sarlavha": "Retention/completion analytics admin-paneli",
+      "soha": "analytics",
+      "nima_uchun": "WatchProgress'da funnel-ma'lumot yotibdi (qaysi serial nechanchi qismda tashlab ketiladi) — kontent xarid/ishlab chiqarish qarorlari uchun to'g'ridan-to'g'ri signal.",
+      "qanday": "Beat task (kunlik): per-serial qism-N completion foizi -> AnalyticsSnapshot jadvali; unfold admin sahifa (grafik + CSV eksport); og'ir aggregatsiya faqat fonda (recompute_* naqshi).",
+      "hajm": "M",
+      "ustuvorlik": "P3",
+      "bogliq": "P12-T2 monitoring naqshi"
+    },
+    {
+      "id": "REC-09",
+      "sarlavha": "Feature-flag mini-moduli",
+      "soha": "infra",
+      "nima_uchun": "REC-01/03/06 kabi yangi mexanikalarni foizli/guruhli yoqish uchun; hozir hamma narsa hamma userga birdan chiqadi.",
+      "qanday": "core/flags.py: kesh-backed FeatureFlag(name, enabled, percent) + template tag + user-hash foiz bo'lish (eco V3G-T4 dizayni ko'chiriladi).",
+      "hajm": "S",
+      "ustuvorlik": "P3",
+      "bogliq": "eco-platform V3G-T4"
+    },
+    {
+      "id": "REC-10",
+      "sarlavha": "GDPR: ma'lumot eksporti + hisob o'chirishda anonimlash",
+      "soha": "compliance",
+      "nima_uchun": "Izohlar/reyting/ko'rish tarixi yig'ilmoqda; O'zbekiston shaxsiy ma'lumotlar qonuni + kelajak app-store talablari uchun ham kerak bo'ladi.",
+      "qanday": "Eksport: Celery task JSON arxiv -> email havola (eco V2G-T3 naqshi); o'chirish: kontent sentinel-muallifga anonimlanadi, WatchProgress/PII o'chadi; avatar-delete signali (endi testlangan) qayta ishlatiladi.",
+      "hajm": "M",
+      "ustuvorlik": "P3",
+      "bogliq": "eco V2G-T3 tajribasi"
+    }
+  ]
+}

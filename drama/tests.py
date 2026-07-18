@@ -2016,3 +2016,168 @@ def test_review_web_throttle_kept_429(client):
     limit = int(dj_settings.RATELIMIT_RATES["review"].split("/")[0])
     statuses = [client.post(url, {"text": f"fikr {i}"}).status_code for i in range(limit + 1)]
     assert 429 in statuses
+
+
+# --- Signal receiverlar (drama/signals.py) + crossover chegara holatlari [drama_test_1] ---
+
+
+@pytest.mark.django_db
+def test_catalog_version_bumped_on_movie_delete():
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+
+    movie = Movie.objects.create(title="DelKino", description="x", country="KR")
+    cache.clear()
+    before = catalog_version()
+    movie.delete()  # post_delete ham invalidatsiya qiladi
+    assert catalog_version() > before
+
+
+@pytest.mark.django_db
+def test_catalog_version_bumped_on_light_catalog_models():
+    """Genre/Category saqlash ham katalog keshini bump qiladi (per-sender ulanish)."""
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+    from drama.models import Category, Genre
+
+    cache.clear()
+    for obj in (
+        Genre(name="SigJanr", slug="sig-janr"),
+        Category(name="SigKat", slug="sig-kat"),
+    ):
+        before = catalog_version()
+        obj.save()
+        assert catalog_version() > before, type(obj).__name__
+
+
+@pytest.mark.django_db
+def test_trending_recompute_only_for_movie_and_tag(django_capture_on_commit_callbacks):
+    """Trending qayta-hisob faqat Movie|Tag saqlanganda — Genre'da rejalashtirilmaydi."""
+    from drama.models import Genre
+
+    with django_capture_on_commit_callbacks() as cb_genre:
+        Genre.objects.create(name="TrJanr", slug="tr-janr")
+    assert "recompute_trending_tags" not in repr(cb_genre)
+
+    with django_capture_on_commit_callbacks() as cb_tag:
+        Tag.objects.create(name="TrTeg", slug="tr-teg")
+    assert "recompute_trending_tags" in repr(cb_tag)
+
+
+@pytest.mark.django_db
+def test_search_vector_only_on_forward_actor_m2m(django_capture_on_commit_callbacks):
+    """actors m2m: forward (movie.actors.add) FTS rejalashtiradi; reverse
+    (actor.acted_movies.add) instance=Actor bo'lgani uchun SKIP — aks holda
+    Actor.pk Movie.pk deb yuborilardi."""
+    from drama.models import Actor
+
+    movie = Movie.objects.create(title="FwdKino", description="x", country="KR")
+    a1 = Actor.objects.create(name="A1", slug="sig-a1")
+    a2 = Actor.objects.create(name="A2", slug="sig-a2")
+
+    with django_capture_on_commit_callbacks() as fwd:
+        movie.actors.add(a1)
+    assert "update_search_vector" in repr(fwd)
+
+    with django_capture_on_commit_callbacks() as rev:
+        a2.acted_movies.add(movie)
+    assert "update_search_vector" not in repr(rev)
+
+
+@pytest.mark.django_db
+def test_tags_clear_bumps_catalog_version():
+    from django.core.cache import cache
+
+    from drama.cache import catalog_version
+
+    movie = Movie.objects.create(title="ClrKino", description="x", country="KR")
+    tag = Tag.objects.create(name="ClrTeg", slug="clr-teg")
+    movie.tags.add(tag)
+    cache.clear()
+    before = catalog_version()
+    movie.tags.clear()  # post_clear tarmog'i
+    assert catalog_version() > before
+
+
+@pytest.mark.django_db
+def test_queue_next_crosses_season_boundary(client):
+    """Fasl chegarasi: S1 tugasa S2'ning birinchi qismi navbatga tushadi —
+    davomiylik episode_number bo'yicha, fasl FK to'siq emas."""
+    movie, ep1, user = _movie_episode_user(title="SeasonX", username="season_user")
+    s1 = Season.objects.create(movie=movie, number=1)
+    s2 = Season.objects.create(movie=movie, number=2)
+    Episode.objects.filter(pk=ep1.pk).update(season=s1)
+    ep2 = Episode.objects.create(movie=movie, episode_number=2, title="S2E1", season=s2)
+    client.force_login(user)
+    client.post(
+        reverse("drama:save_watch_progress", args=[ep1.id]),
+        {"position_seconds": 95, "duration_seconds": 100},
+    )
+    assert WatchProgress.objects.filter(user=user, episode=ep2, completed=False).exists()
+
+
+@pytest.mark.django_db
+def test_queue_next_queues_vip_locked_episode(client):
+    """Navbatga olish != ko'rish ruxsati: keyingi qism VIP-qulf bo'lsa ham 0% qator
+    ochiladi (gate playback service'da qoladi) — ataylab shunday."""
+    movie, ep1, user = _movie_episode_user(title="VipQ", username="vipq_user")
+    Movie.objects.filter(pk=movie.pk).update(is_vip=True)
+    Episode.objects.filter(pk=ep1.pk).update(episode_number=10)
+    ep11 = Episode.objects.create(movie=movie, episode_number=11, title="E11")
+    client.force_login(user)
+    client.post(
+        reverse("drama:save_watch_progress", args=[ep1.id]),
+        {"position_seconds": 95, "duration_seconds": 100},
+    )
+    assert WatchProgress.objects.filter(user=user, episode=ep11).exists()
+
+
+@pytest.mark.django_db
+def test_no_queue_when_progress_not_completed(client):
+    """50% progress — completed emas -> keyingi qism NAVBATGA TUSHMAYDI."""
+    movie, ep1, user = _movie_episode_user(title="HalfW", username="half_user")
+    ep2 = Episode.objects.create(movie=movie, episode_number=2, title="E2")
+    client.force_login(user)
+    client.post(
+        reverse("drama:save_watch_progress", args=[ep1.id]),
+        {"position_seconds": 50, "duration_seconds": 100},
+    )
+    assert not WatchProgress.objects.filter(user=user, episode=ep2).exists()
+
+
+@pytest.mark.django_db
+def test_continue_watching_latest_per_movie_across_movies():
+    """Ikki serial, har birida 2 chala qism -> ro'yxatda AYNAN 2 qator (har
+    serialdan eng so'nggisi), tartib eng yaqin harakat birinchi. updated_at
+    .update() bilan deterministik (auto_now granulyarlik gotcha'si)."""
+    from users.selectors import continue_watching
+
+    now = timezone.now()
+    user = User.objects.create_user(username="cw_user", password="pass12345")
+    rows = {}
+    for title in ("CW-A", "CW-B"):
+        movie = Movie.objects.create(title=title, description="x", country="KR")
+        for n in (1, 2):
+            ep = Episode.objects.create(movie=movie, episode_number=n, title=f"E{n}")
+            rows[(title, n)] = WatchProgress.objects.create(
+                user=user, episode=ep, position_seconds=10, duration_seconds=100
+            )
+    WatchProgress.objects.filter(pk=rows[("CW-A", 1)].pk).update(
+        updated_at=now - timedelta(minutes=30)
+    )
+    WatchProgress.objects.filter(pk=rows[("CW-A", 2)].pk).update(
+        updated_at=now - timedelta(minutes=20)
+    )
+    WatchProgress.objects.filter(pk=rows[("CW-B", 2)].pk).update(
+        updated_at=now - timedelta(minutes=10)
+    )
+    WatchProgress.objects.filter(pk=rows[("CW-B", 1)].pk).update(
+        updated_at=now - timedelta(minutes=5)
+    )
+    got = [wp.episode_id for wp in continue_watching(user)]
+    assert got == [
+        rows[("CW-B", 1)].episode_id,
+        rows[("CW-A", 2)].episode_id,
+    ]
