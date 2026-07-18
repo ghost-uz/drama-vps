@@ -1,0 +1,12 @@
+# gitleaks e'tiborsiz ro'yxati — FAQAT tarixiy (HEAD'da mavjud EMAS) topilmalar.
+# Format: <commit>:<fayl>:<qoida>:<qator>. Yangi commitlardagi sirlar BLOKLANAVERADI.
+# P0-T2 (filter-repo bilan tarixni tozalash) bajarilgach bu fayl qisqaradi/o'chadi.
+
+# 225c47d "Initial commit from DigitalOcean server" (2026-05-24) ichidagi ESKI
+# lokal Postgres paroli. 2026-07-18: prod .env DB_PASSWORD bilan hash-solishtirildi
+# — HAR XIL, parol qayta ishlatilmagan (eski server bilan birga nofaol).
+225c47dfdd2ebdd5f9ecb226fc7712d1013eb17c:config/settings.py:generic-api-key:193
+
+# O'sha commitdagi saqlab olingan brauzer-sahifa (Untitled-1.html) ichidagi
+# Cloudflare Insights beacon tokeni — DIZAYN BO'YICHA ommaviy (har HTML'da bor).
+225c47dfdd2ebdd5f9ecb226fc7712d1013eb17c:templates/Untitled-1.html:generic-api-key:655

@@ -52,3 +52,4 @@ htmlcov/
 *.sql
 *_old_db_*
 drama_uz_old_db_*
+.venv/

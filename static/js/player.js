@@ -125,6 +125,9 @@ if (video) {
     video.addEventListener('waiting', () => loader.classList.add('on'));
     video.addEventListener('playing', () => loader.classList.remove('on'));
     video.addEventListener('canplay', () => loader.classList.remove('on'));
+    /* Yuklash xatosi — spinner qotib qolmasin; capture: <source> bolalarining
+       bubbling qilmaydigan error'ini ham ushlaydi */
+    video.addEventListener('error', () => loader.classList.remove('on'), true);
 
     /* Controls: pauza — doim ko'rinsin; ijro — 3 sek da yashirilsin */
     video.addEventListener('pause',  () => { clearTimeout(ctrlHideTimer); showControls(); });
