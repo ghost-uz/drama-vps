@@ -122,7 +122,7 @@
           "title_en": "Comment reactions (like) + sort by top",
           "title_uz": "Izoh reaksiyalari (like) + top-saralash",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["V2B-T1"],
           "description_uz": "ReviewReaction(user, review, unique_together) — like toggle (HTMX, login talab). Review.like_count denormal (F() bilan atomik yangilanadi). Izohlar saralash: Yangi (default, hozirgi -id) / Eng foydali (like_count). N+1 yo'q: foydalanuvchining o'z reaksiyalari bitta so'rovda prefetch.",
           "acceptance_criteria": [

@@ -1,8 +1,8 @@
 # views.py
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db import IntegrityError, transaction
+from django.db.models import Exists, F, OuterRef, Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -28,6 +28,7 @@ from .models import (
     Genre,
     Movie,
     Review,
+    ReviewReaction,
     ReviewReport,
     Tag,
     TopSlider,
@@ -276,22 +277,24 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 "episodes",  # Epizodlar shu yerga qo'shildi
             )
             .prefetch_related(
-                Prefetch(
-                    "reviews",
-                    queryset=Review.objects.filter(parent=None, is_hidden=False)
-                    .select_related("user", "user__profile")
-                    .prefetch_related(
-                        Prefetch(
-                            "replies",
-                            queryset=Review.objects.filter(is_hidden=False)
-                            .select_related("user")
-                            .order_by("id"),
-                        )
-                    )
-                    .order_by("-id"),
-                )
+                Prefetch("reviews", queryset=self._reviews_queryset().order_by("-id"))
             )
         )
+
+    def _reviews_queryset(self):
+        """Root izohlar + replies prefetch; [V2B-T2] user_liked Exists subquery
+        bilan (alohida so'rov YO'Q — like holati asosiy so'rov ichida keladi)."""
+        roots = Review.objects.filter(parent=None, is_hidden=False).select_related(
+            "user", "user__profile"
+        )
+        replies = Review.objects.filter(is_hidden=False).select_related("user").order_by("id")
+        if self.request.user.is_authenticated:
+            liked = Exists(
+                ReviewReaction.objects.filter(review=OuterRef("pk"), user=self.request.user)
+            )
+            roots = roots.annotate(user_liked=liked)
+            replies = replies.annotate(user_liked=liked)
+        return roots.prefetch_related(Prefetch("replies", queryset=replies))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -522,27 +525,31 @@ class MovieReviewsView(GenreYearMixin, ListView):
         # 1. Kinoni slug orqali topib olamiz
         self.movie = get_object_or_404(Movie.objects.published(), slug=self.kwargs.get("slug"))
 
-        # 2. Shu kinoga tegishli, faqat asosiy izohlarni (parent=None) eng yangilaridan boshlab olamiz
-        # [P9-T2] user__profile (avatar) + replies prefetch — komment N+1 yo'q
-        return (
-            Review.objects.filter(movie=self.movie, parent=None, is_hidden=False)
-            .select_related("user", "user__profile")
-            .prefetch_related(
-                Prefetch(
-                    "replies",
-                    queryset=Review.objects.filter(is_hidden=False)
-                    .select_related("user")
-                    .order_by("id"),
-                )
-            )
-            .order_by("-id")
+        # 2. Asosiy izohlar (parent=None); [P9-T2] avatar + replies prefetch — N+1 yo'q
+        replies = Review.objects.filter(is_hidden=False).select_related("user").order_by("id")
+        qs = Review.objects.filter(movie=self.movie, parent=None, is_hidden=False).select_related(
+            "user", "user__profile"
         )
+        if self.request.user.is_authenticated:
+            # [V2B-T2] foydalanuvchi reaksiyalari — Exists subquery (alohida so'rov YO'Q)
+            liked = Exists(
+                ReviewReaction.objects.filter(review=OuterRef("pk"), user=self.request.user)
+            )
+            qs = qs.annotate(user_liked=liked)
+            replies = replies.annotate(user_liked=liked)
+        qs = qs.prefetch_related(Prefetch("replies", queryset=replies))
+        # [V2B-T2] saralash oq ro'yxati: top = Eng foydali (like_count), default = Yangi
+        if self.request.GET.get("sort") == "top":
+            return qs.order_by("-like_count", "-id")
+        return qs.order_by("-id")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Template'da kino rasmi va nomini chiqarish uchun 'movie' ni context'ga uzatamiz
         context["movie"] = self.movie
         context["title"] = f"{self.movie.title} - Barcha fikrlar"
+        # [V2B-T2] saralash holati (template tugmalari uchun; oq ro'yxat: new|top)
+        context["sort"] = "top" if self.request.GET.get("sort") == "top" else "new"
         return context
 
 
@@ -596,6 +603,33 @@ class AddReview(View):
                     {"review": review, "is_reply": is_reply},
                 )
         return redirect(movie.get_absolute_url())
+
+
+class ToggleReviewLike(View):
+    """Izoh like toggle [V2B-T2] — idempotent: birinchi POST qo'shadi, ikkinchisi qaytaradi.
+
+    create+IntegrityError (get_or_create EMAS): parallel ikki like'da unique
+    constraint bittasini DB darajasida to'xtatadi — TOCTOU oynasi yo'q.
+    like_count faqat F() bilan yangilanadi (race'da ham to'g'ri qoladi).
+    """
+
+    def post(self, request, pk):
+        if not request.user.is_authenticated:
+            return HttpResponse("Ruxsat berilmagan", status=401)
+        review = get_object_or_404(Review.objects.select_related("movie"), pk=pk, is_hidden=False)
+        try:
+            with transaction.atomic():
+                ReviewReaction.objects.create(user=request.user, review=review)
+                Review.objects.filter(pk=pk).update(like_count=F("like_count") + 1)
+            review.user_liked = True
+        except IntegrityError:
+            ReviewReaction.objects.filter(user=request.user, review=review).delete()
+            Review.objects.filter(pk=pk, like_count__gt=0).update(like_count=F("like_count") - 1)
+            review.user_liked = False
+        review.refresh_from_db(fields=["like_count"])
+        if request.headers.get("HX-Request"):
+            return render(request, "movies/partials/_like_button.html", {"review": review})
+        return redirect(review.movie.get_absolute_url())
 
 
 # drama/views.py

@@ -150,3 +150,79 @@ def test_comment_reply_flow(live_server, page):
     expect(page.locator(f"#replies-{root.id}")).to_contain_text("javob berdi")
     expect(page.locator("#replyIndicator")).to_be_hidden()
     assert Review.objects.filter(text="Roziman!", parent=root, user=replier).exists()
+
+
+def test_comment_write_then_reply_flow(live_server, page):
+    """[comment-fix] Foydalanuvchi YANGI yozgan izohiga darhol javob beradi.
+
+    Prod'dagi bug stsenariysi: eski (stale) player.js'da prepareReply stub edi;
+    endi comments.js alohida fayl + hash'langan statik nom bilan keladi."""
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.models import Review
+    from users.factories import UserFactory
+
+    movie = MovieFactory(title="Fresh Reply Drama")
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vidf")
+    UserFactory(username="e2e_fresh")
+
+    page.goto(f"{live_server.url}/users/login/")
+    page.fill("#id_username", "e2e_fresh")
+    page.fill("#id_password", "pass12345")
+    page.click("button[type=submit]")
+    expect(page.get_by_label("Profilga kirish")).to_have_attribute(
+        "href", "/users/profile/e2e_fresh/"
+    )
+
+    page.goto(f"{live_server.url}{movie.get_absolute_url()}")
+    page.locator("#tapToPlay").click()
+    page.locator('.r-act-item[title="Fikrlar"]').click()
+
+    page.fill('#rCommentForm textarea[name="text"]', "Yangi fikrim!")
+    page.click("#rCommentForm button[type=submit]")
+    expect(page.locator("#rCommentList")).to_contain_text("Yangi fikrim!")
+
+    # Endi AYNAN shu yangi izohga javob (DOM'ga HTMX qo'shgan karta orqali)
+    page.get_by_role("button", name="Javob berish").first.click()
+    expect(page.locator("#replyIndicator")).to_be_visible()
+    page.fill('#rCommentForm textarea[name="text"]', "O'zimga javob")
+    page.click("#rCommentForm button[type=submit]")
+
+    root = Review.objects.get(text="Yangi fikrim!")
+    expect(page.locator(f"#replies-{root.id}")).to_contain_text("O'zimga javob")
+    assert Review.objects.filter(text="O'zimga javob", parent=root).exists()
+
+
+def test_classic_page_comment_and_like_flow(live_server, page):
+    """[comment-fix + V2B-T2] Klassik (16:9) sahifada izoh yozish + like toggle."""
+    from drama.factories import EpisodeFactory, MovieFactory
+    from drama.models import Category, Review
+    from users.factories import UserFactory
+
+    cat = Category.objects.create(
+        name="KinoE2E", slug="kino-e2e", player_type=Category.PlayerType.CLASSIC
+    )
+    movie = MovieFactory(title="Classic Comment Drama", category=cat)
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vidc")
+    UserFactory(username="e2e_classic")
+
+    page.goto(f"{live_server.url}/users/login/")
+    page.fill("#id_username", "e2e_classic")
+    page.fill("#id_password", "pass12345")
+    page.click("button[type=submit]")
+    expect(page.get_by_label("Profilga kirish")).to_have_attribute(
+        "href", "/users/profile/e2e_classic/"
+    )
+
+    page.goto(f"{live_server.url}{movie.get_absolute_url()}")
+    # Klassik sahifada forma to'g'ridan-to'g'ri sahifada (sheet YO'Q)
+    page.fill('#rCommentForm textarea[name="text"]', "Klassikdan salom")
+    page.click("#rCommentForm button[type=submit]")
+    expect(page.locator("#rCommentList")).to_contain_text("Klassikdan salom")
+
+    # Like toggle [V2B-T2]: HTMX fragment o'zini yangilaydi (0 -> 1)
+    review = Review.objects.get(text="Klassikdan salom")
+    like_form = page.locator(f'form[action="/review/{review.id}/like/"]')
+    like_form.locator("button").click()
+    expect(like_form.locator("span")).to_have_text("1")
+    review.refresh_from_db()
+    assert review.like_count == 1

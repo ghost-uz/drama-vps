@@ -23,7 +23,10 @@
                 {{ review.text }}
             {% endif %}
     </div>
-        {% include 'movies/partials/_report_form.html' %}
+        <div class="flex items-center gap-2">
+            {% include 'movies/partials/_like_button.html' %}
+            {% include 'movies/partials/_report_form.html' %}
+        </div>
     </div>
 {% else %}
     <div class="bg-white/3 p-7 rounded-[2.5rem] border border-white/5 space-y-5" id="review-{{ review.id }}">
@@ -54,6 +57,7 @@
             </div>
 
             <div class="flex items-start gap-3">
+                {% include 'movies/partials/_like_button.html' %}
                 {% if request.user.is_authenticated %}
                     <button type="button"
                             onclick="prepareReply('{{ review.user.username }}', '{{ review.id }}')"

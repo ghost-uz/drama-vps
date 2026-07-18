@@ -17,6 +17,7 @@ urlpatterns = [
     path("inson/<slug:slug>/", views.ActorView.as_view(), name="actor_detail"),
     # Funksiyalar
     path("review/<int:pk>/", views.AddReview.as_view(), name="add_review"),
+    path("review/<int:pk>/like/", views.ToggleReviewLike.as_view(), name="toggle_review_like"),
     path("review/<int:pk>/report/", views.report_review, name="report_review"),
     path("add-to-list/<int:movie_id>/", views.add_to_list, name="add_to_list"),
     path("actor/<int:actor_id>/gift/", views.send_gift_to_actor, name="send_gift_to_actor"),

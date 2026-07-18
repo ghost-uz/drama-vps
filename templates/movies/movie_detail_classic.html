@@ -207,14 +207,41 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                 Barchasi <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
-        {% for review in movie.reviews.all|slice:":2" %}
-        <div class="bg-card border border-[#1f1f1f] rounded-2xl p-4 mb-3">
-            <p class="text-xs font-black text-gray-400 mb-1">{{ review.user.username }}</p>
-            <p class="text-sm text-gray-300">{{ review.text|truncatechars:220 }}</p>
+        {# [comment-fix] Klassik sahifada forma YO'Q edi — IDlar comments.js bilan umumiy #}
+        {% if user.is_authenticated %}
+        <div id="replyIndicator" style="display:none;" class="items-center gap-2 px-3 py-2 mb-3 bg-[#00cc4c]/10 border border-[#00cc4c]/25 rounded-xl text-[11px] text-drama-green">
+            <i class="fas fa-reply"></i>
+            <span id="replyIndicatorName" class="font-black"></span>
+            <button type="button" onclick="cancelReply()" aria-label="Javobni bekor qilish" class="ml-auto text-drama-green"><i class="fas fa-times"></i></button>
         </div>
-        {% empty %}
-        <p class="text-sm text-gray-500">Hozircha fikrlar yo'q — birinchi bo'lib yozing!</p>
-        {% endfor %}
+        <form id="rCommentForm"
+              hx-post="{% url 'drama:add_review' movie.id %}"
+              hx-target="#rCommentList"
+              hx-swap="afterbegin"
+              class="flex items-end gap-2 mb-5">
+            {% csrf_token %}
+            <input type="hidden" name="parent" value="">
+            <textarea name="text" rows="2" required maxlength="5000"
+                      placeholder="Fikringizni yozing..."
+                      class="flex-1 bg-card border border-[#1f1f1f] rounded-2xl p-3 text-sm text-gray-200 outline-none focus:border-drama-green/50 resize-none"></textarea>
+            <button type="submit" aria-label="Yuborish"
+                    class="px-4 py-3 bg-drama-green text-black font-black rounded-2xl text-sm hover:opacity-90 transition-opacity">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+        {% else %}
+        <a href="{% url 'users:login' %}" class="block text-center p-3 mb-5 border border-drama-green/35 rounded-2xl text-drama-green text-sm font-black hover:bg-drama-green/5 transition-colors">
+            <i class="fas fa-sign-in-alt mr-2"></i>Fikr qoldirish uchun kiring
+        </a>
+        {% endif %}
+
+        <div id="rCommentList" class="space-y-4">
+            {% for review in movie.reviews.all|slice:":5" %}
+                {% include 'movies/partials/comment_item.html' with review=review %}
+            {% empty %}
+            <p class="text-sm text-gray-500">Hozircha fikrlar yo'q — birinchi bo'lib yozing!</p>
+            {% endfor %}
+        </div>
     </section>
 
     {# ── O'XSHASH ───────────────────────────────────────── #}
@@ -238,6 +265,9 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
 
 {# Umumiy playback-yadro — reels bilan bitta [player-core.js] #}
 <script src="{% static 'js/player-core.js' %}" defer></script>
+
+{# Izoh yordamchilari (prepareReply/cancelReply/toggleReviewText) [comment-fix] #}
+<script src="{% static 'js/comments.js' %}" defer></script>
 
 {# Django template data — reelsData bilan BIR XIL shakl #}
 <script id="classicData" type="application/json">

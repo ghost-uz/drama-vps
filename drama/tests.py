@@ -2181,3 +2181,151 @@ def test_continue_watching_latest_per_movie_across_movies():
         rows[("CW-B", 1)].episode_id,
         rows[("CW-A", 2)].episode_id,
     ]
+
+
+# --- V2B-T2: izoh reaksiyalari (like) + saralash + komment-forma mavjudligi ---
+
+
+QUERYCOUNT_REVIEWS_PAGE = 6  # sessiya+user+movie+roots(Exists bilan)+replies+paginator
+
+
+def _review_user(username="liker"):
+    movie = Movie.objects.create(title=f"LikeKino {username}", description="x", country="KR")
+    author = User.objects.create_user(username=f"a_{username}", password="pass12345")
+    review = Review.objects.create(user=author, movie=movie, text="Zo'r!")
+    user = User.objects.create_user(username=username, password="pass12345")
+    return movie, review, user
+
+
+@pytest.mark.django_db
+def test_like_toggle_idempotent(client):
+    """[V2B-T2 AC] Birinchi POST like qo'shadi, ikkinchisi QAYTARADI (toggle)."""
+    from drama.models import ReviewReaction
+
+    _movie, review, user = _review_user("tog_user")
+    client.force_login(user)
+    url = reverse("drama:toggle_review_like", args=[review.id])
+
+    resp = client.post(url, HTTP_HX_REQUEST="true")
+    assert resp.status_code == 200
+    review.refresh_from_db()
+    assert review.like_count == 1
+    assert ReviewReaction.objects.filter(user=user, review=review).exists()
+    assert "fas fa-heart" in resp.content.decode()  # yoqilgan holat
+
+    resp2 = client.post(url, HTTP_HX_REQUEST="true")
+    review.refresh_from_db()
+    assert review.like_count == 0
+    assert not ReviewReaction.objects.filter(user=user, review=review).exists()
+    assert "far fa-heart" in resp2.content.decode()  # o'chirilgan holat
+
+
+@pytest.mark.django_db
+def test_like_anonymous_401(client):
+    _movie, review, _user = _review_user("anon_like")
+    resp = client.post(reverse("drama:toggle_review_like", args=[review.id]))
+    assert resp.status_code == 401
+
+
+@pytest.mark.django_db
+def test_like_hidden_review_404(client):
+    _movie, review, user = _review_user("hid_like")
+    Review.objects.filter(pk=review.pk).update(is_hidden=True)
+    client.force_login(user)
+    resp = client.post(reverse("drama:toggle_review_like", args=[review.id]))
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_like_count_two_users(client):
+    """[V2B-T2 AC] Sanoq F() bilan: ikki user -> 2; bittasi qaytarsa -> 1."""
+    _movie, review, u1 = _review_user("two_a")
+    u2 = User.objects.create_user(username="two_b", password="pass12345")
+    url = reverse("drama:toggle_review_like", args=[review.id])
+    client.force_login(u1)
+    client.post(url)
+    client.force_login(u2)
+    client.post(url)
+    review.refresh_from_db()
+    assert review.like_count == 2
+    client.post(url)  # u2 qaytardi
+    review.refresh_from_db()
+    assert review.like_count == 1
+
+
+@pytest.mark.django_db
+def test_reviews_sort_top_and_default(client):
+    """[V2B-T2 AC] ?sort=top -> like_count bo'yicha; default -> yangi (-id)."""
+    movie = Movie.objects.create(title="SortKino", description="x", country="KR")
+    a = User.objects.create_user(username="sort_a", password="pass12345")
+    r1 = Review.objects.create(user=a, movie=movie, text="r1")
+    r2 = Review.objects.create(user=a, movie=movie, text="r2")
+    r3 = Review.objects.create(user=a, movie=movie, text="r3")
+    Review.objects.filter(pk=r1.pk).update(like_count=2)
+    Review.objects.filter(pk=r2.pk).update(like_count=5)
+
+    url = reverse("drama:movie_reviews", args=[movie.slug])
+    top = client.get(url + "?sort=top")
+    assert [r.id for r in top.context["reviews"]] == [r2.id, r1.id, r3.id]
+    assert top.context["sort"] == "top"
+
+    new = client.get(url)
+    assert [r.id for r in new.context["reviews"]] == [r3.id, r2.id, r1.id]
+    assert new.context["sort"] == "new"
+
+
+@pytest.mark.django_db
+def test_reviews_page_query_count(client):
+    """[V2B-T2 AC] auth user uchun so'rovlar soni QOTIRILGAN — user_liked Exists
+    subquery asosiy so'rov ichida (alohida reaksiya-so'rovi YO'Q)."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    movie, review, user = _review_user("nq_user")
+    author2 = User.objects.create_user(username="nq_a2", password="pass12345")
+    Review.objects.create(user=author2, movie=movie, text="root2")
+    Review.objects.create(user=author2, movie=movie, text="rep", parent=review)
+    client.force_login(user)
+    url = reverse("drama:movie_reviews", args=[movie.slug])
+    client.get(url)  # birinchi chaqiruv (sessiya va h.k. barqarorlashsin)
+    with CaptureQueriesContext(connection) as ctx:
+        client.get(url)
+    assert len(ctx) == QUERYCOUNT_REVIEWS_PAGE, [q["sql"][:80] for q in ctx]
+
+
+@pytest.mark.django_db
+def test_classic_page_has_comment_form(client):
+    """[comment-fix] Klassik sahifada forma, ro'yxat va comments.js bo'lishi SHART."""
+    from drama.models import Category
+
+    cat = Category.objects.create(
+        name="KinoKlassik", slug="kino-klassik-t", player_type=Category.PlayerType.CLASSIC
+    )
+    movie = Movie.objects.create(
+        title="ClassicForm", description="x", country="KR", category=cat, poster=_uploaded()
+    )
+    user = User.objects.create_user(username="cform", password="pass12345")
+    client.force_login(user)
+    html = client.get(movie.get_absolute_url()).content.decode()
+    assert 'id="rCommentForm"' in html
+    assert 'id="rCommentList"' in html
+    assert "js/comments.js" in html
+
+
+@pytest.mark.django_db
+def test_reviews_page_has_form_and_like_button(client):
+    """[comment-fix + V2B-T2] Reviews sahifasi: forma + comments.js + like tugmasi."""
+    movie, review, user = _review_user("rvform")
+    client.force_login(user)
+    html = client.get(reverse("drama:movie_reviews", args=[movie.slug])).content.decode()
+    assert 'id="rCommentForm"' in html
+    assert "js/comments.js" in html
+    assert f"/review/{review.id}/like/" in html
+
+
+@pytest.mark.django_db
+def test_reels_page_includes_comments_js(client):
+    """[comment-fix] Reels sahifa comments.js'ni yuklaydi (player.js'dan ajratildi)."""
+    movie = Movie.objects.create(title="ReelsJs", description="x", country="KR", poster=_uploaded())
+    html = client.get(movie.get_absolute_url()).content.decode()
+    assert "js/comments.js" in html

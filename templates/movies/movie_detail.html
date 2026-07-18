@@ -1098,15 +1098,6 @@ body > main {
                 </button>
             </form>
         </div>
-        <script>
-            /* hx-on::after-request o'rniga — hx-on htmx'da new Function talab
-               qiladi, CSP endi 'unsafe-eval'siz [P10-T1] */
-            document.getElementById('rCommentForm').addEventListener('htmx:afterRequest', function (e) {
-                /* reset() parent inputni default ("")ga qaytaradi; cancelReply
-                   hx-target'ni ro'yxatga qaytarib indikatorni yashiradi [V2B-T1] */
-                if (e.target === this) { this.reset(); if (window.cancelReply) window.cancelReply(); }
-            });
-        </script>
         {% else %}
         <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
             <a href="{% url 'users:login' %}"
@@ -1222,5 +1213,7 @@ body > main {
 </script>
 
 {# Pleyer static/js/player.js ga ko'chirildi (resume + progress + avto-keyingi + API refresh) [P5-T2] #}
+{# Izoh yordamchilari — reels/klassik/reviews sahifalarga umumiy [V2B-T1 ajratma] #}
+<script src="{% static 'js/comments.js' %}" defer></script>
 <script src="{% static 'js/player.js' %}" defer></script>
 {% endblock %}

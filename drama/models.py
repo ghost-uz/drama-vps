@@ -480,10 +480,33 @@ class Review(TimeStampedModel):
     # Moderatsiya [P14-T3]: yashirin izoh ommaviy ro'yxatlarda chiqmaydi.
     # O'chirilmaydi — shikoyat tarixi va qaror auditi saqlanib qoladi.
     is_hidden = models.BooleanField("Yashirilgan (moderatsiya)", default=False)
+    # [V2B-T2] Denormal reaksiya soni — FAQAT F() bilan atomik yangilanadi
+    # (ToggleReviewLike); saralash "Eng foydali" shu ustunga tayanadi.
+    like_count = models.PositiveIntegerField("Yoqtirishlar", default=0)
 
     class Meta:
         # Detail/fikrlar sahifasi: filter(movie=..., parent=None) [P9-T2]
         indexes = [models.Index(fields=["movie", "parent"])]
+
+
+class ReviewReaction(TimeStampedModel):
+    """Izoh reaksiyasi (like) [V2B-T2] — bir user bir izohga BITTA.
+
+    Unique constraint parallel ikki like'dan bittasini DB darajasida to'xtatadi;
+    Review.like_count shu jadvaldan denormal (toggle'da F() bilan yuritiladi).
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="review_reactions"
+    )
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="reactions")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "review"], name="uniq_review_reaction_user_review"
+            )
+        ]
 
 
 class ReviewReport(models.Model):
