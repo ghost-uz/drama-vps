@@ -111,7 +111,7 @@
           "priority": "P0",
           "status": "in_progress",
           "depends_on": [],
-          "description_uz": "drama-key-v2.json (GCS service account) va boshqa sirlarni repodan o'chirish, git tarixidan tozalash (git filter-repo), yangi kalit generatsiya. GCS credentials env/fayl yo'li orqali, repoga tushmaydi. .gitignore to'liqlash.",
+          "description_uz": "drama-key-v2.json (GCS service account) va boshqa sirlarni repodan o'chirish, git tarixidan tozalash (git filter-repo), yangi kalit generatsiya. GCS credentials env/fayl yo'li orqali, repoga tushmaydi. .gitignore to'liqlash. [2026-07-18: sizib ketgan GCS kalit EGASI tomonidan GCP'da rotatsiya qilindi; eski DB parol prod bilan HAR XIL (hash-tekshirildi); QOLGAN: faqat filter-repo tarix-tozalash (post-launch) — undan keyin .gitleaks.toml allowlist va .gitleaksignore olib tashlanadi.]",
           "acceptance_criteria": [
             "Hech qanday .json kalit, .env, parol repoda yo'q",
             "GCS_CREDENTIALS env yo'l yoki JSON-string orqali yuklanadi",
