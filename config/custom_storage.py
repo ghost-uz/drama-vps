@@ -27,6 +27,24 @@ class CustomStaticStorage(ManifestFilesMixin, GoogleCloudStorage):
 
     location = "static"
 
+    # FAQAT CSS url()/@import qayta yoziladi. Django default'idagi JS
+    # sourceMappingURL/ES-import qayta yozish O'CHIRILGAN — vendor minified
+    # js'larda .map fayllar repoda yo'q, collectstatic ValueError bilan
+    # yiqilardi (lokal simulyatsiyada ushlangan). CSS'dagi sourceMappingURL
+    # subpattern'i ham xuddi shu sababdan kiritilmagan.
+    patterns = (
+        (
+            "*.css",
+            (
+                r"""(?P<matched>url\(['"]{0,1}\s*(?P<url>.*?)["']{0,1}\))""",
+                (
+                    r"""(?P<matched>@import\s*["']\s*(?P<url>.*?)["'])""",
+                    """@import url("%(url)s")""",
+                ),
+            ),
+        ),
+    )
+
     def _clean_name(self, name):
         return name.replace("\\", "/")
 
