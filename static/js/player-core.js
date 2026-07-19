@@ -153,6 +153,13 @@ window.DramaPlayerCore = function (video, d, opts) {
         return showing ? showing.language : '';
     }
 
+    function setSubtitle(lang) {
+        /* To'g'ridan-to'g'ri tanlash (menyu/sheet) — '' = o'chiq */
+        applySubtitle(lang);
+        try { localStorage.setItem(SUB_KEY, lang || ''); } catch (e) { /* private mode */ }
+        return lang || '';
+    }
+
     function cycleSubtitle() {
         var langs = subTracks().map(function (t) { return t.language; });
         if (!langs.length) return '';
@@ -180,6 +187,7 @@ window.DramaPlayerCore = function (video, d, opts) {
         prevEp: prevEp,
         nextEp: nextEp,
         cycleSubtitle: cycleSubtitle,
+        setSubtitle: setSubtitle,
         currentSubtitle: currentSubtitle,
         epUrl: function (num) { return BASE_URL + '?episode=' + num; },
         hls: function () { return hlsInst; },

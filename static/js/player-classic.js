@@ -107,7 +107,7 @@ function bindMenu(btn, menu) {
     });
 }
 function closeMenus(except) {
-    [els.cpSpeedMenu, els.cpQualMenu].forEach(m => {
+    [els.cpSpeedMenu, els.cpQualMenu, document.getElementById('cpSubMenu')].forEach(m => {
         if (m && m !== except) m.classList.remove('open');
     });
 }
@@ -250,18 +250,26 @@ if (els.cpNextCancel) {
     });
 }
 
-/* ── Subtitr tanlash [V2E-T1] — cycle tugma (mantiq yadroda) ── */
+/* ── Subtitr MENYU [V2E-T1 UX] — speed/sifat menyulari bilan bir naqsh ── */
 (function () {
     const subBtn = document.getElementById('cpSubBtn');
-    if (!subBtn) return; /* subtitrsiz qism — tugma template'da yo'q */
-    subBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const lang = core.cycleSubtitle();
+    const subMenu = document.getElementById('cpSubMenu');
+    if (!subBtn || !subMenu) return; /* subtitrsiz qism — template'da yo'q */
+    bindMenu(subBtn, subMenu);
+    subMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-sub]');
+        if (!item) return;
+        const lang = core.setSubtitle(item.dataset.sub);
         subBtn.textContent = lang ? lang.toUpperCase() : 'CC';
+        markActive(subMenu, item);
+        subMenu.classList.remove('open');
     });
     video.addEventListener('loadedmetadata', () => {
         const l = core.currentSubtitle();
         subBtn.textContent = l ? l.toUpperCase() : 'CC';
+        const target = subMenu.querySelector('[data-sub="' + l + '"]') ||
+                       subMenu.querySelector('[data-sub=""]');
+        if (target) markActive(subMenu, target);
     });
 })();
 

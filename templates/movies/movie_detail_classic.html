@@ -103,8 +103,19 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     </div>
                     <span id="cpTime" class="cp-time">0:00 / 0:00</span>
                     <div class="cp-spacer"></div>
+                    {% if subtitles %}
+                    {# [V2E-T1 UX] Subtitr MENYU — cycle emas (speed/sifat bilan bir naqsh) #}
                     <div class="cp-menu-wrap">
-                        {% if subtitles %}<button id="cpSubBtn" class="cp-btn cp-btn-text" aria-label="Subtitr tili">CC</button>{% endif %}
+                        <button id="cpSubBtn" class="cp-btn cp-btn-text" aria-label="Subtitr tili">CC</button>
+                        <div id="cpSubMenu" class="cp-menu">
+                            <button data-sub="" class="active" type="button">O'chiq</button>
+                            {% for sub in subtitles %}
+                            <button data-sub="{{ sub.lang }}" type="button">{{ sub.display_label }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="cp-menu-wrap">
                         <button id="cpSpeedBtn" class="cp-btn cp-btn-text" aria-label="Tezlik">1x</button>
                         <div id="cpSpeedMenu" class="cp-menu">
                             <button data-speed="0.5" type="button">0.5x</button>

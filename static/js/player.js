@@ -21,7 +21,6 @@ const SRC_720   = _d.src720;
 const SRC_1080  = _d.src1080;
 const IS_AUTH   = _d.isAuth;
 const LOGIN_URL = _d.loginUrl;
-let   curQual   = '720p';
 
 /* ─────────────────────────────────────────────────────────
    DOM REFS
@@ -171,6 +170,7 @@ if (video) {
         if (e.key === 'ArrowUp')    { e.preventDefault(); navigate('prev'); }
         if (e.key === 'f')          { toggleFullscreen(); }
         if (e.key === 'm')          { video.muted = !video.muted; }
+        if (e.key === 'c')          { syncSubtitleUI(core.cycleSubtitle()); }
     });
 
     /* Progress bar seek */
@@ -222,59 +222,64 @@ function showSeek(side) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   QUALITY SWITCH
-   — Bunny (HLS) da: Auto ↔ FHD sifat darajasi (yadro hls'i)
-   — Eski (MP4) da: 720p ↔ 1080p URL almashtirish
+   PLEYER SOZLAMALARI SHEET [V2E-T1 UX]
+   Radio-ro'yxatlar (Sifat / Subtitr): tanlov DARHOL qo'llanadi, faol qator
+   belgilanadi, sheet yopiladi. Eski topbar-chip toggle'lari o'rnini bosdi —
+   auto-hide bilan "quvlashmachoq" yo'q, teginish maydoni katta.
 ───────────────────────────────────────────────────────── */
-window.switchQuality = function () {
-    if (!video) return;
-    const btn = document.getElementById('rQualBtn');
-    const hlsInst = core.hls();
+function markSetActive(kind, val) {
+    document.querySelectorAll('.r-set-option[data-set="' + kind + '"]').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.val === val);
+    });
+}
 
+function syncSubtitleUI(lang) {
+    markSetActive('subtitle', lang || '');
+}
+
+function applyQuality(val) {
+    const hlsInst = core.hls();
     if (hlsInst) {
-        const levels = hlsInst.levels;
-        if (hlsInst.currentLevel === -1) {
+        if (val === 'fhd') {
+            const levels = hlsInst.levels;
             const fhdIdx = levels.findIndex(l => l.height >= 1080);
             hlsInst.currentLevel = fhdIdx >= 0 ? fhdIdx : levels.length - 1;
-            if (btn) btn.textContent = 'FHD';
         } else {
-            hlsInst.currentLevel = -1;
-            if (btn) btn.textContent = 'HD';
+            hlsInst.currentLevel = -1; /* Avto — ABR o'zi tanlaydi */
         }
         return;
     }
-
+    /* MP4: URL almashtirish — joriy vaqt va ijro holati saqlanadi */
+    const target = val === '1080' ? SRC_1080 : SRC_720;
+    if (!target || video.currentSrc === target) return;
     const time = video.currentTime;
     const wasPaused = video.paused;
-    curQual = curQual === '720p' ? '1080p' : '720p';
-    video.src = curQual === '1080p' ? SRC_1080 : SRC_720;
+    video.src = target;
     loader.classList.add('on');
     video.load();
     video.addEventListener('loadedmetadata', () => {
         video.currentTime = time;
         if (!wasPaused) video.play();
         loader.classList.remove('on');
-        if (btn) btn.textContent = curQual === '1080p' ? 'FHD' : 'HD';
     }, { once: true });
+}
+
+window.playerSet = function (btn) {
+    if (!video) return;
+    const kind = btn.dataset.set;
+    const val = btn.dataset.val;
+    if (kind === 'quality') applyQuality(val);
+    if (kind === 'subtitle') core.setSubtitle(val);
+    markSetActive(kind, val);
+    closeSheet('playerSheet');
 };
 
-/* ─────────────────────────────────────────────────────────
-   SUBTITR TANLASH [V2E-T1] — cycle tugma (yadro boshqaradi)
-───────────────────────────────────────────────────────── */
-window.cycleSubtitle = function () {
-    var lang = core.cycleSubtitle();
-    var btn = document.getElementById('rSubBtn');
-    if (btn) btn.textContent = lang ? lang.toUpperCase() : 'CC';
-};
-(function () {
-    var btn = document.getElementById('rSubBtn');
-    if (btn && video) {
-        video.addEventListener('loadedmetadata', function () {
-            var l = core.currentSubtitle();
-            btn.textContent = l ? l.toUpperCase() : 'CC';
-        });
-    }
-})();
+/* Saqlangan subtitr tanlovi sheet'da ham belgilangan holda kelsin */
+if (video) {
+    video.addEventListener('loadedmetadata', function () {
+        syncSubtitleUI(core.currentSubtitle());
+    });
+}
 
 /* ─────────────────────────────────────────────────────────
    FULLSCREEN

@@ -2571,23 +2571,30 @@ def test_reels_page_renders_tracks_for_anonymous(client, bunny):
     (V2A-T2 gotcha'sining aynan o'zi)."""
     from drama.models import EpisodeSubtitle
 
-    movie, (ep1, _ep2) = _ep_movie("SubReels")
-    Episode.objects.filter(pk=ep1.pk).update(
-        bunny_video_id="subvid1"
-    )  # video-branch render bo'lsin
+    movie, (ep1, ep2) = _ep_movie("SubReels")
+    # Ikkala qism ham video-manbali: 2-qism "sheet bor, subtitr guruhi yo'q"
+    # holatini qoplaydi
+    Episode.objects.filter(pk__in=[ep1.pk, ep2.pk]).update(bunny_video_id="subvid1")
     EpisodeSubtitle.objects.create(episode=ep1, lang="uz", vtt_file=_vtt())
     EpisodeSubtitle.objects.create(episode=ep1, lang="ru", vtt_file=_vtt("ru.vtt"))
     html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
     assert html.count("<track ") == 2
     assert 'srclang="uz"' in html and 'srclang="ru"' in html
     assert 'crossorigin="anonymous"' in html
-    assert 'id="rSubBtn"' in html
+    # [V2E-T1 UX] sozlamalar sheet: rail tugma + radio-optsiyalar
+    assert 'id="playerSheet"' in html
+    assert 'title="Sozlamalar"' in html
+    assert 'data-set="subtitle" data-val="uz"' in html
+    assert 'data-set="subtitle" data-val=""' in html  # O'chiq optsiyasi
+    assert 'data-set="quality" data-val="auto"' in html  # bunny -> Avto/FHD
 
-    # subtitrsiz qism: track ham, crossorigin ham, tugma ham YO'Q
+    # subtitrsiz qism: track/crossorigin YO'Q; sheet BOR (sifat), subtitr guruhi YO'Q
     html2 = client.get(movie.get_absolute_url() + "?episode=2").content.decode()
     assert "<track " not in html2
     assert 'crossorigin="anonymous"' not in html2
-    assert 'id="rSubBtn"' not in html2
+    assert 'id="playerSheet"' in html2
+    assert 'data-set="quality"' in html2
+    assert 'data-set="subtitle"' not in html2
 
 
 @pytest.mark.django_db
@@ -2603,4 +2610,6 @@ def test_classic_page_renders_tracks(client):
     html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
     assert 'srclang="en"' in html
     assert 'id="cpSubBtn"' in html
+    assert 'id="cpSubMenu"' in html  # [V2E-T1 UX] menyu (cycle emas)
+    assert 'data-sub="en"' in html
     assert 'crossorigin="anonymous"' in html
