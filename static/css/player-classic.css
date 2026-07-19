@@ -342,3 +342,57 @@
 }
 .cp-skip-intro:hover { background: rgba(0,204,76,0.25); border-color: rgba(0,204,76,0.6); }
 .cp-skip-intro.on { display: inline-flex; }
+
+/* ── Treyler modal [V2E-T3] ──────────────────────────── */
+.cp-trailer-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.cp-trailer-modal.open { display: flex; }
+.cp-trailer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(6px);
+}
+.cp-trailer-box {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    animation: cpTrailerIn 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes cpTrailerIn {
+    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+.cp-trailer-video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #000;
+}
+.cp-trailer-close {
+    position: absolute;
+    top: 10px; right: 10px;
+    z-index: 2;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+}
+.cp-trailer-close:hover { background: rgba(0, 204, 76, 0.75); }

@@ -2679,3 +2679,70 @@ def test_admin_has_intro_fields():
         for f in opts.get("fields", ()):
             fields.extend(f if isinstance(f, (list, tuple)) else [f])
     assert "intro_start" in fields and "intro_end" in fields
+
+
+# --- V2E-T3: treyler UI (FAQAT klassik pleyer) ---
+
+
+def _classic_movie(title="TreylerKino", trailer_id="trailer123"):
+    from drama.models import Category
+
+    cat = Category.objects.create(
+        name=f"Klassik-{title}",
+        slug=f"klassik-{title.lower()}",
+        player_type=Category.PlayerType.CLASSIC,
+    )
+    movie, (ep1, _ep2) = _ep_movie(title)
+    Movie.objects.filter(pk=movie.pk).update(
+        category=cat, bunny_video_id="mainvid", bunny_trailer_id=trailer_id
+    )
+    return Movie.objects.get(pk=movie.pk)
+
+
+@pytest.mark.django_db
+def test_trailer_button_and_modal_on_classic(client, bunny):
+    """[V2E-T3 AC] bunny_trailer_id bor klassik kinoda Treyler tugma + modal;
+    classicData'da trailerHls (imzoli HLS URL)."""
+    movie = _classic_movie()
+    html = client.get(movie.get_absolute_url()).content.decode()
+    assert 'id="cpTrailerBtn"' in html
+    assert 'id="cpTrailerModal"' in html
+    assert 'id="cpTrailerVideo"' in html
+    # escapejs "-" -> - qiladi (JSON.parse'da to'g'ri) -> tail bo'yicha tekshiramiz
+    assert "trailerHls" in html
+    assert "trailer123/playlist.m3u8" in html
+
+
+@pytest.mark.django_db
+def test_no_trailer_when_id_empty(client, bunny):
+    """[V2E-T3 AC] bunny_trailer_id bo'sh -> Treyler tugma/modal YO'Q."""
+    movie = _classic_movie(trailer_id="")
+    html = client.get(movie.get_absolute_url()).content.decode()
+    assert 'id="cpTrailerBtn"' not in html
+    assert 'id="cpTrailerModal"' not in html
+
+
+@pytest.mark.django_db
+def test_trailer_not_rendered_on_reels(client, bunny):
+    """[V2E-T3] Reels kinoda trailer_id bo'lsa ham treyler UI CHIQMAYDI
+    (foydalanuvchi qarori: faqat klassik). Kontekstda ham hisoblanmaydi."""
+    movie, (ep1, _ep2) = _ep_movie("ReelsTreyler")  # kategoriyasiz -> reels
+    Episode.objects.filter(pk=ep1.pk).update(bunny_video_id="rmain")
+    Movie.objects.filter(pk=movie.pk).update(bunny_trailer_id="trailerX")
+    resp = client.get(movie.get_absolute_url())
+    html = resp.content.decode()
+    assert 'id="cpTrailerBtn"' not in html
+    assert "trailerHls" not in html
+    assert "trailer_hls" not in resp.context or not resp.context["trailer_hls"]
+
+
+@pytest.mark.django_db
+def test_trailer_gating_free_for_anonymous(client, bunny):
+    """[V2E-T3 AC] Treyler anonim uchun ham ochiq (marketing — gating'siz)."""
+    movie = _classic_movie(title="VipTreyler")
+    Movie.objects.filter(pk=movie.pk).update(is_vip=True)  # asosiy video VIP
+    resp = client.get(movie.get_absolute_url())  # anonim
+    html = resp.content.decode()
+    # Treyler tugmasi VIP'dan qat'i nazar ko'rinadi (asosiy video emas)
+    assert 'id="cpTrailerBtn"' in html
+    assert resp.context["trailer_hls"]

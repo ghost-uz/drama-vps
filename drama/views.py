@@ -337,6 +337,19 @@ class MovieDetailView(GenreYearMixin, DetailView):
         # [V2E-T1] Aktiv qism subtitrlari — pleyerda <track> bo'ladi (1 so'rov)
         context["subtitles"] = list(active_episode.subtitles.all()) if active_episode else []
 
+        # [V2E-T3] Treyler — FAQAT klassik pleyer (marketing kontenti: gating'siz,
+        # anonim ham ko'radi; lekin URL imzoli [P4-T1]). Reels sahifada chiqmaydi.
+        is_classic = bool(
+            movie.category and movie.category.player_type == Category.PlayerType.CLASSIC
+        )
+        if is_classic and movie.bunny_trailer_id:
+            from drama.bunny_stream import hls_url, is_configured, token_user_ip
+
+            if is_configured():
+                context["trailer_hls"] = hls_url(
+                    movie.bunny_trailer_id, user_ip=token_user_ip(self.request)
+                )
+
         # [V2B-T5] Bloklangan mualliflar izohlari collapse ko'rinadi
         from users.selectors import blocked_user_ids
 

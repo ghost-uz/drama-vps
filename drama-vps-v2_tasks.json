@@ -355,7 +355,7 @@
           "title_en": "Trailer UI (field exists, no surface)",
           "title_uz": "Treyler UI (maydon bor — interfeys yo'q)",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Movie.bunny_trailer_id (0016 drift-migratsiyada modelga kirgan) va trailer_embed_code MAVJUD lekin UI'da ishlatilmaydi. Detail sahifada 'Treyler' tugma -> modal pleyer. Treyler GATING'SIZ (marketing kontenti — anonim ham ko'radi), lekin URL imzoli (P4-T1 umumiy qoida).",
           "acceptance_criteria": [

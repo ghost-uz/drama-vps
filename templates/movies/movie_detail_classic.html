@@ -169,6 +169,13 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                 <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-yellow-400">
                     <i class="fas fa-star mr-1"></i>{{ movie.average_rating }} ({{ movie.total_votes }})
                 </span>
+                {# [V2E-T3] Treyler tugmasi — faqat bunny_trailer_id bor bo'lsa #}
+                {% if trailer_hls %}
+                <button type="button" id="cpTrailerBtn"
+                        class="px-3 py-1.5 rounded-full font-black bg-drama-green/15 text-drama-green border border-drama-green/30 hover:bg-drama-green/25 transition-colors flex items-center gap-1.5">
+                    <i class="fas fa-film"></i> Treyler
+                </button>
+                {% endif %}
             </div>
 
             {% if movie.genres.all %}
@@ -297,6 +304,20 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     {% endif %}
 
 </div>
+
+{# ── Treyler modal [V2E-T3] — gating'siz marketing pleyer ── #}
+{% if trailer_hls %}
+<div id="cpTrailerModal" class="cp-trailer-modal" aria-hidden="true">
+    <div class="cp-trailer-backdrop" data-trailer-close></div>
+    <div class="cp-trailer-box" role="dialog" aria-modal="true" aria-label="Treyler">
+        <button type="button" class="cp-trailer-close" data-trailer-close aria-label="Yopish">
+            <i class="fas fa-times"></i>
+        </button>
+        <video id="cpTrailerVideo" class="cp-trailer-video" controls playsinline
+               poster="{{ movie.poster.url }}"></video>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -325,7 +346,8 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     "introEnd": {% if active_episode and active_episode.intro_end is not None %}{{ active_episode.intro_end }}{% else %}null{% endif %},
     "resumePos": {{ resume_position|default:0 }},
     "progressUrl": "{% if active_episode %}{% url 'drama:save_watch_progress' active_episode.id %}{% endif %}",
-    "playbackApi": "{% if active_episode %}/api/v1/episodes/{{ active_episode.id }}/playback/{% endif %}"
+    "playbackApi": "{% if active_episode %}/api/v1/episodes/{{ active_episode.id }}/playback/{% endif %}",
+    "trailerHls": "{{ trailer_hls|default:''|escapejs }}"
 }
 </script>
 

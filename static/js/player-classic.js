@@ -267,3 +267,50 @@ function onEnded(nextEp) {
 })();
 
 })();
+
+/* ── Treyler modal [V2E-T3] — asosiy pleyerdan MUSTAQIL ─────────
+   Qulflangan (VIP/crowdfund) kinoda ham ishlaydi: treyler gating'siz
+   marketing kontenti. HLS.js allaqachon yuklangan (vendor). */
+(function () {
+    'use strict';
+    const btn = document.getElementById('cpTrailerBtn');
+    const modal = document.getElementById('cpTrailerModal');
+    const tv = document.getElementById('cpTrailerVideo');
+    if (!btn || !modal || !tv) return;
+
+    let url = '';
+    try {
+        url = JSON.parse(document.getElementById('classicData').textContent).trailerHls || '';
+    } catch (e) { /* JSON yo'q */ }
+    if (!url) return;
+
+    let hls = null;
+    function open() {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        if (window.Hls && Hls.isSupported()) {
+            hls = new Hls({ enableWorker: true });
+            hls.loadSource(url);
+            hls.attachMedia(tv);
+        } else if (tv.canPlayType('application/vnd.apple.mpegurl')) {
+            tv.src = url; /* Safari — nativ HLS */
+        }
+        const p = tv.play();
+        if (p && p.catch) p.catch(() => {}); /* autoplay-block — controls bor */
+    }
+    function close() {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        tv.pause();
+        if (hls) { hls.destroy(); hls = null; }
+        tv.removeAttribute('src');
+        tv.load();
+    }
+    btn.addEventListener('click', open);
+    modal.querySelectorAll('[data-trailer-close]').forEach((el) =>
+        el.addEventListener('click', close)
+    );
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('open')) close();
+    });
+})();
