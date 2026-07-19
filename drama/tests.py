@@ -2329,3 +2329,15 @@ def test_reels_page_includes_comments_js(client):
     movie = Movie.objects.create(title="ReelsJs", description="x", country="KR", poster=_uploaded())
     html = client.get(movie.get_absolute_url()).content.decode()
     assert "js/comments.js" in html
+
+
+@pytest.mark.django_db
+def test_storage_cache_headers_p9t3():
+    """[P9-T3 AC] Static: 1 yil + immutable (Manifest-hash nomlar); media: 30 kun,
+    immutable EMAS (default.jpg kabi turg'un nomlar bor)."""
+    from config.custom_storage import CustomMediaStorage, CustomStaticStorage
+
+    static_cc = CustomStaticStorage.object_parameters["cache_control"]
+    media_cc = CustomMediaStorage.object_parameters["cache_control"]
+    assert "max-age=31536000" in static_cc and "immutable" in static_cc
+    assert "max-age=2592000" in media_cc and "immutable" not in media_cc

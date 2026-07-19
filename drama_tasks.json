@@ -878,7 +878,7 @@
           "title_en": "CDN cache headers, pagination (cursor), pgbouncer",
           "title_uz": "CDN cache header, cursor pagination, pgbouncer",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["P0-T6"],
           "description_uz": "Static/media uchun uzoq cache header (immutable). Katta ro'yxatlar uchun cursor pagination (API). PgBouncer ulanish puli (prod). nginx gzip/brotli.",
           "acceptance_criteria": [

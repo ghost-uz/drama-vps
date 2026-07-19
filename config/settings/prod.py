@@ -99,10 +99,9 @@ except FileNotFoundError as exc:
         "/app/secrets/gcs.json bering (docs/ops/secret-rotation.md §2.1)."
     ) from exc
 
-# Static/media obyektlarga cache header — collectstatic/yuklashda GCS'ga yoziladi,
-# cdn.drama.uz shu bilan xizmat qiladi (1 kun; fayl nomlari hash'lanmagani uchun
-# "immutable" EMAS) [P5-T1]
-GS_OBJECT_PARAMETERS = {"cache_control": "public, max-age=86400"}
+# Cache headerlar endi STORAGE-KLASS darajasida [P9-T3]: static (Manifest-hash
+# nomlar) -> 1 yil + immutable; media (Random nomlar) -> 30 kun.
+# Qarang: config/custom_storage.py `object_parameters`.
 
 STATIC_URL = f"https://{GS_CUSTOM_DOMAIN}/static/"  # noqa: F405
 MEDIA_URL = f"https://{GS_CUSTOM_DOMAIN}/media/"  # noqa: F405
@@ -111,6 +110,12 @@ STORAGES = {
     "default": {"BACKEND": "config.custom_storage.CustomMediaStorage"},
     "staticfiles": {"BACKEND": "config.custom_storage.CustomStaticStorage"},
 }
+
+# [P9-T3] Web/worker prod'da PgBouncer (transaction pooling) orqali ulanadi —
+# server-side cursor ishlamaydi (har so'rov boshqa server-ulanishga tushishi
+# mumkin) -> Django hujjati talabi. Migratsiya servisi to'g'ridan-to'g'ri db'ga
+# boradi (compose.prod), unga bu sozlama zarar qilmaydi.
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True  # noqa: F405
 
 # -- Logging — JSON (Docker stdout / log yig'ish / Sentry uchun) --
 LOGGING = build_logging(  # noqa: F405

@@ -28,16 +28,51 @@ services:
       <<: *prod-env
       RUN_MIGRATIONS: "0"
       COLLECTSTATIC: "0"
+      # [P9-T3] Ilova trafigi PgBouncer orqali (migrate/db-backup db'ga to'g'ridan-to'g'ri)
+      DB_HOST: pgbouncer
     volumes:
       - ./secrets:/app/secrets:ro
+    depends_on:
+      pgbouncer:
+        condition: service_started
 
   celery-worker:
+    environment:
+      DB_HOST: pgbouncer  # [P9-T3]
     volumes:
       - ./secrets:/app/secrets:ro
+    depends_on:
+      pgbouncer:
+        condition: service_started
 
   celery-beat:
+    environment:
+      DB_HOST: pgbouncer  # [P9-T3]
     volumes:
       - ./secrets:/app/secrets:ro
+    depends_on:
+      pgbouncer:
+        condition: service_started
+
+  # [P9-T3] Ulanish puli: ko'p gunicorn/celery ulanishi ozgina real Postgres
+  # ulanishiga multiplexlanadi (transaction pooling). Django tomonida
+  # DISABLE_SERVER_SIDE_CURSORS=True (prod.py) SHART. migrate va db-backup
+  # ATAYLAB pooler'siz — DDL/pg_dump uzun tranzaksiyalari to'g'ridan-to'g'ri db'ga.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.2-p0
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-drama_user}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD .env'da bo'lishi shart}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "20"
+    depends_on:
+      db:
+        condition: service_healthy
 
   # Bir martalik migratsiya + collectstatic. `up` bilan AVTO ishga tushmaydi
   # (profiles: tools) — deploy skripti `run --rm migrate` bilan chaqiradi.

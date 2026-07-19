@@ -6,6 +6,11 @@ from storages.backends.gcloud import GoogleCloudStorage
 class CustomMediaStorage(GoogleCloudStorage):
     location = "media"
 
+    # [P9-T3] Media nomlari RandomFileName — qayta ishlatilmaydi (yangi yuklash =
+    # yangi nom) -> 30 kun kesh xavfsiz. "immutable" EMAS: profile_pics/default.jpg
+    # kabi turg'un-nomli fayllar ham shu storage'da.
+    object_parameters = {"cache_control": "public, max-age=2592000"}
+
     def _clean_name(self, name):
         return name.replace("\\", "/")
 
@@ -26,6 +31,10 @@ class CustomStaticStorage(ManifestFilesMixin, GoogleCloudStorage):
     """
 
     location = "static"
+
+    # [P9-T3] Nomlar Manifest-hash'langan (mazmun o'zgarsa nom o'zgaradi) ->
+    # 1 yil + immutable: brauzer/CDN revalidatsiya so'rovi umuman yubormaydi.
+    object_parameters = {"cache_control": "public, max-age=31536000, immutable"}
 
     # FAQAT CSS url()/@import qayta yoziladi. Django default'idagi JS
     # sourceMappingURL/ES-import qayta yozish O'CHIRILGAN — vendor minified

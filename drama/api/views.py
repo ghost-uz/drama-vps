@@ -26,6 +26,7 @@ from drama.services.playback import get_episode_access
 from users.api.permissions import IsOwnerOrAdmin
 
 from .filters import MovieFilter
+from .pagination import ReviewCursorPagination
 from .serializers import (
     ActorSerializer,
     CategorySerializer,
@@ -129,6 +130,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     serializer_class = ReviewSerializer
     http_method_names = ["get", "post", "delete"]
+    # [P9-T3] Izohlar cheksiz o'sadi -> cursor (movies PageNumber'da qoladi)
+    pagination_class = ReviewCursorPagination
 
     def get_queryset(self):
         qs = Review.objects.select_related("user", "movie").order_by("-created_at")

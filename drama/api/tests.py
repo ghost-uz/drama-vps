@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from drama.factories import EpisodeFactory, MovieFactory
-from drama.models import Episode, Genre, Movie, Season
+from drama.models import Episode, Genre, Movie, Review, Season
 
 # `api` va `bunny` fixture'lar endi loyiha-darajali conftest.py da [P11-T1]
 
@@ -381,3 +381,48 @@ def test_playback_throttle_429(api, bunny):
     statuses = [api.get(f"/api/v1/episodes/{ep.id}/playback/").status_code for _ in range(61)]
     assert 429 in statuses
     cache.clear()
+
+
+# --- P9-T3: izohlar ro'yxati cursor pagination ---
+
+
+@pytest.mark.django_db
+def test_review_list_cursor_pagination(api):
+    """[P9-T3 AC] Cursor: 25 izoh -> 20 + next; next'dan 5; `count` YO'Q
+    (COUNT(*) so'rovi ham yo'q); tartib eng yangi birinchi, sahifalararo uzluksiz."""
+    movie = _movie("Cursor Kino")
+    author = User.objects.create_user(username="cursor_a", password="pass12345")
+    for i in range(25):
+        Review.objects.create(user=author, movie=movie, text=f"izoh {i}")
+
+    resp = api.get(f"/api/v1/reviews/?movie={movie.slug}")
+    assert resp.status_code == 200
+    assert "count" not in resp.data
+    assert len(resp.data["results"]) == 20
+    assert resp.data["next"]
+
+    resp2 = api.get(resp.data["next"])
+    assert len(resp2.data["results"]) == 5
+    assert resp2.data["next"] is None
+
+    ids = [r["id"] for r in resp.data["results"]] + [r["id"] for r in resp2.data["results"]]
+    assert ids == sorted(ids, reverse=True)  # -created_at,-pk deterministik
+
+
+@pytest.mark.django_db
+def test_review_cursor_stable_when_new_review_added(api):
+    """Cursor sahifasi yangi izoh qo'shilganda SILJIMAYDI (page-number'dagi
+    dublikat muammosi yo'q): 1-sahifa olingach yangi izoh kelsa ham, next
+    sahifada eski yozuvlar takrorlanmaydi."""
+    movie = _movie("Cursor Stable")
+    author = User.objects.create_user(username="cursor_b", password="pass12345")
+    for i in range(22):
+        Review.objects.create(user=author, movie=movie, text=f"eski {i}")
+
+    page1 = api.get(f"/api/v1/reviews/?movie={movie.slug}")
+    seen = {r["id"] for r in page1.data["results"]}
+
+    Review.objects.create(user=author, movie=movie, text="YANGI izoh")  # 1-sahifadan keyin
+
+    page2 = api.get(page1.data["next"])
+    assert seen.isdisjoint({r["id"] for r in page2.data["results"]})  # takror YO'Q

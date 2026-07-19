@@ -129,7 +129,8 @@ def test_review_list_public(api):
     Review.objects.create(user=_user(), movie=movie, text="izoh")
     resp = api.get(f"/api/v1/reviews/?movie={movie.slug}")
     assert resp.status_code == 200
-    assert resp.data["count"] == 1
+    # [P9-T3] cursor pagination: `count` YO'Q — results bo'yicha tekshiramiz
+    assert len(resp.data["results"]) == 1
 
 
 @pytest.mark.django_db
