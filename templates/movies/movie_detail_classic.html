@@ -79,6 +79,12 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
             <button id="cpBigPlay" class="cp-big-play" aria-label="Ijro etish"><i class="fas fa-play"></i></button>
             <div id="cpLoader" class="cp-loader"></div>
 
+            {% if active_episode and active_episode.intro_end is not None %}
+            <button id="cpSkipIntro" class="cp-skip-intro" type="button">
+                <i class="fas fa-forward"></i> Intro'ni o'tkazish
+            </button>
+            {% endif %}
+
             <div id="cpNextOverlay" class="cp-next-overlay">
                 <p>Keyingi qism boshlanmoqda…</p>
                 <div class="cp-next-num"><span id="cpNextCount">5</span></div>
@@ -315,6 +321,8 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     "isAuth":    {% if user.is_authenticated %}true{% else %}false{% endif %},
     "loginUrl":  "{% url 'users:login' %}",
     "episodeId": {% if active_episode %}{{ active_episode.id }}{% else %}null{% endif %},
+    "introStart": {% if active_episode and active_episode.intro_start is not None %}{{ active_episode.intro_start }}{% else %}null{% endif %},
+    "introEnd": {% if active_episode and active_episode.intro_end is not None %}{{ active_episode.intro_end }}{% else %}null{% endif %},
     "resumePos": {{ resume_position|default:0 }},
     "progressUrl": "{% if active_episode %}{% url 'drama:save_watch_progress' active_episode.id %}{% endif %}",
     "playbackApi": "{% if active_episode %}/api/v1/episodes/{{ active_episode.id }}/playback/{% endif %}"

@@ -226,28 +226,21 @@ if (els.cpNextBtn) {
         window.location.href = core.epUrl(core.nextEp);
     });
 }
-let countTimer = null;
+/* [V2E-T2] Countdown endi 15s OLDIN boshlanadi (yadro setupMarkers) —
+   eski "tugagach 5s" interval o'rnini bosdi. Bekor -> avto-keyingi o'chadi. */
+const markers = core.setupMarkers({
+    skipBtn: document.getElementById('cpSkipIntro'),
+    nextOverlay: els.cpNextOverlay,
+    nextCountEl: els.cpNextCount,
+    nextCancelBtn: els.cpNextCancel,
+});
+
 function onEnded(nextEp) {
     wrap.classList.add('cp-paused');
     showControls();
-    if (!nextEp || !els.cpNextOverlay) return;
-    let left = 5;
-    els.cpNextCount.textContent = left;
-    els.cpNextOverlay.classList.add('open');
-    countTimer = setInterval(() => {
-        left -= 1;
-        els.cpNextCount.textContent = left;
-        if (left <= 0) {
-            clearInterval(countTimer);
-            window.location.href = core.epUrl(nextEp);
-        }
-    }, 1000);
-}
-if (els.cpNextCancel) {
-    els.cpNextCancel.addEventListener('click', () => {
-        clearInterval(countTimer);
-        els.cpNextOverlay.classList.remove('open');
-    });
+    if (els.cpNextOverlay) els.cpNextOverlay.classList.remove('open');
+    if (!nextEp || markers.autoNextCancelled()) return;
+    window.location.href = core.epUrl(nextEp);
 }
 
 /* ── Subtitr MENYU [V2E-T1 UX] — speed/sifat menyulari bilan bir naqsh ── */

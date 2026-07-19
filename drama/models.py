@@ -380,6 +380,24 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
     )
     title = models.CharField("Qism nomi", max_length=150)
     episode_number = models.PositiveIntegerField("Qism raqami")
+    # [V2E-T2] Intro oralig'i (sekund): pleyer shu oraliqda "Intro'ni o'tkazish"
+    # tugmasini ko'rsatadi (bosilsa intro_end'ga seek). Ikkalasi ham to'ldirilsa
+    # amal qiladi; bo'sh qismlarda hech narsa o'zgarmaydi.
+    intro_start = models.PositiveIntegerField("Intro boshi (sek)", null=True, blank=True)
+    intro_end = models.PositiveIntegerField("Intro oxiri (sek)", null=True, blank=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        super().clean()
+        # [V2E-T2] Marker mantiqiy bo'lsin — admin formasi shu yerda to'xtatadi
+        if (
+            self.intro_start is not None
+            and self.intro_end is not None
+            and self.intro_end <= self.intro_start
+        ):
+            raise ValidationError({"intro_end": "Intro oxiri boshidan katta bo'lishi kerak."})
+
     bunny_video_id = models.CharField("Bunny Stream Video ID", max_length=100, blank=True)
     video_file = models.FileField(
         "Video fayl (Bunny'ga avtomatik yuklanadi)",

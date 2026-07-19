@@ -430,6 +430,15 @@ class EpisodeAdmin(BunnyVideoAdminMixin, ModelAdmin):
             {"fields": (("movie", "season"), ("episode_number", "title"), "thumbnail")},
         ),
         (
+            _("Pleyer markerlari [V2E-T2]"),
+            {
+                "fields": (("intro_start", "intro_end"),),
+                "description": _(
+                    "Sekundlarda. Ikkalasi to'ldirilsa pleyerda “Intro'ni o'tkazish” chiqadi."
+                ),
+            },
+        ),
+        (
             _("Video (Bunny — avtomatik)"),
             {
                 "description": _(

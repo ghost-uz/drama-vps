@@ -43,9 +43,18 @@ if (!app) return;
 ───────────────────────────────────────────────────────── */
 const core = window.DramaPlayerCore(video, _d, {
     onEnded: function (nextEp) {
-        if (nextEp) navigate('next');
+        /* [V2E-T2] Bekor bosilgan bo'lsa avto-keyingi o'chadi (shu sessiya) */
+        if (nextEp && !markers.autoNextCancelled()) navigate('next');
         else showControls();
     },
+});
+
+/* [V2E-T2] Intro-skip + 15s countdown — mantiq yadroda, elementlar shu yerda */
+const markers = core.setupMarkers({
+    skipBtn: document.getElementById('rSkipIntro'),
+    nextOverlay: document.getElementById('rNextOverlay'),
+    nextCountEl: document.getElementById('rNextCount'),
+    nextCancelBtn: document.getElementById('rNextCancel'),
 });
 
 /* ─────────────────────────────────────────────────────────

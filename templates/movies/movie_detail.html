@@ -361,6 +361,57 @@ body > main {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   INTRO-SKIP + KEYINGI-QISM COUNTDOWN [V2E-T2]
+═══════════════════════════════════════════════════════════ */
+.r-skip-intro {
+    position: absolute;
+    left: 14px; bottom: 130px;
+    z-index: 42;
+    display: none;
+    align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    color: #fff; font-size: 13px; font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.r-skip-intro:hover { background: rgba(0,204,76,0.25); border-color: rgba(0,204,76,0.6); }
+.r-skip-intro.on { display: inline-flex; }
+.r-next-overlay {
+    position: absolute;
+    right: 14px; bottom: 130px;
+    z-index: 42;
+    display: none;
+    align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0,204,76,0.35);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+.r-next-overlay.open { display: flex; }
+.r-next-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); }
+.r-next-title { font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px; }
+.r-next-count {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid #00cc4c;
+    display: flex; align-items: center; justify-content: center;
+    color: #00cc4c; font-size: 15px; font-weight: 800;
+}
+.r-next-cancel {
+    background: none; border: none;
+    color: rgba(255,255,255,0.55);
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    cursor: pointer; padding: 6px;
+}
+.r-next-cancel:hover { color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════
    PLEYER SOZLAMALARI SHEET [V2E-T1 UX]
 ═══════════════════════════════════════════════════════════ */
 #playerSheet { max-height: 65vh; }
@@ -996,6 +1047,25 @@ body > main {
     <!-- ── Loader ────────────────────────────────────── -->
     <div class="r-loader" id="rLoader"><div class="r-spinner"></div></div>
 
+    <!-- ── Intro-skip [V2E-T2] — faqat intro oralig'ida ko'rinadi -->
+    {% if active_episode and active_episode.intro_end is not None %}
+    <button id="rSkipIntro" class="r-skip-intro" type="button">
+        <i class="fas fa-forward"></i> Intro'ni o'tkazish
+    </button>
+    {% endif %}
+
+    <!-- ── Keyingi-qism countdown [V2E-T2] — 15s qolganda -->
+    {% if next_episode %}
+    <div id="rNextOverlay" class="r-next-overlay">
+        <div class="r-next-info">
+            <p class="r-next-label">Keyingi qism</p>
+            <p class="r-next-title">{{ next_episode.episode_number }}-qism</p>
+        </div>
+        <div class="r-next-count"><span id="rNextCount">15</span></div>
+        <button id="rNextCancel" type="button" class="r-next-cancel">Bekor qilish</button>
+    </div>
+    {% endif %}
+
     <!-- ── Seek feedback ─────────────────────────────── -->
     <div class="r-seek-fb" id="seekL" style="left:14%;">
         <i class="fas fa-rotate-left"></i>
@@ -1312,6 +1382,8 @@ body > main {
     "isAuth":    {% if user.is_authenticated %}true{% else %}false{% endif %},
     "loginUrl":  "{% url 'users:login' %}",
     "episodeId": {% if active_episode %}{{ active_episode.id }}{% else %}null{% endif %},
+    "introStart": {% if active_episode and active_episode.intro_start is not None %}{{ active_episode.intro_start }}{% else %}null{% endif %},
+    "introEnd": {% if active_episode and active_episode.intro_end is not None %}{{ active_episode.intro_end }}{% else %}null{% endif %},
     "resumePos": {{ resume_position|default:0 }},
     "progressUrl": "{% if active_episode %}{% url 'drama:save_watch_progress' active_episode.id %}{% endif %}",
     "playbackApi": "{% if active_episode %}/api/v1/episodes/{{ active_episode.id }}/playback/{% endif %}"

@@ -2613,3 +2613,69 @@ def test_classic_page_renders_tracks(client):
     assert 'id="cpSubMenu"' in html  # [V2E-T1 UX] menyu (cycle emas)
     assert 'data-sub="en"' in html
     assert 'crossorigin="anonymous"' in html
+
+
+# --- V2E-T2: intro-skip markerlari + keyingi-qism countdown ---
+
+
+@pytest.mark.django_db
+def test_intro_marker_validation():
+    """[V2E-T2 AC] intro_end <= intro_start -> ValidationError (admin formasi to'xtatadi)."""
+    _m, (ep1, _e2) = _ep_movie("IntroVal")
+    ep1.intro_start = 30
+    ep1.intro_end = 10
+    with pytest.raises(ValidationError):
+        ep1.full_clean()
+    ep1.intro_end = 45
+    ep1.full_clean()  # to'g'ri oraliq — o'tadi
+
+
+@pytest.mark.django_db
+def test_reels_marker_json_and_overlays(client, bunny):
+    """[V2E-T2 AC] Data-JSON'da introStart/End; skip-tugma faqat marker borida;
+    countdown overlay keyingi qism borida."""
+    movie, (ep1, ep2) = _ep_movie("IntroReels")
+    Episode.objects.filter(pk__in=[ep1.pk, ep2.pk]).update(bunny_video_id="introvid")
+    Episode.objects.filter(pk=ep1.pk).update(intro_start=5, intro_end=20)
+
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert '"introStart": 5' in html and '"introEnd": 20' in html
+    assert 'id="rSkipIntro"' in html
+    assert 'id="rNextOverlay"' in html  # keyingi qism (2) bor
+    assert 'id="rNextCount"' in html
+
+    # 2-qism: marker YO'Q -> null + tugma yo'q; keyingi qism ham yo'q -> overlay yo'q
+    html2 = client.get(movie.get_absolute_url() + "?episode=2").content.decode()
+    assert '"introStart": null' in html2 and '"introEnd": null' in html2
+    assert 'id="rSkipIntro"' not in html2
+    assert 'id="rNextOverlay"' not in html2
+
+
+@pytest.mark.django_db
+def test_classic_marker_json_and_skip(client, bunny):
+    from drama.models import Category
+
+    cat = Category.objects.create(
+        name="IntroKlassik", slug="intro-klassik", player_type=Category.PlayerType.CLASSIC
+    )
+    movie, (ep1, _ep2) = _ep_movie("IntroClassic")
+    Movie.objects.filter(pk=movie.pk).update(category=cat)
+    Episode.objects.filter(pk=ep1.pk).update(
+        bunny_video_id="introvidc", intro_start=3, intro_end=12
+    )
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert '"introStart": 3' in html and '"introEnd": 12' in html
+    assert 'id="cpSkipIntro"' in html
+    assert 'id="cpNextOverlay"' in html  # klassikda azaldan bor
+
+
+@pytest.mark.django_db
+def test_admin_has_intro_fields():
+    """[V2E-T2 AC] EpisodeAdmin fieldsets'da intro maydonlari bor."""
+    from drama.admin import EpisodeAdmin
+
+    fields = []
+    for _name, opts in EpisodeAdmin.fieldsets:
+        for f in opts.get("fields", ()):
+            fields.extend(f if isinstance(f, (list, tuple)) else [f])
+    assert "intro_start" in fields and "intro_end" in fields

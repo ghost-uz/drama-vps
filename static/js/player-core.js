@@ -183,9 +183,56 @@ window.DramaPlayerCore = function (video, d, opts) {
         video.addEventListener('loadedmetadata', restoreSubtitle);
     }
 
+    /* ── Intro-skip + avto-keyingi countdown [V2E-T2] ─────────
+       Umumiy mantiq (reels + klassik): UI elementlarini pleyer beradi.
+       - skip tugma faqat [introStart, introEnd) oralig'ida ko'rinadi
+       - keyingi qism bo'lsa, 15s qolganda overlay + jonli sanoq
+       - Bekor -> shu sahifa-sessiyasida avto-keyingi O'CHADI
+       Marker'siz qismlarda hech narsa qilinmaydi (AC-3). */
+    function setupMarkers(opts) {
+        var autoNextOff = false;
+        var iStart = d.introStart, iEnd = d.introEnd;
+        var overlayOn = false;
+
+        if (opts.skipBtn && video && iStart != null && iEnd != null) {
+            opts.skipBtn.addEventListener('click', function () {
+                video.currentTime = iEnd;
+                opts.skipBtn.classList.remove('on');
+            });
+        }
+        if (opts.nextCancelBtn) {
+            opts.nextCancelBtn.addEventListener('click', function () {
+                autoNextOff = true;
+                overlayOn = false;
+                if (opts.nextOverlay) opts.nextOverlay.classList.remove('open');
+            });
+        }
+        if (video) {
+            video.addEventListener('timeupdate', function () {
+                var t = video.currentTime;
+                if (opts.skipBtn && iStart != null && iEnd != null) {
+                    opts.skipBtn.classList.toggle('on', t >= iStart && t < iEnd);
+                }
+                if (opts.nextOverlay && nextEp && !autoNextOff && video.duration) {
+                    var left = Math.ceil(video.duration - t);
+                    var show = left <= 15 && left > 0;
+                    if (show && opts.nextCountEl) opts.nextCountEl.textContent = left;
+                    if (show !== overlayOn) {
+                        overlayOn = show;
+                        opts.nextOverlay.classList.toggle('open', show);
+                    }
+                }
+            });
+        }
+        return {
+            autoNextCancelled: function () { return autoNextOff; },
+        };
+    }
+
     return {
         prevEp: prevEp,
         nextEp: nextEp,
+        setupMarkers: setupMarkers,
         cycleSubtitle: cycleSubtitle,
         setSubtitle: setSubtitle,
         currentSubtitle: currentSubtitle,

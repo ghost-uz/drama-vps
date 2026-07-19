@@ -339,7 +339,7 @@
           "title_en": "Skip-intro markers + next-episode countdown overlay",
           "title_uz": "Intro-skip markerlari + keyingi-qism countdown overlay",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Episode.intro_start/intro_end (sekund, null=True) — pleyer shu oraliqda 'Intro'ni o'tkazish' tugmasini ko'rsatadi (bosilsa intro_end'ga seek). Auto-next MAVJUD (P5-T2 'ended' event) — uni chiroyli qilish: tugashdan 15s oldin 'Keyingi qism: N' countdown overlay + Bekor tugmasi. Ikkalasi player.js'da, server faqat markerlarni beradi.",
           "acceptance_criteria": [

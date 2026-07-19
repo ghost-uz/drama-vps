@@ -323,3 +323,22 @@
     .cp-time { font-size: 11px; }
     .cp-btn { width: 34px; }
 }
+
+/* ── Intro-skip [V2E-T2] ─────────────────────────────── */
+.cp-skip-intro {
+    position: absolute;
+    right: 16px; bottom: 84px;
+    z-index: 30;
+    display: none;
+    align-items: center; gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 10px;
+    color: #fff; font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.cp-skip-intro:hover { background: rgba(0,204,76,0.25); border-color: rgba(0,204,76,0.6); }
+.cp-skip-intro.on { display: inline-flex; }
