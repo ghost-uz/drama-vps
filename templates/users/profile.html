@@ -77,6 +77,18 @@
                             </button>
                         </form>
                     {% endif %}
+
+                    {# Bloklash/blokdan olish [V2B-T5] — izohlari collapse bo'ladi #}
+                    <form action="{% if is_blocked %}{% url 'users:block_remove' %}{% else %}{% url 'users:block_add' %}{% endif %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="username" value="{{ person.username }}">
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button type="submit" aria-pressed="{% if is_blocked %}true{% else %}false{% endif %}"
+                                class="flex items-center gap-2 px-4 py-2.5 rounded-2xl border transition-all shadow-lg font-bold text-sm
+                                       {% if is_blocked %}bg-gray-500/10 border-gray-500/20 text-gray-400 hover:bg-gray-500/20{% else %}bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20{% endif %}">
+                            <i class="fas fa-user-slash"></i> {% if is_blocked %}Blokdan olish{% else %}Bloklash{% endif %}
+                        </button>
+                    </form>
                 {% endif %}
             </div>
 

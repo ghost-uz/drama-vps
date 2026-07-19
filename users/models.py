@@ -568,3 +568,21 @@ class CollectionItem(models.Model):
             models.UniqueConstraint(fields=["collection", "movie"], name="uniq_collection_movie")
         ]
         ordering = ["position", "id"]
+
+
+class UserBlock(models.Model):
+    """Foydalanuvchi bloki [V2B-T5] — BIR TOMONLAMA: blocker uchun blocked'ning
+    izohlari collapse ko'rinadi va blocker ularga javob yoza olmaydi.
+    (Blocked tomonga hech narsa bildirilmaydi — jim mute.)"""
+
+    blocker = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="blocks")
+    blocked = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="blocked_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["blocker", "blocked"], name="uniq_user_block"),
+            models.CheckConstraint(
+                condition=~models.Q(blocker=models.F("blocked")), name="no_self_block"
+            ),
+        ]

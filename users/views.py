@@ -38,6 +38,7 @@ from .models import (
     Notification,
     SubscriptionPlan,
     TopUpRequest,
+    UserBlock,
     UserMovieList,
 )
 from .selectors import continue_watching
@@ -179,8 +180,13 @@ def profile_view(request, username):
 
     # Follow holatini tekshirish — .exists() bilan, barcha followerlarni yuklamasdan
     is_following = False
+    is_blocked = False
     if request.user.is_authenticated and request.user != person:
         is_following = request.user.profile.following.filter(pk=profile.pk).exists()
+        # [V2B-T5] profil tugmasi holati
+        is_blocked = UserBlock.objects.filter(
+            blocker=request.user.profile, blocked=profile
+        ).exists()
 
     # [V2B-T4] Vitrina: mehmonga faqat OMMAVIY kolleksiyalar; egaga hammasi
     collections_qs = profile.collections.all()
@@ -192,6 +198,7 @@ def profile_view(request, username):
         "profile": profile,
         "watched_history": watched_history,
         "is_following": is_following,
+        "is_blocked": is_blocked,
         "collections": collections_qs[:6],
         # 'Davom ettirish' — faqat o'z profilida (shaxsiy progress) [P6-T3]
         "continue_watching": continue_watching(person, limit=6) if request.user == person else None,
@@ -300,6 +307,8 @@ def settings_view(request):
     # eski email va tasdiq holatini forma yaratilishidan OLDIN olamiz [P6-T1].
     old_email = request.user.email
     email_verified = email_verification.is_verified(request.user)
+    # [V2B-T5] Blok ro'yxati (settings'da boshqariladi)
+    blocked_profiles = request.user.profile.blocks.select_related("blocked__user")
 
     if request.method == "POST":
         u_form = UserUpdateForm(request.POST, instance=request.user)
@@ -326,6 +335,7 @@ def settings_view(request):
             "u_form": u_form,
             "p_form": p_form,
             "email_verified": email_verified,
+            "blocked_profiles": blocked_profiles,
             "title": "Profil sozlamalari",
         },
     )
@@ -719,3 +729,44 @@ def collection_item_move(request, slug, item_id):
     CollectionItem.objects.bulk_update(items, ["position"])
     _touch_collection(collection)
     return redirect(collection.get_absolute_url())
+
+
+# ============================================================================
+# FOYDALANUVCHI BLOKLASH (mute) [V2B-T5]
+# ============================================================================
+
+
+@login_required
+@require_POST
+def block_add(request):
+    """Bloklash: POST username (settings-forma yoki profil tugmasi)."""
+    username = (request.POST.get("username") or "").strip()
+    target = User.objects.filter(username=username).first()
+    if target is None:
+        messages.error(request, f"“{username}” topilmadi.")
+    elif target == request.user:
+        messages.error(request, "O'zingizni bloklay olmaysiz.")
+    else:
+        _b, created = UserBlock.objects.get_or_create(
+            blocker=request.user.profile, blocked=target.profile
+        )
+        if created:
+            messages.success(
+                request, f"{target.username} bloklandi — izohlari yig'ilgan ko'rinadi."
+            )
+        else:
+            messages.info(request, f"{target.username} allaqachon bloklangan.")
+    return redirect(_safe_next(request, fallback="users:settings"))
+
+
+@login_required
+@require_POST
+def block_remove(request):
+    """Blokdan olish: POST username."""
+    username = (request.POST.get("username") or "").strip()
+    deleted, _ = UserBlock.objects.filter(
+        blocker=request.user.profile, blocked__user__username=username
+    ).delete()
+    if deleted:
+        messages.success(request, f"{username} blokdan olindi.")
+    return redirect(_safe_next(request, fallback="users:settings"))

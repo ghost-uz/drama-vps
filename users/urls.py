@@ -75,6 +75,9 @@ urlpatterns = [
     ),
     # Kino ro'yxati
     path("dramalist/<str:username>/", user_views.user_full_list, name="user_drama_list"),
+    # --- Bloklash [V2B-T5] ---
+    path("blocks/add/", user_views.block_add, name="block_add"),
+    path("blocks/remove/", user_views.block_remove, name="block_remove"),
     # --- Kolleksiyalar [V2B-T4] ---
     path("kolleksiyalar/", user_views.my_collections, name="my_collections"),
     path("kolleksiyalar/<slug:slug>/tahrir/", user_views.collection_edit, name="collection_edit"),

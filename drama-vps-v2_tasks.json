@@ -170,7 +170,7 @@
           "title_en": "Comment reporting + user block/mute",
           "title_uz": "Izoh report + foydalanuvchi bloklash/mute",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["v1:P14-T3"],
           "description_uz": "Report tugmasi (sabab tanlash) -> v1 P14-T3 moderatsiya navbatiga tushadi. UserBlock(user, blocked_user): bloklangan user izohlari 'yashirilgan' bo'lib keladi (ko'rsatish tugmasi bilan), unga reply yozib bo'lmaydi. Settings'da blok ro'yxati.",
           "acceptance_criteria": [

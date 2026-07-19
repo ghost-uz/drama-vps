@@ -1195,3 +1195,52 @@ def test_profile_showcase_public_only_for_visitors(client):
     client.force_login(owner)
     html2 = client.get(url).content.decode()
     assert "OmmaviyV" in html2 and "ShaxsiyV" in html2
+
+
+# --- V2B-T5: foydalanuvchi bloklash (mute) ---
+
+
+@pytest.mark.django_db
+def test_block_add_remove_and_dedup(client):
+    """Blok qo'shish idempotent (get_or_create); olib tashlash ishlaydi."""
+    from users.models import UserBlock
+
+    u = User.objects.create_user(username="blk_a", password="pass12345")
+    User.objects.create_user(username="blk_b", password="pass12345")
+    client.force_login(u)
+    client.post(reverse("users:block_add"), {"username": "blk_b"})
+    client.post(reverse("users:block_add"), {"username": "blk_b"})  # dedup
+    assert UserBlock.objects.filter(blocker=u.profile).count() == 1
+    client.post(reverse("users:block_remove"), {"username": "blk_b"})
+    assert UserBlock.objects.filter(blocker=u.profile).count() == 0
+
+
+@pytest.mark.django_db
+def test_block_self_rejected(client):
+    """O'zini bloklash: view rad etadi, DB constraint ham himoya qiladi."""
+    from django.db import IntegrityError, transaction
+
+    from users.models import UserBlock
+
+    u = User.objects.create_user(username="blk_self", password="pass12345")
+    client.force_login(u)
+    client.post(reverse("users:block_add"), {"username": "blk_self"})
+    assert UserBlock.objects.count() == 0
+    with pytest.raises(IntegrityError), transaction.atomic():
+        UserBlock.objects.create(blocker=u.profile, blocked=u.profile)
+
+
+@pytest.mark.django_db
+def test_settings_block_list_and_profile_button(client):
+    """AC-3: settings'da ro'yxat + olib tashlash; profil tugmasi holat almashadi."""
+    from users.models import UserBlock
+
+    u = User.objects.create_user(username="blk_set", password="pass12345")
+    t = User.objects.create_user(username="blk_target", password="pass12345")
+    client.force_login(u)
+    prof_url = reverse("users:profile", args=["blk_target"])
+    assert "Bloklash" in client.get(prof_url).content.decode()
+    UserBlock.objects.create(blocker=u.profile, blocked=t.profile)
+    assert "Blokdan olish" in client.get(prof_url).content.decode()
+    html = client.get(reverse("users:settings")).content.decode()
+    assert "Bloklanganlar" in html and "blk_target" in html

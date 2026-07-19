@@ -2186,7 +2186,9 @@ def test_continue_watching_latest_per_movie_across_movies():
 # --- V2B-T2: izoh reaksiyalari (like) + saralash + komment-forma mavjudligi ---
 
 
-QUERYCOUNT_REVIEWS_PAGE = 6  # sessiya+user+movie+roots(Exists bilan)+replies+paginator
+QUERYCOUNT_REVIEWS_PAGE = (
+    7  # sessiya+user+movie+roots(Exists)+replies+paginator+blok-ro'yxati [V2B-T5]
+)
 
 
 def _review_user(username="liker"):
@@ -2464,3 +2466,59 @@ def test_old_reviews_unbroken_episode_null(client):
     assert "eski-izoh" in client.get(url, {"episode": ep1.id}).content.decode()
     assert "eski-izoh" in client.get(url, {"episode": ep2.id}).content.decode()
     assert "eski-izoh" in client.get(url).content.decode()
+
+
+# --- V2B-T5: bloklangan muallif izohlari collapse + reply-taqiq ---
+
+
+@pytest.mark.django_db
+def test_blocked_author_comment_collapsed(client):
+    """AC-2: blocker uchun bloklangan muallif izohi collapse (<details>) keladi;
+    boshqa viewer va anonim uchun ODDIY ko'rinadi."""
+    from users.models import UserBlock
+
+    movie = Movie.objects.create(title="BlokKino", description="x", country="KR")
+    author = User.objects.create_user(username="blk_author", password="pass12345")
+    Review.objects.create(user=author, movie=movie, text="blok-matn-x")
+    viewer = User.objects.create_user(username="blk_viewer", password="pass12345")
+    UserBlock.objects.create(blocker=viewer.profile, blocked=author.profile)
+
+    url = reverse("drama:movie_comments", args=[movie.id])
+    client.force_login(viewer)
+    html = client.get(url).content.decode()
+    assert "Bloklangan foydalanuvchi izohi" in html  # collapse chip
+    assert "blok-matn-x" in html  # matn details ICHIDA (DOM'da bor, yopiq)
+
+    client.logout()
+    html_anon = client.get(url).content.decode()
+    assert "Bloklangan foydalanuvchi izohi" not in html_anon
+    assert "blok-matn-x" in html_anon
+
+
+@pytest.mark.django_db
+def test_reply_to_blocked_author_403_one_way(client):
+    """Blocker bloklangan muallifga javob yoza olmaydi (403); TESKARISI mumkin
+    (bir tomonlama mute)."""
+    from users.models import UserBlock
+
+    movie = Movie.objects.create(title="BlokReply", description="x", country="KR")
+    author = User.objects.create_user(username="blkr_author", password="pass12345")
+    root = Review.objects.create(user=author, movie=movie, text="root-blk")
+    viewer = User.objects.create_user(username="blkr_viewer", password="pass12345")
+    UserBlock.objects.create(blocker=viewer.profile, blocked=author.profile)
+
+    client.force_login(viewer)
+    resp = client.post(
+        reverse("drama:add_review", args=[movie.id]), {"text": "taqiq", "parent": root.id}
+    )
+    assert resp.status_code == 403
+    assert not Review.objects.filter(text="taqiq").exists()
+
+    # Teskari yo'nalish: author viewer'ning izohiga javob yoza OLADI
+    viewer_root = Review.objects.create(user=viewer, movie=movie, text="viewer-root")
+    client.force_login(author)
+    client.post(
+        reverse("drama:add_review", args=[movie.id]),
+        {"text": "erkin-javob", "parent": viewer_root.id},
+    )
+    assert Review.objects.filter(text="erkin-javob", parent=viewer_root).exists()

@@ -13,7 +13,7 @@ from django.views.generic.base import View
 from django_ratelimit.decorators import ratelimit
 
 from core.ratelimit import ip_key, rate, user_or_ip_key
-from users.models import CoinTransaction, Notification, UserMovieList
+from users.models import CoinTransaction, Notification, UserBlock, UserMovieList
 from users.services import notifications as notif
 from users.services import wallet
 
@@ -334,6 +334,11 @@ class MovieDetailView(GenreYearMixin, DetailView):
         else:
             context["sheet_reviews"] = _roots
 
+        # [V2B-T5] Bloklangan mualliflar izohlari collapse ko'rinadi
+        from users.selectors import blocked_user_ids
+
+        context["blocked_user_ids"] = blocked_user_ids(self.request.user)
+
         user = self.request.user
 
         # ==========================================
@@ -562,6 +567,10 @@ class MovieReviewsView(GenreYearMixin, ListView):
         context["title"] = f"{self.movie.title} - Barcha fikrlar"
         # [V2B-T2] saralash holati (template tugmalari uchun; oq ro'yxat: new|top)
         context["sort"] = "top" if self.request.GET.get("sort") == "top" else "new"
+        # [V2B-T5] blok collapse-filtri
+        from users.selectors import blocked_user_ids
+
+        context["blocked_user_ids"] = blocked_user_ids(self.request.user)
         return context
 
 
@@ -604,6 +613,16 @@ class AddReview(View):
                     return HttpResponse("Izoh topilmadi", status=404)
                 if parent.parent_id:
                     parent = parent.parent
+                # [V2B-T5] Blocker bloklagan muallifga javob yoza olmaydi
+                if (
+                    parent.user_id
+                    and UserBlock.objects.filter(
+                        blocker=request.user.profile, blocked__user_id=parent.user_id
+                    ).exists()
+                ):
+                    return HttpResponse(
+                        "Bloklangan foydalanuvchiga javob yozib bo'lmaydi", status=403
+                    )
                 review.parent = parent
                 # [V2B-T3] Javob threadi bir joyda tursin — qism ROOT'dan meros
                 review.episode = parent.episode
@@ -685,10 +704,15 @@ class MovieCommentsPartial(View):
             roots = roots.annotate(user_liked=liked)
             replies = replies.annotate(user_liked=liked)
         roots = roots.prefetch_related(Prefetch("replies", queryset=replies))
+        from users.selectors import blocked_user_ids
+
         return render(
             request,
             "movies/partials/comment_list.html",
-            {"reviews": roots.order_by("-id")[:30]},
+            {
+                "reviews": roots.order_by("-id")[:30],
+                "blocked_user_ids": blocked_user_ids(request.user),
+            },
         )
 
 

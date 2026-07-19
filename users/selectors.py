@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.db.models import F, Window
 from django.db.models.functions import RowNumber
 
-from users.models import WatchProgress
+from users.models import UserBlock, WatchProgress
 
 
 def continue_watching(user, limit: int = 12):
@@ -29,4 +29,20 @@ def continue_watching(user, limit: int = 12):
         .filter(rn=1)
         .select_related("episode", "episode__movie")
         .order_by("-updated_at")[:limit]
+    )
+
+
+def blocked_user_ids(user):
+    """[V2B-T5] Viewer bloklagan mualliflarning user_id to'plami.
+
+    Izoh ro'yxatlarida collapse-filtri uchun BITTA so'rov — har izohga alohida
+    Exists-annotatsiya o'rniga (bir sahifada bir xil viewer uchun bir xil to'plam).
+    """
+    if not user.is_authenticated:
+        return set()
+    # blocker__user_id join — user.profile'ni alohida SELECT qilmaslik uchun
+    return set(
+        UserBlock.objects.filter(blocker__user_id=user.id).values_list(
+            "blocked__user_id", flat=True
+        )
     )
