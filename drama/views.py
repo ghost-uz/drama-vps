@@ -334,6 +334,9 @@ class MovieDetailView(GenreYearMixin, DetailView):
         else:
             context["sheet_reviews"] = _roots
 
+        # [V2E-T1] Aktiv qism subtitrlari — pleyerda <track> bo'ladi (1 so'rov)
+        context["subtitles"] = list(active_episode.subtitles.all()) if active_episode else []
+
         # [V2B-T5] Bloklangan mualliflar izohlari collapse ko'rinadi
         from users.selectors import blocked_user_ids
 

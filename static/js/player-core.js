@@ -131,9 +131,56 @@ window.DramaPlayerCore = function (video, d, opts) {
 
     if (d.useBunny) initHls();
 
+    /* ── Subtitrlar [V2E-T1] ─────────────────────────────────
+       <track> ro'yxati DOM'dan; tanlov localStorage (drama:subLang).
+       Cycle: off -> 1-til -> 2-til -> ... -> off. textTracks metadata
+       yuklangach tayyor bo'ladi — saqlangan tanlov loadedmetadata'da ham
+       qayta qo'llanadi. */
+    var SUB_KEY = 'drama:subLang';
+
+    function subTracks() {
+        return video ? Array.prototype.slice.call(video.textTracks) : [];
+    }
+
+    function applySubtitle(lang) {
+        subTracks().forEach(function (t) {
+            t.mode = (lang && t.language === lang) ? 'showing' : 'hidden';
+        });
+    }
+
+    function currentSubtitle() {
+        var showing = subTracks().filter(function (t) { return t.mode === 'showing'; })[0];
+        return showing ? showing.language : '';
+    }
+
+    function cycleSubtitle() {
+        var langs = subTracks().map(function (t) { return t.language; });
+        if (!langs.length) return '';
+        var cur = currentSubtitle();
+        var idx = langs.indexOf(cur);
+        var next = cur === '' ? langs[0] : (idx + 1 < langs.length ? langs[idx + 1] : '');
+        applySubtitle(next);
+        try { localStorage.setItem(SUB_KEY, next); } catch (e) { /* private mode */ }
+        return next;
+    }
+
+    function restoreSubtitle() {
+        try {
+            var saved = localStorage.getItem(SUB_KEY);
+            if (saved) applySubtitle(saved);
+        } catch (e) { /* private mode */ }
+    }
+
+    if (video) {
+        restoreSubtitle();
+        video.addEventListener('loadedmetadata', restoreSubtitle);
+    }
+
     return {
         prevEp: prevEp,
         nextEp: nextEp,
+        cycleSubtitle: cycleSubtitle,
+        currentSubtitle: currentSubtitle,
         epUrl: function (num) { return BASE_URL + '?episode=' + num; },
         hls: function () { return hlsInst; },
         saveProgress: saveProgress,

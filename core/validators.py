@@ -187,3 +187,47 @@ class RandomFileName:
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, RandomFileName) and self.prefix == other.prefix
+
+
+@deconstructible
+class SubtitleFileValidator:
+    """VTT subtitr yuklash [V2E-T1]: faqat .vtt + WEBVTT magic + hajm cheki.
+
+    P10-T3 uslubi: kontent tekshiruvi HTML/skriptni subtitr niqobida yuklab,
+    ommaviy CDN ostida servis qildirishning (stored-XSS) oldini oladi.
+    """
+
+    def __init__(self, max_mb: int = 2) -> None:
+        self.max_mb = max_mb
+
+    def __call__(self, file: Any) -> None:
+        if _is_committed(file):
+            return
+
+        size = getattr(file, "size", 0) or 0
+        if size > self.max_mb * 1024 * 1024:
+            raise ValidationError(
+                f"Subtitr hajmi {self.max_mb} MB dan oshmasligi kerak.",
+                code="vtt_too_large",
+            )
+
+        ext = Path(getattr(file, "name", "") or "").suffix.lower()
+        if ext != ".vtt":
+            raise ValidationError("Faqat .vtt (WebVTT) fayl qabul qilinadi.", code="vtt_ext")
+
+        try:
+            file.seek(0)
+            head = file.read(16)
+        except Exception as exc:
+            raise ValidationError("Subtitr faylni o'qib bo'lmadi.", code="vtt_unreadable") from exc
+        finally:
+            with contextlib.suppress(Exception):
+                file.seek(0)
+
+        # UTF-8 BOM bilan kelishi mumkin — undan keyin WEBVTT bo'lishi SHART
+        if head.startswith(b"\xef\xbb\xbf"):
+            head = head[3:]
+        if not head.startswith(b"WEBVTT"):
+            raise ValidationError(
+                "Fayl WebVTT emas (WEBVTT sarlavhasi topilmadi).", code="vtt_magic"
+            )

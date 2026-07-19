@@ -250,4 +250,19 @@ if (els.cpNextCancel) {
     });
 }
 
+/* ── Subtitr tanlash [V2E-T1] — cycle tugma (mantiq yadroda) ── */
+(function () {
+    const subBtn = document.getElementById('cpSubBtn');
+    if (!subBtn) return; /* subtitrsiz qism — tugma template'da yo'q */
+    subBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const lang = core.cycleSubtitle();
+        subBtn.textContent = lang ? lang.toUpperCase() : 'CC';
+    });
+    video.addEventListener('loadedmetadata', () => {
+        const l = core.currentSubtitle();
+        subBtn.textContent = l ? l.toUpperCase() : 'CC';
+    });
+})();
+
 })();

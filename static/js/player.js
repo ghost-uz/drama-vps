@@ -259,6 +259,24 @@ window.switchQuality = function () {
 };
 
 /* ─────────────────────────────────────────────────────────
+   SUBTITR TANLASH [V2E-T1] — cycle tugma (yadro boshqaradi)
+───────────────────────────────────────────────────────── */
+window.cycleSubtitle = function () {
+    var lang = core.cycleSubtitle();
+    var btn = document.getElementById('rSubBtn');
+    if (btn) btn.textContent = lang ? lang.toUpperCase() : 'CC';
+};
+(function () {
+    var btn = document.getElementById('rSubBtn');
+    if (btn && video) {
+        video.addEventListener('loadedmetadata', function () {
+            var l = core.currentSubtitle();
+            btn.textContent = l ? l.toUpperCase() : 'CC';
+        });
+    }
+})();
+
+/* ─────────────────────────────────────────────────────────
    FULLSCREEN
 ───────────────────────────────────────────────────────── */
 function toggleFullscreen() {

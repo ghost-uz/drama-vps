@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from core.images import ImageOptimizationMixin, is_new_upload
-from core.validators import ImageFileValidator, VideoFileValidator
+from core.validators import ImageFileValidator, SubtitleFileValidator, VideoFileValidator
 
 
 def movie_poster_path(instance, filename):
@@ -466,6 +466,37 @@ class Rating(models.Model):
     ip = models.GenericIPAddressField("IP Manzil")
     star = models.ForeignKey(RatingStar, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="ratings")
+
+
+class EpisodeSubtitle(models.Model):
+    """Qism subtitri (WebVTT) [V2E-T1] — pleyerda <track kind=subtitles> bo'ladi."""
+
+    LANG_CHOICES = [
+        ("uz", "O'zbekcha"),
+        ("ru", "Русский"),
+        ("en", "English"),
+        ("ko", "한국어"),
+    ]
+
+    episode = models.ForeignKey(Episode, on_delete=models.CASCADE, related_name="subtitles")
+    lang = models.CharField("Til", max_length=8, choices=LANG_CHOICES)
+    label = models.CharField("Yorliq (bo'sh = til nomi)", max_length=40, blank=True)
+    vtt_file = models.FileField(
+        "VTT fayl", upload_to="subtitles/", validators=[SubtitleFileValidator(max_mb=2)]
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["episode", "lang"], name="uniq_episode_subtitle_lang")
+        ]
+        ordering = ["lang"]
+
+    def __str__(self):
+        return f"{self.episode} [{self.lang}]"
+
+    @property
+    def display_label(self):
+        return self.label or self.get_lang_display()
 
 
 class Review(TimeStampedModel):

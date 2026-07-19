@@ -929,7 +929,11 @@ body > main {
                        poster="{{ video_thumbnail|default:movie.poster.url }}"
                        playsinline
                        oncontextmenu="return false;"
-                       controlsList="nodownload noremoteplayback nofullscreen">
+                       controlsList="nodownload noremoteplayback nofullscreen"
+                       {% if subtitles %}crossorigin="anonymous"{% endif %}>
+                    {% for sub in subtitles %}
+                    <track kind="subtitles" src="{{ sub.vtt_file.url }}" srclang="{{ sub.lang }}" label="{{ sub.display_label }}">
+                    {% endfor %}
                 </video>
             {% elif "<iframe" in video_720 %}
                 <div class="embed-wrap">{{ video_720|safe }}</div>
@@ -943,11 +947,15 @@ body > main {
                        poster="{{ movie.poster.url }}"
                        playsinline
                        oncontextmenu="return false;"
-                       controlsList="nodownload noremoteplayback nofullscreen">
+                       controlsList="nodownload noremoteplayback nofullscreen"
+                       {% if subtitles %}crossorigin="anonymous"{% endif %}>
                     <source src="{{ video_720 }}" type="video/mp4" id="videoSource720">
                     {% if video_1080 and video_1080 != video_720 %}
                     <source src="{{ video_1080 }}" type="video/mp4" id="videoSource1080">
                     {% endif %}
+                    {% for sub in subtitles %}
+                    <track kind="subtitles" src="{{ sub.vtt_file.url }}" srclang="{{ sub.lang }}" label="{{ sub.display_label }}">
+                    {% endfor %}
                 </video>
             {% endif %}
         {% endif %}
@@ -991,8 +999,10 @@ body > main {
         </div>
         {% if not is_restricted and use_bunny %}
         <button class="r-quality-btn" id="rQualBtn" onclick="switchQuality()">HD</button>
+        {% if subtitles %}<button class="r-quality-btn" id="rSubBtn" onclick="cycleSubtitle()" aria-label="Subtitr tili">CC</button>{% endif %}
         {% elif video_1080 and video_1080 != video_720 and not is_restricted %}
         <button class="r-quality-btn" id="rQualBtn" onclick="switchQuality()">HD</button>
+        {% if subtitles %}<button class="r-quality-btn" id="rSubBtn" onclick="cycleSubtitle()" aria-label="Subtitr tili">CC</button>{% endif %}
         {% endif %}
     </div>
 

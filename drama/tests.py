@@ -1404,8 +1404,8 @@ def test_detail_query_count_constant_as_content_grows(client, django_assert_num_
 
     Kutilgan (issiq kesh, anonim): 1 movie(+category+funding join) +
     prefetchlar (episodes/genres/main_actors/tags/reviews/replies) + 1
-    similar pk-fetch = 8. Oldin har review profile (avatar) va replies
-    uchun alohida so'rov ochardi.
+    similar pk-fetch + 1 subtitles [V2E-T1] = 9. Oldin har review profile
+    (avatar) va replies uchun alohida so'rov ochardi.
     """
     from django.core.cache import cache
 
@@ -1419,7 +1419,7 @@ def test_detail_query_count_constant_as_content_grows(client, django_assert_num_
     cache.clear()
     url = movie.get_absolute_url()
     client.get(url)  # kesh isitish (catalog + similar ID'lar)
-    with django_assert_num_queries(8):
+    with django_assert_num_queries(9):
         client.get(url)
 
     # Kontent o'sadi: +3 review (har biri javobli). Review katalog modeli EMAS
@@ -1427,7 +1427,7 @@ def test_detail_query_count_constant_as_content_grows(client, django_assert_num_
     for i in range(3):
         r = Review.objects.create(user=author, movie=movie, text=f"Yangi fikr {i}")
         Review.objects.create(user=admin_u, movie=movie, text=f"Yangi javob {i}", parent=r)
-    with django_assert_num_queries(8):
+    with django_assert_num_queries(9):
         resp = client.get(url)
     assert b"Yangi fikr 2" in resp.content
 
@@ -2522,3 +2522,81 @@ def test_reply_to_blocked_author_403_one_way(client):
         {"text": "erkin-javob", "parent": viewer_root.id},
     )
     assert Review.objects.filter(text="erkin-javob", parent=viewer_root).exists()
+
+
+# --- V2E-T1: epizod subtitrlari (VTT) ---
+
+
+def _vtt(name="sub.vtt", content=b"WEBVTT\n\n00:00.000 --> 00:02.000\nSalom\n"):
+    return SimpleUploadedFile(name, content, content_type="text/vtt")
+
+
+def test_subtitle_validator_rules():
+    """[V2E-T1 AC] faqat .vtt + WEBVTT magic (BOM'ga toqat) + 2MB limit."""
+    from core.validators import SubtitleFileValidator
+
+    v = SubtitleFileValidator(max_mb=2)
+    v(_vtt())  # sof VTT — o'tadi
+    v(_vtt(content=b"\xef\xbb\xbfWEBVTT\nok"))  # UTF-8 BOM bilan ham o'tadi
+    with pytest.raises(ValidationError):
+        v(_vtt(name="sub.srt"))  # kengaytma
+    with pytest.raises(ValidationError):
+        v(_vtt(content=b"<html>xss</html>"))  # magic yo'q (stored-XSS himoya)
+    big = SimpleUploadedFile(
+        "big.vtt", b"WEBVTT\n" + b"a" * (2 * 1024 * 1024 + 1), content_type="text/vtt"
+    )
+    with pytest.raises(ValidationError):
+        v(big)
+
+
+@pytest.mark.django_db
+def test_subtitle_unique_per_episode_lang():
+    from django.db import IntegrityError, transaction
+
+    from drama.models import EpisodeSubtitle
+
+    _movie_obj, (ep1, _ep2) = _ep_movie("SubUniq")
+    sub = EpisodeSubtitle.objects.create(episode=ep1, lang="uz", vtt_file=_vtt())
+    assert sub.display_label == "O'zbekcha"  # label bo'sh -> til nomi
+    with pytest.raises(IntegrityError), transaction.atomic():
+        EpisodeSubtitle.objects.create(episode=ep1, lang="uz", vtt_file=_vtt("s2.vtt"))
+
+
+@pytest.mark.django_db
+def test_reels_page_renders_tracks_for_anonymous(client):
+    """[V2E-T1 AC] <track> + crossorigin + CC tugma — anonim uchun ham."""
+    from drama.models import EpisodeSubtitle
+
+    movie, (ep1, _ep2) = _ep_movie("SubReels")
+    Episode.objects.filter(pk=ep1.pk).update(
+        bunny_video_id="subvid1"
+    )  # video-branch render bo'lsin
+    EpisodeSubtitle.objects.create(episode=ep1, lang="uz", vtt_file=_vtt())
+    EpisodeSubtitle.objects.create(episode=ep1, lang="ru", vtt_file=_vtt("ru.vtt"))
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert html.count("<track ") == 2
+    assert 'srclang="uz"' in html and 'srclang="ru"' in html
+    assert 'crossorigin="anonymous"' in html
+    assert 'id="rSubBtn"' in html
+
+    # subtitrsiz qism: track ham, crossorigin ham, tugma ham YO'Q
+    html2 = client.get(movie.get_absolute_url() + "?episode=2").content.decode()
+    assert "<track " not in html2
+    assert 'crossorigin="anonymous"' not in html2
+    assert 'id="rSubBtn"' not in html2
+
+
+@pytest.mark.django_db
+def test_classic_page_renders_tracks(client):
+    from drama.models import Category, EpisodeSubtitle
+
+    cat = Category.objects.create(
+        name="SubKlassik", slug="sub-klassik", player_type=Category.PlayerType.CLASSIC
+    )
+    movie, (ep1, _ep2) = _ep_movie("SubClassic")
+    Movie.objects.filter(pk=movie.pk).update(category=cat)
+    EpisodeSubtitle.objects.create(episode=ep1, lang="en", vtt_file=_vtt())
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert 'srclang="en"' in html
+    assert 'id="cpSubBtn"' in html
+    assert 'crossorigin="anonymous"' in html

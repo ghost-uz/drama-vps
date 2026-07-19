@@ -63,13 +63,17 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                    playsinline
                    preload="metadata"
                    oncontextmenu="return false;"
-                   controlsList="nodownload noremoteplayback">
+                   controlsList="nodownload noremoteplayback"
+                   {% if subtitles %}crossorigin="anonymous"{% endif %}>
                 {% if not use_bunny %}
                 <source src="{{ video_720 }}" type="video/mp4">
                 {% if video_1080 and video_1080 != video_720 %}
                 <source src="{{ video_1080 }}" type="video/mp4">
                 {% endif %}
                 {% endif %}
+                {% for sub in subtitles %}
+                <track kind="subtitles" src="{{ sub.vtt_file.url }}" srclang="{{ sub.lang }}" label="{{ sub.display_label }}">
+                {% endfor %}
             </video>
 
             <button id="cpBigPlay" class="cp-big-play" aria-label="Ijro etish"><i class="fas fa-play"></i></button>
@@ -100,6 +104,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     <span id="cpTime" class="cp-time">0:00 / 0:00</span>
                     <div class="cp-spacer"></div>
                     <div class="cp-menu-wrap">
+                        {% if subtitles %}<button id="cpSubBtn" class="cp-btn cp-btn-text" aria-label="Subtitr tili">CC</button>{% endif %}
                         <button id="cpSpeedBtn" class="cp-btn cp-btn-text" aria-label="Tezlik">1x</button>
                         <div id="cpSpeedMenu" class="cp-menu">
                             <button data-speed="0.5" type="button">0.5x</button>

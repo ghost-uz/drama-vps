@@ -323,7 +323,7 @@
           "title_en": "Subtitles (VTT) per episode",
           "title_uz": "Epizod subtitrlari (VTT, ko'p til)",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "EpisodeSubtitle(episode, lang [uz/en/ko...], vtt_file, label) — admin inline'da yuklanadi (P10-T3 validator uslubida: kengaytma+hajm+mazmun tekshiruv). Pleyerda <track kind=subtitles> + til tanlash tugmasi (hls.js native text-track bilan ishlaydi). VTT fayl GCS'dan (CSP media/connect ruxsatlari tekshiriladi). Bunny captions API'ga ko'chirish — ixtiyoriy keyingi qadam.",
           "acceptance_criteria": [

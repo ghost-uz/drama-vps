@@ -15,6 +15,7 @@ from .models import (
     ActorGift,
     Category,
     Episode,
+    EpisodeSubtitle,
     Genre,
     Movie,
     MovieShots,
@@ -397,6 +398,14 @@ class MovieAdmin(BunnyVideoAdminMixin, ModelAdmin, TranslationAdmin):
         return render(request, "admin/drama/movie/tmdb_import.html", context)
 
 
+class EpisodeSubtitleInline(TabularInline):
+    """Qism subtitrlari [V2E-T1] — VTT validatsiya SubtitleFileValidator'da."""
+
+    model = EpisodeSubtitle
+    extra = 0
+    fields = ("lang", "label", "vtt_file")
+
+
 @admin.register(Episode)
 class EpisodeAdmin(BunnyVideoAdminMixin, ModelAdmin):
     """Qismlar ro'yxati: yuklash/encoding holatini bir qarashda ko'rish + retry [P14-T1]."""
@@ -414,6 +423,7 @@ class EpisodeAdmin(BunnyVideoAdminMixin, ModelAdmin):
     list_select_related = ("movie", "season")
     actions = ["retry_bunny_upload", "refresh_bunny_status"]
     readonly_fields = ("display_upload_status",)
+    inlines = [EpisodeSubtitleInline]
     fieldsets = (
         (
             _("Asosiy"),
