@@ -13,16 +13,16 @@
         </div>
 
         <div class="text-xs text-gray-300 leading-relaxed">
-            {% if review.text|length > 280 %}
-                <span class="comment-short-text inline">{{ review.text|truncatechars:280 }}</span>
-                <span class="comment-full-text hidden inline">{{ review.text }}</span>
-                <button type="button" onclick="toggleReviewText(this)" class="text-[#00cc4c] font-black text-[10px] uppercase tracking-widest ml-1 hover:underline">
-                    Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>
-                </button>
+            {% if review.is_spoiler %}
+            <details>
+                <summary style="cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px dashed rgba(255,193,7,0.55);border-radius:10px;color:#ffc107;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
+                    <i class="fas fa-eye-slash" aria-hidden="true"></i> Spoyler — ochish uchun bosing
+                </summary>
+                <div style="margin-top:8px;">{% include 'movies/partials/_review_text.html' %}</div>
+            </details>
             {% else %}
-                {{ review.text }}
-            {% endif %}
-    </div>
+            {% include 'movies/partials/_review_text.html' %}
+            {% endif %}        </div>
         <div class="flex items-center gap-2">
             {% include 'movies/partials/_like_button.html' %}
             {% include 'movies/partials/_report_form.html' %}
@@ -52,7 +52,7 @@
                             </span>
                         {% endif %}
                     </h4>
-                    <p class="text-[10px] text-gray-600 font-bold uppercase">{{ review.created_at|timesince }} avval</p>
+                    <p class="text-[10px] text-gray-600 font-bold uppercase">{{ review.created_at|timesince }} avval{% if review.episode_id %} · <span style="color:#00cc4c;">{{ review.episode.episode_number }}-qism</span>{% endif %}</p>
                 </div>
             </div>
 
@@ -70,16 +70,16 @@
         </div>
 
         <div class="text-gray-300 text-sm leading-relaxed ml-2">
-            {% if review.text|length > 280 %}
-                <span class="comment-short-text inline">{{ review.text|truncatechars:280 }}</span>
-                <span class="comment-full-text hidden inline">{{ review.text }}</span>
-                <button type="button" onclick="toggleReviewText(this)" class="text-[#00cc4c] font-black text-[10px] uppercase tracking-widest ml-1 hover:underline">
-                    Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>
-                </button>
+            {% if review.is_spoiler %}
+            <details>
+                <summary style="cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px dashed rgba(255,193,7,0.55);border-radius:10px;color:#ffc107;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">
+                    <i class="fas fa-eye-slash" aria-hidden="true"></i> Spoyler — ochish uchun bosing
+                </summary>
+                <div style="margin-top:8px;">{% include 'movies/partials/_review_text.html' %}</div>
+            </details>
             {% else %}
-                {{ review.text }}
-            {% endif %}
-        </div>
+            {% include 'movies/partials/_review_text.html' %}
+            {% endif %}        </div>
 
         <div id="replies-{{ review.id }}" class="space-y-4">
             {% for reply in review.replies.all %}

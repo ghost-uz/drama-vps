@@ -1,0 +1,10 @@
+{# Izoh matni (280+ belgida qisqartirish) [V2B-T3 ajratma] — spoyler o'rami ham shuni ishlatadi #}
+{% if review.text|length > 280 %}
+    <span class="comment-short-text inline">{{ review.text|truncatechars:280 }}</span>
+    <span class="comment-full-text hidden inline">{{ review.text }}</span>
+    <button type="button" onclick="toggleReviewText(this)" class="text-[#00cc4c] font-black text-[10px] uppercase tracking-widest ml-1 hover:underline">
+        Batafsil o'qish <i class="fas fa-chevron-down ml-1"></i>
+    </button>
+{% else %}
+    {{ review.text }}
+{% endif %}

@@ -47,6 +47,10 @@
             <i class="fas fa-paper-plane"></i>
         </button>
     </form>
+    {# [V2B-T3] Spoyler belgisi #}
+    <label style="display:flex;align-items:center;gap:6px;margin:-20px 0 24px;font-size:12px;color:rgba(255,255,255,0.55);cursor:pointer;width:fit-content;">
+        <input type="checkbox" name="is_spoiler" value="1" form="rCommentForm" style="accent-color:#00cc4c;"> Spoyler bor
+    </label>
     {% else %}
     <a href="{% url 'users:login' %}" class="block text-center p-3 mb-8 border border-[#00cc4c]/35 rounded-2xl text-[#00cc4c] text-sm font-black hover:bg-[#00cc4c]/5 transition-colors">
         <i class="fas fa-sign-in-alt mr-2"></i>Fikr qoldirish uchun kiring

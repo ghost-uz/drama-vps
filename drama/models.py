@@ -477,6 +477,13 @@ class Review(TimeStampedModel):
     parent = models.ForeignKey(
         "self", on_delete=models.SET_NULL, blank=True, null=True, related_name="replies"
     )
+    # [V2B-T3] Qism-darajali muhokama: null = umumiy (kino-darajasi, eski izohlar
+    # ham shu). SET_NULL — qism o'chirilsa izoh umumiyga tushadi, yo'qolmaydi.
+    episode = models.ForeignKey(
+        "Episode", on_delete=models.SET_NULL, blank=True, null=True, related_name="reviews"
+    )
+    # [V2B-T3] Spoyler belgisi — ko'rsatishda <details> bilan yopiq keladi
+    is_spoiler = models.BooleanField("Spoyler", default=False)
     # Moderatsiya [P14-T3]: yashirin izoh ommaviy ro'yxatlarda chiqmaydi.
     # O'chirilmaydi — shikoyat tarixi va qaror auditi saqlanib qoladi.
     is_hidden = models.BooleanField("Yashirilgan (moderatsiya)", default=False)
@@ -485,8 +492,12 @@ class Review(TimeStampedModel):
     like_count = models.PositiveIntegerField("Yoqtirishlar", default=0)
 
     class Meta:
-        # Detail/fikrlar sahifasi: filter(movie=..., parent=None) [P9-T2]
-        indexes = [models.Index(fields=["movie", "parent"])]
+        # Detail/fikrlar sahifasi: filter(movie=..., parent=None) [P9-T2];
+        # qism-filtri: filter(episode=..., parent=None) [V2B-T3]
+        indexes = [
+            models.Index(fields=["movie", "parent"]),
+            models.Index(fields=["episode", "parent"]),
+        ]
 
 
 class ReviewReaction(TimeStampedModel):

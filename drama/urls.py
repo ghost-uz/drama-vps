@@ -18,6 +18,7 @@ urlpatterns = [
     # Funksiyalar
     path("review/<int:pk>/", views.AddReview.as_view(), name="add_review"),
     path("review/<int:pk>/like/", views.ToggleReviewLike.as_view(), name="toggle_review_like"),
+    path("movie/<int:pk>/comments/", views.MovieCommentsPartial.as_view(), name="movie_comments"),
     path("review/<int:pk>/report/", views.report_review, name="report_review"),
     path("add-to-list/<int:movie_id>/", views.add_to_list, name="add_to_list"),
     path("actor/<int:actor_id>/gift/", views.send_gift_to_actor, name="send_gift_to_actor"),

@@ -4,7 +4,7 @@ Public katalog: MovieViewSet faqat Movie.objects.published() ni ko'rsatadi
 (self-healing scheduled bilan). list/retrieve uchun N+1'siz optimallashtirilgan.
 """
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -134,10 +134,19 @@ class ReviewViewSet(viewsets.ModelViewSet):
     pagination_class = ReviewCursorPagination
 
     def get_queryset(self):
-        qs = Review.objects.select_related("user", "movie").order_by("-created_at")
+        qs = Review.objects.select_related("user", "movie", "episode").order_by("-created_at")
         movie_slug = self.request.query_params.get("movie")
         if movie_slug:
             qs = qs.filter(movie__slug=movie_slug)
+        # [V2B-T3] ?episode=<id>: shu qism izohlari + UMUMIY (episode=null) —
+        # HTML tomondagi "Shu qism muhokamasi" bilan bir xil semantika
+        episode_id = self.request.query_params.get("episode")
+        if episode_id:
+            try:
+                episode_pk = int(episode_id)
+            except ValueError:
+                return qs.none()
+            qs = qs.filter(Q(episode_id=episode_pk) | Q(episode__isnull=True))
         return qs
 
     def get_permissions(self):

@@ -138,7 +138,7 @@
           "title_en": "Episode-level comments + spoiler protection",
           "title_uz": "Epizod-darajali izohlar + spoyler himoyasi",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["V2B-T1"],
           "description_uz": "Review'ga episode FK (null=True — eski izohlar kino-darajada qoladi). Qism sahifasida 'Shu qism muhokamasi' filtri (?episode konteksti allaqachon bor). is_spoiler flag: yozishda checkbox, ko'rsatishda blur + 'Spoylerni ochish' tugma. Migration reversible.",
           "acceptance_criteria": [

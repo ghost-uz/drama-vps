@@ -226,3 +226,41 @@ def test_classic_page_comment_and_like_flow(live_server, page):
     expect(like_form.locator("span")).to_have_text("1")
     review.refresh_from_db()
     assert review.like_count == 1
+
+
+def test_spoiler_comment_and_episode_toggle_flow(live_server, page):
+    """[V2B-T3] Spoyler izoh <details> yopiq keladi -> bosilganda ochiladi;
+    'Hammasi' toggle ro'yxatni HTMX bilan qayta yuklaydi."""
+    from drama.factories import EpisodeFactory, MovieFactory
+    from users.factories import UserFactory
+
+    movie = MovieFactory(title="Spoiler Drama")
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vs1")
+    EpisodeFactory(movie=movie, episode_number=2, bunny_video_id="vs2")
+    UserFactory(username="e2e_spoiler")
+
+    page.goto(f"{live_server.url}/users/login/")
+    page.fill("#id_username", "e2e_spoiler")
+    page.fill("#id_password", "pass12345")
+    page.click("button[type=submit]")
+    expect(page.get_by_label("Profilga kirish")).to_have_attribute(
+        "href", "/users/profile/e2e_spoiler/"
+    )
+
+    page.goto(f"{live_server.url}{movie.get_absolute_url()}")
+    page.locator("#tapToPlay").click()
+    page.locator('.r-act-item[title="Fikrlar"]').click()
+
+    page.check('input[name="is_spoiler"]')  # form= atributi orqali bog'langan checkbox
+    page.fill('#rCommentForm textarea[name="text"]', "Katta sir: oxirida hammasi tiriladi")
+    page.click("#rCommentForm button[type=submit]")
+
+    spoiler_chip = page.get_by_text("Spoyler — ochish uchun bosing").first
+    expect(spoiler_chip).to_be_visible()
+    expect(page.get_by_text("Katta sir: oxirida hammasi tiriladi")).to_be_hidden()
+
+    spoiler_chip.click()  # <details> ochiladi — JS talab qilinmaydi
+    expect(page.get_by_text("Katta sir: oxirida hammasi tiriladi")).to_be_visible()
+
+    page.get_by_role("button", name="Hammasi").click()  # HTMX toggle
+    expect(page.locator("#rCommentList")).to_contain_text("Spoyler — ochish uchun bosing")

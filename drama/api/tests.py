@@ -426,3 +426,44 @@ def test_review_cursor_stable_when_new_review_added(api):
 
     page2 = api.get(page1.data["next"])
     assert seen.isdisjoint({r["id"] for r in page2.data["results"]})  # takror YO'Q
+
+
+# --- V2B-T3: API episode filtri + spoyler maydonlari ---
+
+
+@pytest.mark.django_db
+def test_api_review_create_with_episode_and_spoiler(api):
+    movie = _movie("ApiEp")
+    ep = Episode.objects.create(movie=movie, episode_number=1, title="E1")
+    user = User.objects.create_user(username="api_ep", password="pass12345")
+    api.force_authenticate(user)
+    resp = api.post(
+        "/api/v1/reviews/",
+        {"movie": movie.id, "text": "qism izohi", "episode": ep.id, "is_spoiler": True},
+    )
+    assert resp.status_code == 201, resp.data
+    assert resp.data["episode"] == ep.id
+    assert resp.data["is_spoiler"] is True
+
+    # begona kino qismi -> 400
+    other = _movie("ApiEpBegona")
+    oep = Episode.objects.create(movie=other, episode_number=1, title="OE1")
+    resp2 = api.post("/api/v1/reviews/", {"movie": movie.id, "text": "x", "episode": oep.id})
+    assert resp2.status_code == 400
+
+
+@pytest.mark.django_db
+def test_api_review_list_episode_filter(api):
+    movie = _movie("ApiEpFiltr")
+    ep1 = Episode.objects.create(movie=movie, episode_number=1, title="E1")
+    ep2 = Episode.objects.create(movie=movie, episode_number=2, title="E2")
+    user = User.objects.create_user(username="api_epf", password="pass12345")
+    Review.objects.create(user=user, movie=movie, text="umumiy")
+    Review.objects.create(user=user, movie=movie, text="birinchi", episode=ep1)
+    Review.objects.create(user=user, movie=movie, text="ikkinchi", episode=ep2)
+
+    resp = api.get(f"/api/v1/reviews/?movie={movie.slug}&episode={ep1.id}")
+    texts = {r["text"] for r in resp.data["results"]}
+    assert texts == {"umumiy", "birinchi"}
+
+    assert api.get(f"/api/v1/reviews/?movie={movie.slug}&episode=abc").data["results"] == []

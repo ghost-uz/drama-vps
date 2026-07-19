@@ -6,7 +6,8 @@ from .models import Review
 class ReviewForm(forms.ModelForm):
     class Meta:
         model = Review
-        fields = ("text",)
+        # [V2B-T3] is_spoiler — yozishda checkbox (majburiy emas)
+        fields = ("text", "is_spoiler")
         widgets = {
             "text": forms.Textarea(
                 attrs={

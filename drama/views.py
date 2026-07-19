@@ -285,9 +285,11 @@ class MovieDetailView(GenreYearMixin, DetailView):
         """Root izohlar + replies prefetch; [V2B-T2] user_liked Exists subquery
         bilan (alohida so'rov YO'Q — like holati asosiy so'rov ichida keladi)."""
         roots = Review.objects.filter(parent=None, is_hidden=False).select_related(
-            "user", "user__profile"
+            "user", "user__profile", "episode"
         )
-        replies = Review.objects.filter(is_hidden=False).select_related("user").order_by("id")
+        replies = (
+            Review.objects.filter(is_hidden=False).select_related("user", "episode").order_by("id")
+        )
         if self.request.user.is_authenticated:
             liked = Exists(
                 ReviewReaction.objects.filter(review=OuterRef("pk"), user=self.request.user)
@@ -321,6 +323,16 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 (e for e in episodes if e.episode_number > active_episode.episode_number),
                 None,
             )
+
+        # [V2B-T3] Sheet default ro'yxati: shu qism izohlari + umumiy (episode=null,
+        # eski izohlar). Prefetch keshidan Python'da tanlanadi — qo'shimcha so'rov YO'Q.
+        _roots = list(movie.reviews.all())
+        if active_episode:
+            context["sheet_reviews"] = [
+                r for r in _roots if r.episode_id is None or r.episode_id == active_episode.id
+            ]
+        else:
+            context["sheet_reviews"] = _roots
 
         user = self.request.user
 
@@ -566,6 +578,15 @@ class AddReview(View):
             review = form.save(commit=False)
             review.user = request.user
             review.movie = movie
+            # [V2B-T3] Ixtiyoriy qism-belgisi — qism SHU kinoniki bo'lishi shart
+            episode_id = request.POST.get("episode")
+            if episode_id:
+                from .models import Episode
+
+                try:
+                    review.episode = Episode.objects.get(id=int(episode_id), movie=movie)
+                except (ValueError, Episode.DoesNotExist):
+                    return HttpResponse("Qism topilmadi", status=404)
             parent_id = request.POST.get("parent")
             is_reply = False
             parent = None
@@ -584,6 +605,8 @@ class AddReview(View):
                 if parent.parent_id:
                     parent = parent.parent
                 review.parent = parent
+                # [V2B-T3] Javob threadi bir joyda tursin — qism ROOT'dan meros
+                review.episode = parent.episode
                 is_reply = True
             review.save()
             if parent is not None and parent.user_id and parent.user_id != request.user.id:
@@ -630,6 +653,43 @@ class ToggleReviewLike(View):
         if request.headers.get("HX-Request"):
             return render(request, "movies/partials/_like_button.html", {"review": review})
         return redirect(review.movie.get_absolute_url())
+
+
+class MovieCommentsPartial(View):
+    """[V2B-T3] Izohlar ro'yxati fragmenti (HTMX toggle uchun).
+
+    `?episode=<id>` — shu qism muhokamasi + UMUMIY (episode=null) izohlar
+    (aks holda barcha eski izohlar qism-rejimda ko'rinmay qolardi);
+    parametrsiz — kinoning hamma izohlari.
+    """
+
+    def get(self, request, pk):
+        from .models import Episode
+
+        movie = get_object_or_404(Movie.objects.published(), id=pk)
+        replies = (
+            Review.objects.filter(is_hidden=False).select_related("user", "episode").order_by("id")
+        )
+        roots = Review.objects.filter(movie=movie, parent=None, is_hidden=False).select_related(
+            "user", "user__profile", "episode"
+        )
+        episode_id = request.GET.get("episode")
+        if episode_id:
+            try:
+                episode = Episode.objects.get(id=int(episode_id), movie=movie)
+            except (ValueError, Episode.DoesNotExist):
+                return HttpResponse("Qism topilmadi", status=404)
+            roots = roots.filter(Q(episode=episode) | Q(episode__isnull=True))
+        if request.user.is_authenticated:
+            liked = Exists(ReviewReaction.objects.filter(review=OuterRef("pk"), user=request.user))
+            roots = roots.annotate(user_liked=liked)
+            replies = replies.annotate(user_liked=liked)
+        roots = roots.prefetch_related(Prefetch("replies", queryset=replies))
+        return render(
+            request,
+            "movies/partials/comment_list.html",
+            {"reviews": roots.order_by("-id")[:30]},
+        )
 
 
 # drama/views.py

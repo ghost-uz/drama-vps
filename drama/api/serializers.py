@@ -119,8 +119,27 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ("id", "movie", "user", "username", "text", "parent", "created_at")
+        # [V2B-T3] episode (ixtiyoriy qism-belgisi) + is_spoiler
+        fields = (
+            "id",
+            "movie",
+            "user",
+            "username",
+            "text",
+            "parent",
+            "episode",
+            "is_spoiler",
+            "created_at",
+        )
         read_only_fields = ("id", "user", "username", "created_at")
+
+    def validate(self, attrs):
+        # [V2B-T3] Qism boshqa kinoga tegishli bo'lsa — xato
+        episode = attrs.get("episode")
+        movie = attrs.get("movie")
+        if episode is not None and movie is not None and episode.movie_id != movie.id:
+            raise serializers.ValidationError({"episode": "Qism shu kinoga tegishli emas."})
+        return attrs
 
 
 class PlaybackSerializer(serializers.Serializer):
