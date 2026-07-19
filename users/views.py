@@ -8,9 +8,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -18,9 +19,11 @@ from django_ratelimit.decorators import ratelimit
 
 from core.ratelimit import ip_key, rate, user_or_ip_key
 from core.tasks import notify_telegram_task
+from drama.models import Movie
 from users.utils import follow, unfollow
 
 from .forms import (
+    CollectionForm,
     CryptoTopUpRequestForm,
     ProfileUpdateForm,
     TopUpRequestForm,
@@ -29,6 +32,8 @@ from .forms import (
 )
 from .models import (
     CoinTransaction,
+    Collection,
+    CollectionItem,
     CryptoTopUpRequest,
     Notification,
     SubscriptionPlan,
@@ -177,11 +182,17 @@ def profile_view(request, username):
     if request.user.is_authenticated and request.user != person:
         is_following = request.user.profile.following.filter(pk=profile.pk).exists()
 
+    # [V2B-T4] Vitrina: mehmonga faqat OMMAVIY kolleksiyalar; egaga hammasi
+    collections_qs = profile.collections.all()
+    if request.user != person:
+        collections_qs = collections_qs.filter(is_public=True)
+
     context = {
         "person": person,
         "profile": profile,
         "watched_history": watched_history,
         "is_following": is_following,
+        "collections": collections_qs[:6],
         # 'Davom ettirish' — faqat o'z profilida (shaxsiy progress) [P6-T3]
         "continue_watching": continue_watching(person, limit=6) if request.user == person else None,
         **stats,
@@ -555,3 +566,156 @@ def telegram_bot_unlink(request):
     profile.save(update_fields=["telegram_chat_id"])
     messages.success(request, "Telegram bot uzildi — endi botdan xabar kelmaydi.")
     return redirect("users:settings")
+
+
+# ============================================================================
+# KOLLEKSIYALAR (ulashiladigan ro'yxatlar) [V2B-T4]
+# ============================================================================
+
+
+def _own_collection_or_404(request, slug):
+    return get_object_or_404(Collection, owner=request.user.profile, slug=slug)
+
+
+def _touch_collection(collection):
+    """Kesh-kalitni aylantirish: item-mutatsiyalar M2M orqali — auto_now o'zi
+    ishlamaydi. Public sahifa {% cache %} kaliti updated_at'ga bog'langan."""
+    Collection.objects.filter(pk=collection.pk).update(updated_at=timezone.now())
+
+
+@login_required
+def my_collections(request):
+    """Mening kolleksiyalarim: ro'yxat + yaratish [V2B-T4]."""
+    if request.method == "POST":
+        form = CollectionForm(request.POST)
+        if form.is_valid():
+            collection = form.save(commit=False)
+            collection.owner = request.user.profile
+            collection.save()
+            messages.success(request, f"“{collection.name}” kolleksiyasi yaratildi.")
+            return redirect(collection.get_absolute_url())
+    else:
+        form = CollectionForm()
+    collections = request.user.profile.collections.all()
+    return render(request, "users/collections.html", {"collections": collections, "form": form})
+
+
+def collection_detail(request, username, slug):
+    """Ommaviy kolleksiya sahifasi [V2B-T4] — OG meta bilan (Telegram preview).
+
+    is_public=False faqat egasiga (boshqalarga 404 — mavjudligi ham sir, AC-2).
+    Faqat published kinolar ko'rinadi (playback invarianti) — egaga ham,
+    mehmonga ham bir xil (yashirin kino vitrinada ham chiqmaydi).
+    """
+    person = get_object_or_404(User, username=username)
+    collection = get_object_or_404(Collection, owner=person.profile, slug=slug)
+    is_owner = request.user.is_authenticated and request.user == person
+    if not collection.is_public and not is_owner:
+        raise Http404
+    items = list(
+        collection.items.filter(movie__in=Movie.objects.published()).select_related(
+            "movie", "movie__category"
+        )
+    )
+    context = {
+        "person": person,
+        "collection": collection,
+        "items": items,
+        "is_owner": is_owner,
+        "og_image": items[0].movie.poster.url if items else "",
+        "edit_form": CollectionForm(instance=collection) if is_owner else None,
+    }
+    return render(request, "users/collection_detail.html", context)
+
+
+@login_required
+@require_POST
+def collection_edit(request, slug):
+    collection = _own_collection_or_404(request, slug)
+    form = CollectionForm(request.POST, instance=collection)
+    if form.is_valid():
+        form.save()  # auto_now updated_at -> kesh yangilanadi
+        messages.success(request, "Kolleksiya yangilandi.")
+    return redirect(collection.get_absolute_url())
+
+
+@login_required
+@require_POST
+def collection_delete(request, slug):
+    collection = _own_collection_or_404(request, slug)
+    collection.delete()
+    messages.success(request, "Kolleksiya o'chirildi.")
+    return redirect("users:my_collections")
+
+
+@login_required
+@require_POST
+def collection_add(request, slug):
+    """Kino qo'shish — MAX_ITEMS cheklovi bilan (AC-1)."""
+    collection = _own_collection_or_404(request, slug)
+    if collection.items.count() >= Collection.MAX_ITEMS:
+        messages.error(
+            request, f"Kolleksiyada eng ko'pi {Collection.MAX_ITEMS} ta kino bo'la oladi."
+        )
+        return redirect(collection.get_absolute_url())
+    movie = get_object_or_404(Movie.objects.published(), id=request.POST.get("movie_id"))
+    last_pos = collection.items.count()
+    _item, created = CollectionItem.objects.get_or_create(
+        collection=collection,
+        movie=movie,
+        defaults={"position": last_pos + 1, "note": request.POST.get("note", "")[:200]},
+    )
+    if created:
+        _touch_collection(collection)
+        messages.success(request, f"“{movie.title}” qo'shildi.")
+    return redirect(collection.get_absolute_url())
+
+
+@login_required
+def collection_search(request, slug):
+    """HTMX: qo'shish uchun kino qidiruvi (kolleksiyada yo'qlari) [V2B-T4]."""
+    collection = _own_collection_or_404(request, slug)
+    q = (request.GET.get("q") or "").strip()
+    results = []
+    if len(q) >= 2:
+        results = (
+            Movie.objects.published()
+            .filter(title__icontains=q)
+            .exclude(id__in=collection.items.values_list("movie_id", flat=True))[:8]
+        )
+    return render(
+        request,
+        "users/includes/_collection_search_results.html",
+        {"results": results, "collection": collection, "q": q},
+    )
+
+
+@login_required
+@require_POST
+def collection_item_remove(request, slug, item_id):
+    collection = _own_collection_or_404(request, slug)
+    get_object_or_404(CollectionItem, id=item_id, collection=collection).delete()
+    _touch_collection(collection)
+    return redirect(collection.get_absolute_url())
+
+
+@login_required
+@require_POST
+def collection_item_move(request, slug, item_id):
+    """Tartiblash (AC-1): up/down — butun ro'yxat 1..N qayta raqamlanadi
+    (o'z-o'zini tuzatuvchi: legacy 0-positionlar ham normallashadi)."""
+    collection = _own_collection_or_404(request, slug)
+    direction = request.POST.get("direction")
+    items = list(collection.items.order_by("position", "id"))
+    idx = next((i for i, it in enumerate(items) if it.id == int(item_id)), None)
+    if idx is None:
+        raise Http404
+    if direction == "up" and idx > 0:
+        items[idx - 1], items[idx] = items[idx], items[idx - 1]
+    elif direction == "down" and idx < len(items) - 1:
+        items[idx + 1], items[idx] = items[idx], items[idx + 1]
+    for i, it in enumerate(items, 1):
+        it.position = i
+    CollectionItem.objects.bulk_update(items, ["position"])
+    _touch_collection(collection)
+    return redirect(collection.get_absolute_url())

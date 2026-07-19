@@ -291,6 +291,38 @@
         </div>
         {% endif %}
 
+        <!-- ===== KOLLEKSIYALAR VITRINASI [V2B-T4] ===== -->
+        {% if collections or request.user == person %}
+        <div class="space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+                    <span class="w-1.5 h-6 bg-[#00cc4c] rounded-full"></span>
+                    Kolleksiyalar
+                </h3>
+                {% if request.user == person %}
+                <a href="{% url 'users:my_collections' %}"
+                   class="flex items-center gap-2 text-xs font-black uppercase tracking-widest
+                          text-gray-400 hover:text-[#00cc4c] transition-colors">
+                    Boshqarish <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {% for c in collections %}
+                <a href="{{ c.get_absolute_url }}"
+                   class="bg-[#0f0f0f] border border-white/5 rounded-2xl p-4 hover:border-[#00cc4c]/50 transition-colors">
+                    <p class="font-black text-sm truncate">{{ c.name }}</p>
+                    <p class="text-xs text-gray-500 mt-1.5">{{ c.movies.count }} ta kino
+                        {% if not c.is_public %}<span class="text-gray-600 ml-1"><i class="fas fa-lock"></i></span>{% endif %}
+                    </p>
+                </a>
+                {% empty %}
+                <p class="text-sm text-gray-500">Hali kolleksiya yo'q — <a href="{% url 'users:my_collections' %}" class="text-[#00cc4c] hover:underline">yarating</a>!</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ===== OXIRGI HARAKATLAR ===== -->
         <div class="space-y-6">
             <div class="flex items-center justify-between">

@@ -1,8 +1,12 @@
 # users/models.py
+import secrets
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.urls import reverse
+from django.utils.text import slugify
 
 from core.images import ImageOptimizationMixin
 from core.validators import ImageFileValidator, RandomFileName
@@ -499,3 +503,68 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.recipient.username}: {self.title}"
+
+
+class Collection(models.Model):
+    """Foydalanuvchi kolleksiyasi — ulashiladigan ro'yxat [V2B-T4].
+
+    UserMovieList STATUS-asosli (ko'rmoqda/tugatdi...); bu esa ERKIN tanlov:
+    nomlangan, tartiblangan, ixtiyoriy ommaviy (public URL + OG preview).
+    """
+
+    MAX_ITEMS = 100  # AC-1: bitta kolleksiyada eng ko'pi 100 element
+
+    owner = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="collections")
+    name = models.CharField("Nomi", max_length=100)
+    slug = models.SlugField(max_length=120)
+    description = models.TextField("Tavsif", max_length=1000, blank=True)
+    is_public = models.BooleanField("Ommaviy", default=False)
+    movies = models.ManyToManyField(
+        "drama.Movie", through="CollectionItem", related_name="in_collections", blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Public sahifa kesh-kaliti shu maydonga bog'liq: item qo'shish/o'chirish/
+    # tartiblash M2M orqali — auto_now O'ZI ishlamaydi, view'lar qo'lda bump qiladi
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "slug"], name="uniq_collection_owner_slug")
+        ]
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Kirill/emoji nomlarda slugify bo'sh qaytaradi -> tasodifiy fallback
+            base = slugify(self.name)[:100] or f"toplam-{secrets.token_hex(4)}"
+            slug = base
+            n = 2
+            while (
+                Collection.objects.filter(owner=self.owner, slug=slug).exclude(pk=self.pk).exists()
+            ):
+                slug = f"{base}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("users:collection_detail", args=[self.owner.user.username, self.slug])
+
+
+class CollectionItem(models.Model):
+    """Kolleksiya elementi [V2B-T4] — tartib (position) + ixtiyoriy izoh."""
+
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="items")
+    movie = models.ForeignKey("drama.Movie", on_delete=models.CASCADE)
+    position = models.PositiveIntegerField(default=0)
+    note = models.CharField("Izoh", max_length=200, blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["collection", "movie"], name="uniq_collection_movie")
+        ]
+        ordering = ["position", "id"]

@@ -1002,3 +1002,196 @@ def test_rating_recomputed_when_score_row_deleted(django_capture_on_commit_callb
     movie.refresh_from_db()
     assert movie.total_votes == 0
     assert movie.average_rating == 0
+
+
+# --- V2B-T4: kolleksiyalar (ulashiladigan ro'yxatlar) ---
+
+
+def _coll(name="Toplam", username="coll_u", public=True):
+    from users.models import Collection
+
+    user = User.objects.create_user(username=username, password="pass12345")
+    c = Collection.objects.create(owner=user.profile, name=name, is_public=public)
+    return user, c
+
+
+def _coll_movie(title="Koll Kino", **kw):
+    return Movie.objects.create(
+        title=title, description="x", country="KR", poster=_image(f"{title[:8]}.jpg"), **kw
+    )
+
+
+@pytest.mark.django_db
+def test_collection_create_slug_and_cyrillic_fallback(client):
+    """Yaratish + auto-slug; kirill nomda slugify bo'sh -> tasodifiy fallback;
+    bir xil nom ikki marta -> -2 suffiks (owner ichida unique)."""
+    from users.models import Collection
+
+    user = User.objects.create_user(username="slug_u", password="pass12345")
+    client.force_login(user)
+    resp = client.post(
+        reverse("users:my_collections"),
+        {"name": "Eng saralar", "description": "d", "is_public": "on"},
+    )
+    c = Collection.objects.get(owner=user.profile, name="Eng saralar")
+    assert resp.status_code == 302
+    assert c.slug == "eng-saralar"
+    assert c.is_public is True
+
+    c2 = Collection.objects.create(owner=user.profile, name="Сара тўплам")
+    assert c2.slug.startswith("toplam-")  # kirill -> slugify bo'sh -> fallback
+
+    c3 = Collection.objects.create(owner=user.profile, name="Eng saralar")
+    assert c3.slug == "eng-saralar-2"
+
+
+@pytest.mark.django_db
+def test_collection_private_only_owner(client):
+    """AC-2: is_public=False — begonaga va anonimga 404, egasiga 200."""
+    owner, c = _coll("Maxfiy", "priv_o", public=False)
+    url = c.get_absolute_url()
+    assert client.get(url).status_code == 404  # anonim
+    User.objects.create_user(username="priv_s", password="pass12345")
+    client.login(username="priv_s", password="pass12345")
+    assert client.get(url).status_code == 404  # begona
+    client.force_login(owner)
+    assert client.get(url).status_code == 200  # egasi
+
+
+@pytest.mark.django_db
+def test_collection_public_page_og_meta(client):
+    """AC-3: OG title/description/image (birinchi poster) to'g'ri."""
+    from users.models import CollectionItem
+
+    _owner, c = _coll("Ochiq Toplam", "pub_o")
+    c.description = "Eng sara tanlovim"
+    c.save()
+    m = _coll_movie("OG Kino")
+    CollectionItem.objects.create(collection=c, movie=m, position=1)
+    html = client.get(c.get_absolute_url()).content.decode()
+    assert "Ochiq Toplam" in html and "OG Kino" in html
+    assert "Eng sara tanlovim" in html
+    assert f'content="{m.poster.url}"' in html  # og:image = birinchi poster
+
+
+@pytest.mark.django_db
+def test_collection_hides_unpublished_movies(client):
+    """Playback invarianti: faqat published kinolar ko'rinadi (egaga ham)."""
+    from users.models import CollectionItem
+
+    owner, c = _coll("Aralash", "unp_o")
+    pub = _coll_movie("KorinadiganK")
+    draft = _coll_movie("QoralamaK", status=Movie.Status.DRAFT)
+    CollectionItem.objects.create(collection=c, movie=pub, position=1)
+    CollectionItem.objects.create(collection=c, movie=draft, position=2)
+    html = client.get(c.get_absolute_url()).content.decode()
+    assert "KorinadiganK" in html
+    assert "QoralamaK" not in html
+    client.force_login(owner)
+    assert "QoralamaK" not in client.get(c.get_absolute_url()).content.decode()
+
+
+@pytest.mark.django_db
+def test_collection_add_max_items_guard(client, monkeypatch):
+    """AC-1: MAX_ITEMS chegarasi — to'lgach yangi kino QO'SHILMAYDI."""
+    from users.models import Collection, CollectionItem
+
+    owner, c = _coll("Limitli", "lim_o")
+    monkeypatch.setattr(Collection, "MAX_ITEMS", 2)
+    client.force_login(owner)
+    for i in range(3):
+        m = _coll_movie(f"LimKino{i}")
+        client.post(reverse("users:collection_add", args=[c.slug]), {"movie_id": m.id})
+    assert CollectionItem.objects.filter(collection=c).count() == 2
+
+
+@pytest.mark.django_db
+def test_collection_reorder_renumbers_positions(client):
+    """AC-1/AC-4: up/down tartiblash; pozitsiyalar 1..N qayta raqamlanadi."""
+    from users.models import CollectionItem
+
+    owner, c = _coll("Tartib", "ord_o")
+    movies = [_coll_movie(f"OrdKino{i}") for i in range(3)]
+    items = [
+        CollectionItem.objects.create(collection=c, movie=m, position=i + 1)
+        for i, m in enumerate(movies)
+    ]
+    client.force_login(owner)
+    client.post(
+        reverse("users:collection_item_move", args=[c.slug, items[2].id]), {"direction": "up"}
+    )
+    order = list(
+        CollectionItem.objects.filter(collection=c)
+        .order_by("position")
+        .values_list("movie__title", flat=True)
+    )
+    assert order == ["OrdKino0", "OrdKino2", "OrdKino1"]
+    positions = list(
+        CollectionItem.objects.filter(collection=c)
+        .order_by("position")
+        .values_list("position", flat=True)
+    )
+    assert positions == [1, 2, 3]
+
+
+@pytest.mark.django_db
+def test_collection_mutations_owner_only(client):
+    """AC-4: begona edit/delete/add/move/remove qila olmaydi (404)."""
+    from users.models import CollectionItem
+
+    _owner, c = _coll("Himoya", "sec_o")
+    m = _coll_movie("SecKino")
+    item = CollectionItem.objects.create(collection=c, movie=m, position=1)
+    User.objects.create_user(username="sec_s", password="pass12345")
+    client.login(username="sec_s", password="pass12345")
+    assert (
+        client.post(reverse("users:collection_edit", args=[c.slug]), {"name": "X"}).status_code
+        == 404
+    )
+    assert client.post(reverse("users:collection_delete", args=[c.slug])).status_code == 404
+    assert (
+        client.post(reverse("users:collection_add", args=[c.slug]), {"movie_id": m.id}).status_code
+        == 404
+    )
+    assert (
+        client.post(reverse("users:collection_item_remove", args=[c.slug, item.id])).status_code
+        == 404
+    )
+    c.refresh_from_db()
+    assert c.name == "Himoya"  # o'zgarmagan
+
+
+@pytest.mark.django_db
+def test_collection_add_duplicate_and_search_excludes(client):
+    """Duplikat qo'shish jim o'tadi (unique); qidiruv mavjudlarni chiqarmaydi."""
+    from users.models import CollectionItem
+
+    owner, c = _coll("Qidiruvli", "srch_o")
+    m1 = _coll_movie("Qidiruv Bor")
+    _coll_movie("Qidiruv Yangi")
+    client.force_login(owner)
+    add_url = reverse("users:collection_add", args=[c.slug])
+    client.post(add_url, {"movie_id": m1.id})
+    client.post(add_url, {"movie_id": m1.id})  # duplikat
+    assert CollectionItem.objects.filter(collection=c).count() == 1
+    html = client.get(
+        reverse("users:collection_search", args=[c.slug]), {"q": "Qidiruv"}
+    ).content.decode()
+    assert "Qidiruv Yangi" in html
+    assert "Qidiruv Bor" not in html  # allaqachon kolleksiyada
+
+
+@pytest.mark.django_db
+def test_profile_showcase_public_only_for_visitors(client):
+    """Vitrina: mehmon faqat ommaviyni ko'radi; egasi hammasini."""
+    from users.models import Collection
+
+    owner = User.objects.create_user(username="vit_o", password="pass12345")
+    Collection.objects.create(owner=owner.profile, name="OmmaviyV", is_public=True)
+    Collection.objects.create(owner=owner.profile, name="ShaxsiyV", is_public=False)
+    url = reverse("users:profile", args=["vit_o"])
+    html = client.get(url).content.decode()
+    assert "OmmaviyV" in html and "ShaxsiyV" not in html
+    client.force_login(owner)
+    html2 = client.get(url).content.decode()
+    assert "OmmaviyV" in html2 and "ShaxsiyV" in html2

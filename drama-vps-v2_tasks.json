@@ -154,7 +154,7 @@
           "title_en": "Public custom collections (shareable lists)",
           "title_uz": "Ommaviy kolleksiyalar (ulashiladigan ro'yxatlar)",
           "priority": "P2",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "UserMovieList status-asosli (ko'rmoqda/tugatdi...) — unga qo'shimcha erkin Collection(owner, name, slug, description, is_public) + CollectionItem(position, note) through-model. Public URL /users/<u>/collections/<slug>/ (OG meta bilan — Telegram'da chiroyli preview). Profilda vitrina. Faqat published kinolar ko'rinadi (playback invarianti).",
           "acceptance_criteria": [

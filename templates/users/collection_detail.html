@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load cache %}
+
+{% block page_title %}{{ collection.name }} — {{ person.username }} kolleksiyasi - Drama.uz{% endblock %}
+{% block meta_description %}{{ collection.description|default:collection.name|truncatechars:150 }}{% endblock %}
+{% block og_title %}{{ collection.name }} — Drama.uz kolleksiyasi{% endblock %}
+{% block og_description %}{{ collection.description|default:"Drama.uz'da tuzilgan kino kolleksiyasi"|truncatechars:150 }}{% endblock %}
+{% block og_image %}{% if og_image %}{{ og_image }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block tw_image %}{% if og_image %}{{ og_image }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block robots %}{% if collection.is_public %}index, follow{% else %}noindex, nofollow{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-10">
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-black flex items-center gap-3">
+                <span class="w-1.5 h-7 bg-[#00cc4c] rounded-full"></span> {{ collection.name }}
+                {% if not collection.is_public %}<span class="text-xs text-gray-500 font-bold"><i class="fas fa-lock"></i> Shaxsiy</span>{% endif %}
+            </h1>
+            <p class="text-sm text-gray-500 mt-2">
+                <a href="{% url 'users:profile' person.username %}" class="text-[#00cc4c] hover:underline font-bold">{{ person.username }}</a>
+                · {{ items|length }} ta kino
+            </p>
+            {% if collection.description %}<p class="text-sm text-gray-400 mt-2 max-w-xl">{{ collection.description }}</p>{% endif %}
+        </div>
+        {% if is_owner %}
+        <div class="flex items-center gap-2">
+            <a href="{% url 'users:my_collections' %}" class="px-3 py-2 bg-white/5 rounded-xl text-xs font-black text-gray-400 hover:text-white transition-colors"><i class="fas fa-list mr-1"></i> Barchasi</a>
+            <form method="post" action="{% url 'users:collection_delete' collection.slug %}" onsubmit="return confirm('Kolleksiya o\'chirilsinmi?');">
+                {% csrf_token %}
+                <button type="submit" class="px-3 py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-black hover:bg-red-500/20 transition-colors"><i class="fas fa-trash mr-1"></i> O'chirish</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if is_owner %}
+    {# Tahrirlash [V2B-T4] — details: JS'siz ochilib-yopiladi #}
+    <details class="mb-6 bg-white/3 border border-white/5 rounded-2xl">
+        <summary class="cursor-pointer list-none p-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-white transition-colors"><i class="fas fa-pen mr-2"></i>Tahrirlash</summary>
+        <form method="post" action="{% url 'users:collection_edit' collection.slug %}" class="p-4 pt-0 space-y-3">
+            {% csrf_token %}
+            {{ edit_form.name }}
+            {{ edit_form.description }}
+            <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">{{ edit_form.is_public }} Ommaviy</label>
+                <button type="submit" class="px-4 py-2 bg-[#00cc4c] text-black font-black rounded-xl text-xs">Saqlash</button>
+            </div>
+        </form>
+    </details>
+
+    {# Kino qo'shish — HTMX jonli qidiruv #}
+    <div class="mb-8 bg-white/3 border border-white/5 rounded-2xl p-4">
+        <input type="search" name="q" placeholder="Kolleksiyaga kino qidirish..."
+               hx-get="{% url 'users:collection_search' collection.slug %}"
+               hx-trigger="input changed delay:400ms" hx-target="#searchResults"
+               class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#00cc4c] transition">
+        <div id="searchResults" class="mt-3 space-y-2"></div>
+    </div>
+    {% endif %}
+
+    {% cache 600 collection_items collection.id collection.updated_at is_owner %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        {% for item in items %}
+        <div class="space-y-2">
+            {% include "movies/movies_card.html" with movie=item.movie %}
+            {% if item.note %}<p class="text-xs text-gray-500 italic px-1">“{{ item.note }}”</p>{% endif %}
+            {% if is_owner %}
+            <div class="flex items-center gap-1.5 px-1">
+                <form method="post" action="{% url 'users:collection_item_move' collection.slug item.id %}">
+                    {% csrf_token %}<input type="hidden" name="direction" value="up">
+                    <button type="submit" aria-label="Yuqoriga" class="px-2 py-1 bg-white/5 rounded-lg text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-up"></i></button>
+                </form>
+                <form method="post" action="{% url 'users:collection_item_move' collection.slug item.id %}">
+                    {% csrf_token %}<input type="hidden" name="direction" value="down">
+                    <button type="submit" aria-label="Pastga" class="px-2 py-1 bg-white/5 rounded-lg text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-down"></i></button>
+                </form>
+                <form method="post" action="{% url 'users:collection_item_remove' collection.slug item.id %}" class="ml-auto">
+                    {% csrf_token %}
+                    <button type="submit" aria-label="Olib tashlash" class="px-2 py-1 bg-red-500/10 rounded-lg text-xs text-red-400 hover:bg-red-500/20"><i class="fas fa-times"></i></button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p class="col-span-full text-sm text-gray-500 text-center py-10">Bu kolleksiya hozircha bo'sh.</p>
+        {% endfor %}
+    </div>
+    {% endcache %}
+</div>
+{% endblock %}

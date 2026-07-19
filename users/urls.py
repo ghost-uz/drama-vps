@@ -75,6 +75,32 @@ urlpatterns = [
     ),
     # Kino ro'yxati
     path("dramalist/<str:username>/", user_views.user_full_list, name="user_drama_list"),
+    # --- Kolleksiyalar [V2B-T4] ---
+    path("kolleksiyalar/", user_views.my_collections, name="my_collections"),
+    path("kolleksiyalar/<slug:slug>/tahrir/", user_views.collection_edit, name="collection_edit"),
+    path(
+        "kolleksiyalar/<slug:slug>/delete/", user_views.collection_delete, name="collection_delete"
+    ),
+    path("kolleksiyalar/<slug:slug>/add/", user_views.collection_add, name="collection_add"),
+    path(
+        "kolleksiyalar/<slug:slug>/search/", user_views.collection_search, name="collection_search"
+    ),
+    path(
+        "kolleksiyalar/<slug:slug>/item/<int:item_id>/remove/",
+        user_views.collection_item_remove,
+        name="collection_item_remove",
+    ),
+    path(
+        "kolleksiyalar/<slug:slug>/item/<int:item_id>/move/",
+        user_views.collection_item_move,
+        name="collection_item_move",
+    ),
+    # Ommaviy URL: /users/<u>/collections/<slug>/ (OG preview bilan)
+    path(
+        "<str:username>/collections/<slug:slug>/",
+        user_views.collection_detail,
+        name="collection_detail",
+    ),
     # Hisob
     path("settings/", user_views.settings_view, name="settings"),
     # Telegram bot ulash/uzish [V2A-T2]

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Mening kolleksiyalarim - Drama.uz{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-10 max-w-3xl">
+    <h1 class="text-2xl font-black mb-8 flex items-center gap-3">
+        <span class="w-1.5 h-7 bg-[#00cc4c] rounded-full"></span> Mening kolleksiyalarim
+    </h1>
+
+    {# Yaratish [V2B-T4] #}
+    <form method="post" action="{% url 'users:my_collections' %}" class="space-y-3 mb-10 bg-white/3 border border-white/5 rounded-3xl p-5">
+        {% csrf_token %}
+        {{ form.name }}
+        {{ form.description }}
+        <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                {{ form.is_public }} Ommaviy (havola orqali hamma ko'ra oladi)
+            </label>
+            <button type="submit" class="px-5 py-2.5 bg-[#00cc4c] text-black font-black rounded-xl text-sm hover:opacity-90 transition-opacity">
+                <i class="fas fa-plus mr-1"></i> Yaratish
+            </button>
+        </div>
+    </form>
+
+    <div class="space-y-4">
+        {% for c in collections %}
+        <a href="{{ c.get_absolute_url }}" class="flex items-center justify-between bg-white/3 border border-white/5 rounded-2xl p-4 hover:border-[#00cc4c]/40 transition-colors">
+            <div>
+                <p class="font-black text-sm">{{ c.name }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ c.movies.count }} ta kino
+                    {% if c.is_public %}<span class="text-[#00cc4c] ml-2"><i class="fas fa-globe"></i> Ommaviy</span>
+                    {% else %}<span class="text-gray-600 ml-2"><i class="fas fa-lock"></i> Shaxsiy</span>{% endif %}
+                </p>
+            </div>
+            <i class="fas fa-arrow-right text-gray-600"></i>
+        </a>
+        {% empty %}
+        <p class="text-sm text-gray-500 text-center py-8">Hali kolleksiya yo'q — birinchisini yarating!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

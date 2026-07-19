@@ -8,7 +8,7 @@ from django.template import loader
 
 from core.tasks import send_email_task
 
-from .models import CryptoTopUpRequest, Profile, TopUpRequest
+from .models import Collection, CryptoTopUpRequest, Profile, TopUpRequest
 
 # Hozirgi yildan 1980 gacha bo'lgan yillar ro'yxatini yaratamiz
 current_year = datetime.now().year
@@ -143,6 +143,30 @@ class CryptoTopUpRequestForm(forms.ModelForm):
                 attrs={
                     "class": "w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-gray-400 outline-none focus:border-[#0098EA] file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-[#0098EA] file:text-white hover:file:bg-[#007bc2] transition-colors cursor-pointer",
                     "accept": "image/*",
+                }
+            ),
+        }
+
+
+class CollectionForm(forms.ModelForm):
+    """Kolleksiya yaratish/tahrirlash [V2B-T4]."""
+
+    class Meta:
+        model = Collection
+        fields = ("name", "description", "is_public")
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#00cc4c] transition",
+                    "placeholder": "Kolleksiya nomi (masalan: Eng sara melodramalar)",
+                    "maxlength": "100",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#00cc4c] transition",
+                    "rows": "2",
+                    "placeholder": "Qisqacha tavsif (ixtiyoriy)",
                 }
             ),
         }
