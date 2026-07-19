@@ -2563,8 +2563,12 @@ def test_subtitle_unique_per_episode_lang():
 
 
 @pytest.mark.django_db
-def test_reels_page_renders_tracks_for_anonymous(client):
-    """[V2E-T1 AC] <track> + crossorigin + CC tugma — anonim uchun ham."""
+def test_reels_page_renders_tracks_for_anonymous(client, bunny):
+    """[V2E-T1 AC] <track> + crossorigin + CC tugma — anonim uchun ham.
+
+    `bunny` fixture SHART: use_bunny=True bo'lishi is_configured()ga bog'liq —
+    usiz lokalda .env qiymatlari sizib testni yashil, CI'da esa qizil qilardi
+    (V2A-T2 gotcha'sining aynan o'zi)."""
     from drama.models import EpisodeSubtitle
 
     movie, (ep1, _ep2) = _ep_movie("SubReels")
