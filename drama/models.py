@@ -241,7 +241,15 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
     duration = models.PositiveIntegerField("Davomiyligi (daqiqada)", default=60)
     episodes_count = models.PositiveIntegerField("Qismlar soni", default=16)
     age_limit = models.PositiveIntegerField("Yosh chegarasi", default=18)
-    bunny_video_id = models.CharField("Bunny Stream Video ID (Film)", max_length=100, blank=True)
+    bunny_video_id = models.CharField(
+        "Bunny Stream Video ID (Film)",
+        max_length=100,
+        blank=True,
+        help_text=(
+            "Yagona filmni Bunny'ga QO'LDA yuklagan bo'lsangiz, video GUID'ini shu "
+            "yerga qo'ying. Serial bo'lsa — har qismning GUID'ini “Qismlar”da kiriting."
+        ),
+    )
     bunny_trailer_id = models.CharField(
         "Bunny Stream Video ID (Trailer)", max_length=100, blank=True
     )
@@ -398,7 +406,16 @@ class Episode(ImageOptimizationMixin, TimeStampedModel):
         ):
             raise ValidationError({"intro_end": "Intro oxiri boshidan katta bo'lishi kerak."})
 
-    bunny_video_id = models.CharField("Bunny Stream Video ID", max_length=100, blank=True)
+    bunny_video_id = models.CharField(
+        "Bunny Stream Video ID",
+        max_length=100,
+        blank=True,
+        help_text=(
+            "Katta hajmli videoni Bunny'ga QO'LDA yuklab, video GUID'ini shu yerga "
+            "qo'ying (masalan: a7332447-5828-483e-9363-218a02e6f9cc). Fayl yuklamasangiz "
+            "pipeline ishlamaydi — to'g'ridan-to'g'ri shu ID ishlatiladi."
+        ),
+    )
     video_file = models.FileField(
         "Video fayl (Bunny'ga avtomatik yuklanadi)",
         upload_to="episode_uploads/",

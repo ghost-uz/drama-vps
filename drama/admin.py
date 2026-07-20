@@ -147,7 +147,11 @@ class EpisodeInline(BunnyVideoAdminMixin, TabularInline):
         "bunny_video_id",
         "video_embed_code",
     )
-    readonly_fields = ("display_upload_status", "bunny_video_id")
+    # [admin-ux] bunny_video_id endi TAHRIRLANADI — katta seriallarni Bunny'ga
+    # QO'LDA yuklab, GUID'ni shu yerdan (Kino ichida) kiritish uchun. Ilgari
+    # readonly edi (faqat pipeline yozardi) -> foydalanuvchi standalone "Qismlar"
+    # admin'iga o'tishga majbur edi. Faqat holat-badge readonly qoladi.
+    readonly_fields = ("display_upload_status",)
     sortable_field_name = "episode_number"
 
 

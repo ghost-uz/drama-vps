@@ -2746,3 +2746,32 @@ def test_trailer_gating_free_for_anonymous(client, bunny):
     # Treyler tugmasi VIP'dan qat'i nazar ko'rinadi (asosiy video emas)
     assert 'id="cpTrailerBtn"' in html
     assert resp.context["trailer_hls"]
+
+
+# --- admin-ux: EpisodeInline'da bunny_video_id tahrirlanadi ---
+
+
+def test_episode_inline_bunny_id_editable():
+    """[admin-ux] Kino ichida (EpisodeInline) bunny_video_id QO'LDA yozilishi kerak
+    — katta seriallarni Bunny'ga qo'lda yuklab GUID kiritish oqimi uchun.
+    Regressiya guard: readonly_fields'ga qaytib kirmasin."""
+    from drama.admin import EpisodeInline
+
+    assert "bunny_video_id" in EpisodeInline.fields
+    assert "bunny_video_id" not in EpisodeInline.readonly_fields
+    # holat-badge esa readonly qoladi (avtomatik hisoblanadi)
+    assert "display_upload_status" in EpisodeInline.readonly_fields
+
+
+@pytest.mark.django_db
+def test_episode_inline_renders_editable_input(client):
+    """Kino tahrirlash sahifasida bunny_video_id <input> (readonly emas) bo'lib chiqadi."""
+    from django.contrib.auth.models import User
+
+    admin_user = User.objects.create_superuser("admin_bux", "a@b.uz", "pass12345")
+    client.force_login(admin_user)
+    movie, (ep1, _ep2) = _ep_movie("InlineBux")
+    resp = client.get(reverse("admin:drama_movie_change", args=[movie.id]))
+    html = resp.content.decode()
+    # inline'dagi qism uchun bunny_video_id nomli tahrirlanadigan input bo'lishi kerak
+    assert 'name="episodes-0-bunny_video_id"' in html
