@@ -2753,3 +2753,34 @@ def test_episode_inline_renders_editable_input(client):
     html = resp.content.decode()
     # inline'dagi qism uchun bunny_video_id nomli tahrirlanadigan input bo'lishi kerak
     assert 'name="episodes-0-bunny_video_id"' in html
+
+
+# --- V2E-T4: pleyer sozlamalari (tezlik menyu render) ---
+
+
+@pytest.mark.django_db
+def test_reels_settings_sheet_has_speed_group(client, bunny):
+    """[V2E-T4] Reels sozlamalar sheet'ida Tezlik guruhi (0.75x–2x) bo'ladi."""
+    movie, (ep1, _ep2) = _ep_movie("SpeedReels")
+    Episode.objects.filter(pk=ep1.pk).update(bunny_video_id="spvid")
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert 'data-set="speed"' in html
+    for v in ("0.75", "1", "1.25", "1.5", "2"):
+        assert f'data-set="speed" data-val="{v}"' in html
+    assert "Tezlik" in html
+
+
+@pytest.mark.django_db
+def test_classic_has_speed_menu(client, bunny):
+    """[V2E-T4] Klassik pleyerda tezlik menyu (data-speed) bor."""
+    from drama.models import Category
+
+    cat = Category.objects.create(
+        name="SpeedK", slug="speed-k", player_type=Category.PlayerType.CLASSIC
+    )
+    movie, (ep1, _ep2) = _ep_movie("SpeedClassic")
+    Movie.objects.filter(pk=movie.pk).update(category=cat)
+    Episode.objects.filter(pk=ep1.pk).update(bunny_video_id="spcvid")
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert 'data-speed="1.5"' in html
+    assert 'id="cpSpeedMenu"' in html

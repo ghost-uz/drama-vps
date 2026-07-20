@@ -96,7 +96,11 @@ video.addEventListener('volumechange', () => {
         video.muted || video.volume === 0 ? 'fas fa-volume-mute'
         : video.volume < 0.5 ? 'fas fa-volume-down' : 'fas fa-volume-up';
     els.cpVol.value = video.muted ? 0 : Math.round(video.volume * 100);
+    core.saveVolume(); /* [V2E-T4] ovoz/mute localStorage'da */
 });
+/* [V2E-T4] Saqlangan ovozni tiklaymiz (volumechange handleri UI'ni yangilaydi) */
+core.restoreVolume();
+video.dispatchEvent(new Event('volumechange'));
 
 /* ── Popover menyular (tezlik / sifat) ── */
 function bindMenu(btn, menu) {
@@ -120,22 +124,25 @@ function markActive(menu, item) {
     item.classList.add('active');
 }
 
-/* ── Tezlik [V2E-T4 yo'lida] ── */
+/* ── Tezlik [V2E-T4] — core.setSpeed persist qiladi; load'da tiklanadi ── */
 els.cpSpeedMenu.addEventListener('click', (e) => {
     const item = e.target.closest('[data-speed]');
     if (!item) return;
-    video.playbackRate = parseFloat(item.dataset.speed);
+    core.setSpeed(parseFloat(item.dataset.speed));
     els.cpSpeedBtn.textContent = item.dataset.speed + 'x';
     markActive(els.cpSpeedMenu, item);
     els.cpSpeedMenu.classList.remove('open');
 });
+video.addEventListener('loadedmetadata', () => {
+    const sp = core.currentSpeed();
+    els.cpSpeedBtn.textContent = sp + 'x';
+    const t = els.cpSpeedMenu.querySelector('[data-speed="' + (sp === 1 ? '1' : sp) + '"]');
+    if (t) markActive(els.cpSpeedMenu, t);
+});
 
-/* ── Sifat: HLS darajasi (auto/cap) yoki MP4 URL almashtirish ── */
+/* ── Sifat [V2E-T4]: HLS darajasi (auto/cap) yoki MP4 URL; tanlov persist ── */
 let mp4Qual = '720';
-els.cpQualMenu.addEventListener('click', (e) => {
-    const item = e.target.closest('[data-qual]');
-    if (!item) return;
-    const q = item.dataset.qual;
+function applyQual(q) {
     const hls = core.hls();
     if (hls) {
         if (q === 'auto') {
@@ -164,9 +171,27 @@ els.cpQualMenu.addEventListener('click', (e) => {
         }
     }
     els.cpQualBtn.textContent = q === 'auto' ? 'Avto' : q + 'p';
-    markActive(els.cpQualMenu, item);
+    const btn = els.cpQualMenu.querySelector('[data-qual="' + q + '"]');
+    if (btn) markActive(els.cpQualMenu, btn);
+}
+els.cpQualMenu.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-qual]');
+    if (!item) return;
+    applyQual(item.dataset.qual);
+    core.setQualityPref(item.dataset.qual);
     els.cpQualMenu.classList.remove('open');
 });
+/* [V2E-T4] Saqlangan sifat: HLS bo'lsa MANIFEST_PARSED'da, MP4 bo'lsa darhol */
+(function () {
+    const q = core.qualityPref();
+    if (!q) return;
+    const hls = core.hls();
+    if (hls && window.Hls) {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => applyQual(q));
+    } else {
+        video.addEventListener('loadedmetadata', () => applyQual(q), { once: true });
+    }
+})();
 
 /* ── PiP / Fullscreen ── */
 if (els.cpPip) {

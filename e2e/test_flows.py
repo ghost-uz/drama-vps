@@ -263,3 +263,41 @@ def test_spoiler_comment_flow(live_server, page):
 
     spoiler_chip.click()  # <details> ochiladi — JS talab qilinmaydi
     expect(page.get_by_text("Katta sir: oxirida hammasi tiriladi")).to_be_visible()
+
+
+def test_player_speed_persists_across_reload(live_server, page):
+    """[V2E-T4] Reels: tezlik tanlansa localStorage'da saqlanadi va qayta
+    yuklanganda tiklanadi (playbackRate)."""
+    from drama.factories import EpisodeFactory, MovieFactory
+    from users.factories import UserFactory
+
+    movie = MovieFactory(title="Speed Drama")
+    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="spd1")
+    UserFactory(username="e2e_speed")
+
+    page.goto(f"{live_server.url}/users/login/")
+    page.fill("#id_username", "e2e_speed")
+    page.fill("#id_password", "pass12345")
+    page.click("button[type=submit]")
+    expect(page.get_by_label("Profilga kirish")).to_have_attribute(
+        "href", "/users/profile/e2e_speed/"
+    )
+
+    page.goto(f"{live_server.url}{movie.get_absolute_url()}")
+    page.locator("#tapToPlay").click()
+    page.locator('.r-act-item[title="Sozlamalar"]').click()
+    page.locator('.r-set-option[data-set="speed"][data-val="1.5"]').click()
+
+    # Darhol qo'llandi + saqlandi
+    rate = page.evaluate("() => document.getElementById('mainVideo').playbackRate")
+    assert abs(rate - 1.5) < 0.01
+    saved = page.evaluate("() => localStorage.getItem('drama:speed')")
+    assert saved == "1.5"
+
+    # Qayta yuklash -> tiklanadi (core init'da restoreSpeed darhol chaqiriladi)
+    page.reload()
+    restored = page.evaluate("() => document.getElementById('mainVideo').playbackRate")
+    assert abs(restored - 1.5) < 0.01
+
+    # tozalash (boshqa testlarga sizmasin)
+    page.evaluate("() => localStorage.removeItem('drama:speed')")

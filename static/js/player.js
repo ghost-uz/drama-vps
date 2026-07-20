@@ -277,17 +277,38 @@ window.playerSet = function (btn) {
     if (!video) return;
     const kind = btn.dataset.set;
     const val = btn.dataset.val;
-    if (kind === 'quality') applyQuality(val);
+    if (kind === 'quality') { applyQuality(val); core.setQualityPref(val); }
     if (kind === 'subtitle') core.setSubtitle(val);
+    if (kind === 'speed') core.setSpeed(parseFloat(val));
     markSetActive(kind, val);
     closeSheet('playerSheet');
 };
 
-/* Saqlangan subtitr tanlovi sheet'da ham belgilangan holda kelsin */
+/* [V2E-T4] Saqlangan tanlovlarni sheet'da belgilash + qo'llash.
+   Sifat: HLS bo'lsa levels tayyor bo'lgach (MANIFEST_PARSED) qayta qo'llanadi. */
+function syncSettingsUI() {
+    syncSubtitleUI(core.currentSubtitle());
+    const sp = core.currentSpeed();
+    markSetActive('speed', sp === 1 ? '1' : String(sp));
+    const q = core.qualityPref();
+    if (q) markSetActive('quality', q);
+}
+function applySavedQuality() {
+    const q = core.qualityPref();
+    if (q) applyQuality(q);
+}
 if (video) {
-    video.addEventListener('loadedmetadata', function () {
-        syncSubtitleUI(core.currentSubtitle());
-    });
+    video.addEventListener('loadedmetadata', syncSettingsUI);
+    const hlsInst = core.hls();
+    if (hlsInst && window.Hls) {
+        hlsInst.on(Hls.Events.MANIFEST_PARSED, function () {
+            applySavedQuality();
+            syncSettingsUI();
+        });
+    } else {
+        /* MP4: saqlangan sifatni darhol qo'llaymiz (URL almashtirish) */
+        applySavedQuality();
+    }
 }
 
 /* ─────────────────────────────────────────────────────────

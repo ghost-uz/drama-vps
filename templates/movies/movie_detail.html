@@ -1302,6 +1302,15 @@ body > main {
                 </button>
             </div>
             {% endif %}
+            {# [V2E-T4] Tezlik — universal (0.75x–2x); tanlov localStorage'da #}
+            <div class="r-set-group">
+                <div class="r-set-title"><i class="fas fa-gauge"></i> Tezlik</div>
+                <button type="button" class="r-set-option" data-set="speed" data-val="0.75" onclick="playerSet(this)"><span>0.75x</span><i class="fas fa-check"></i></button>
+                <button type="button" class="r-set-option active" data-set="speed" data-val="1" onclick="playerSet(this)"><span>Normal (1x)</span><i class="fas fa-check"></i></button>
+                <button type="button" class="r-set-option" data-set="speed" data-val="1.25" onclick="playerSet(this)"><span>1.25x</span><i class="fas fa-check"></i></button>
+                <button type="button" class="r-set-option" data-set="speed" data-val="1.5" onclick="playerSet(this)"><span>1.5x</span><i class="fas fa-check"></i></button>
+                <button type="button" class="r-set-option" data-set="speed" data-val="2" onclick="playerSet(this)"><span>2x</span><i class="fas fa-check"></i></button>
+            </div>
             {% if subtitles %}
             <div class="r-set-group">
                 <div class="r-set-title"><i class="fas fa-closed-captioning"></i> Subtitr</div>

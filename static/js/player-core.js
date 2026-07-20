@@ -183,6 +183,59 @@ window.DramaPlayerCore = function (video, d, opts) {
         video.addEventListener('loadedmetadata', restoreSubtitle);
     }
 
+    /* ── Pleyer sozlamalari persist [V2E-T4] ──────────────────
+       Tezlik/sifat/ovoz localStorage'da — qurilmada eslab qolinadi.
+       Sifat PREFERENSIYASI (string) yadroda saqlanadi; uni QO'LLASH
+       pleyerga xos (reels auto/fhd, klassik auto/1080/720) — shuning
+       uchun pleyer restore paytida o'z applyQuality'sini chaqiradi. */
+    var SPEED_KEY = 'drama:speed';
+    var QUAL_KEY = 'drama:quality';
+    var VOL_KEY = 'drama:volume';
+    var MUTED_KEY = 'drama:muted';
+
+    function setSpeed(rate) {
+        if (video) {
+            video.playbackRate = rate;
+            video.preservesPitch = true; /* audio pitch normal (AC) */
+        }
+        try { localStorage.setItem(SPEED_KEY, String(rate)); } catch (e) { /* private */ }
+    }
+    function currentSpeed() { return video ? video.playbackRate : 1; }
+    function restoreSpeed() {
+        try {
+            var s = parseFloat(localStorage.getItem(SPEED_KEY));
+            if (s && s > 0 && video) { video.playbackRate = s; video.preservesPitch = true; }
+        } catch (e) { /* private */ }
+    }
+
+    function setQualityPref(val) {
+        try { localStorage.setItem(QUAL_KEY, val); } catch (e) { /* private */ }
+    }
+    function qualityPref() {
+        try { return localStorage.getItem(QUAL_KEY) || ''; } catch (e) { return ''; }
+    }
+
+    function saveVolume() {
+        if (!video) return;
+        try {
+            localStorage.setItem(VOL_KEY, String(video.volume));
+            localStorage.setItem(MUTED_KEY, video.muted ? '1' : '0');
+        } catch (e) { /* private */ }
+    }
+    function restoreVolume() {
+        if (!video) return;
+        try {
+            var v = parseFloat(localStorage.getItem(VOL_KEY));
+            if (!isNaN(v) && v >= 0 && v <= 1) video.volume = v;
+            if (localStorage.getItem(MUTED_KEY) === '1') video.muted = true;
+        } catch (e) { /* private */ }
+    }
+
+    if (video) {
+        restoreSpeed();
+        video.addEventListener('loadedmetadata', restoreSpeed);
+    }
+
     /* ── Intro-skip + avto-keyingi countdown [V2E-T2] ─────────
        Umumiy mantiq (reels + klassik): UI elementlarini pleyer beradi.
        - skip tugma faqat [introStart, introEnd) oralig'ida ko'rinadi
@@ -236,6 +289,12 @@ window.DramaPlayerCore = function (video, d, opts) {
         cycleSubtitle: cycleSubtitle,
         setSubtitle: setSubtitle,
         currentSubtitle: currentSubtitle,
+        setSpeed: setSpeed,
+        currentSpeed: currentSpeed,
+        setQualityPref: setQualityPref,
+        qualityPref: qualityPref,
+        saveVolume: saveVolume,
+        restoreVolume: restoreVolume,
         epUrl: function (num) { return BASE_URL + '?episode=' + num; },
         hls: function () { return hlsInst; },
         saveProgress: saveProgress,

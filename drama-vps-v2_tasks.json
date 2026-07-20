@@ -371,7 +371,7 @@
           "title_en": "Player preferences persistence + playback speed",
           "title_uz": "Pleyer sozlamalari persist + tezlik boshqaruvi",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "Sifat/ovoz/subtitr-til tanlovi localStorage'da (mavjud player.js'ga qo'shimcha), playback speed 0.75x-2x menyu. Login userda profilga sinxron (kelajak qurilmalararo) — ixtiyoriy bosqich.",
           "acceptance_criteria": [
