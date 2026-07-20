@@ -228,15 +228,14 @@ def test_classic_page_comment_and_like_flow(live_server, page):
     assert review.like_count == 1
 
 
-def test_spoiler_comment_and_episode_toggle_flow(live_server, page):
-    """[V2B-T3] Spoyler izoh <details> yopiq keladi -> bosilganda ochiladi;
-    'Hammasi' toggle ro'yxatni HTMX bilan qayta yuklaydi."""
+def test_spoiler_comment_flow(live_server, page):
+    """Spoyler izoh <details> yopiq keladi -> bosilganda ochiladi (JS'siz fallback).
+    Qism-toggle OLIB TASHLANGAN — izohlar umumiy."""
     from drama.factories import EpisodeFactory, MovieFactory
     from users.factories import UserFactory
 
     movie = MovieFactory(title="Spoiler Drama")
     EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="vs1")
-    EpisodeFactory(movie=movie, episode_number=2, bunny_video_id="vs2")
     UserFactory(username="e2e_spoiler")
 
     page.goto(f"{live_server.url}/users/login/")
@@ -251,6 +250,9 @@ def test_spoiler_comment_and_episode_toggle_flow(live_server, page):
     page.locator("#tapToPlay").click()
     page.locator('.r-act-item[title="Fikrlar"]').click()
 
+    # Qism-toggle bo'lmasligi kerak (umumiy izohlar)
+    expect(page.get_by_text("muhokamasi")).to_have_count(0)
+
     page.check('input[name="is_spoiler"]')  # form= atributi orqali bog'langan checkbox
     page.fill('#rCommentForm textarea[name="text"]', "Katta sir: oxirida hammasi tiriladi")
     page.click("#rCommentForm button[type=submit]")
@@ -261,6 +263,3 @@ def test_spoiler_comment_and_episode_toggle_flow(live_server, page):
 
     spoiler_chip.click()  # <details> ochiladi — JS talab qilinmaydi
     expect(page.get_by_text("Katta sir: oxirida hammasi tiriladi")).to_be_visible()
-
-    page.get_by_role("button", name="Hammasi").click()  # HTMX toggle
-    expect(page.locator("#rCommentList")).to_contain_text("Spoyler — ochish uchun bosing")

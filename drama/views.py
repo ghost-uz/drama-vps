@@ -285,11 +285,9 @@ class MovieDetailView(GenreYearMixin, DetailView):
         """Root izohlar + replies prefetch; [V2B-T2] user_liked Exists subquery
         bilan (alohida so'rov YO'Q — like holati asosiy so'rov ichida keladi)."""
         roots = Review.objects.filter(parent=None, is_hidden=False).select_related(
-            "user", "user__profile", "episode"
+            "user", "user__profile"
         )
-        replies = (
-            Review.objects.filter(is_hidden=False).select_related("user", "episode").order_by("id")
-        )
+        replies = Review.objects.filter(is_hidden=False).select_related("user").order_by("id")
         if self.request.user.is_authenticated:
             liked = Exists(
                 ReviewReaction.objects.filter(review=OuterRef("pk"), user=self.request.user)
@@ -324,15 +322,8 @@ class MovieDetailView(GenreYearMixin, DetailView):
                 None,
             )
 
-        # [V2B-T3] Sheet default ro'yxati: shu qism izohlari + umumiy (episode=null,
-        # eski izohlar). Prefetch keshidan Python'da tanlanadi — qo'shimcha so'rov YO'Q.
-        _roots = list(movie.reviews.all())
-        if active_episode:
-            context["sheet_reviews"] = [
-                r for r in _roots if r.episode_id is None or r.episode_id == active_episode.id
-            ]
-        else:
-            context["sheet_reviews"] = _roots
+        # Umumiy izohlar ro'yxati (prefetch keshidan — qo'shimcha so'rov YO'Q).
+        context["sheet_reviews"] = list(movie.reviews.all())
 
         # [V2E-T1] Aktiv qism subtitrlari — pleyerda <track> bo'ladi (1 so'rov)
         context["subtitles"] = list(active_episode.subtitles.all()) if active_episode else []
@@ -603,15 +594,6 @@ class AddReview(View):
             review = form.save(commit=False)
             review.user = request.user
             review.movie = movie
-            # [V2B-T3] Ixtiyoriy qism-belgisi — qism SHU kinoniki bo'lishi shart
-            episode_id = request.POST.get("episode")
-            if episode_id:
-                from .models import Episode
-
-                try:
-                    review.episode = Episode.objects.get(id=int(episode_id), movie=movie)
-                except (ValueError, Episode.DoesNotExist):
-                    return HttpResponse("Qism topilmadi", status=404)
             parent_id = request.POST.get("parent")
             is_reply = False
             parent = None
@@ -640,8 +622,6 @@ class AddReview(View):
                         "Bloklangan foydalanuvchiga javob yozib bo'lmaydi", status=403
                     )
                 review.parent = parent
-                # [V2B-T3] Javob threadi bir joyda tursin — qism ROOT'dan meros
-                review.episode = parent.episode
                 is_reply = True
             review.save()
             if parent is not None and parent.user_id and parent.user_id != request.user.id:
@@ -691,30 +671,17 @@ class ToggleReviewLike(View):
 
 
 class MovieCommentsPartial(View):
-    """[V2B-T3] Izohlar ro'yxati fragmenti (HTMX toggle uchun).
+    """Kinoning izohlar ro'yxati fragmenti (HTMX/umumiy render uchun).
 
-    `?episode=<id>` — shu qism muhokamasi + UMUMIY (episode=null) izohlar
-    (aks holda barcha eski izohlar qism-rejimda ko'rinmay qolardi);
-    parametrsiz — kinoning hamma izohlari.
+    Kinoning BARCHA asosiy izohlari (umumiy — qism-bo'linishi yo'q).
     """
 
     def get(self, request, pk):
-        from .models import Episode
-
         movie = get_object_or_404(Movie.objects.published(), id=pk)
-        replies = (
-            Review.objects.filter(is_hidden=False).select_related("user", "episode").order_by("id")
-        )
+        replies = Review.objects.filter(is_hidden=False).select_related("user").order_by("id")
         roots = Review.objects.filter(movie=movie, parent=None, is_hidden=False).select_related(
-            "user", "user__profile", "episode"
+            "user", "user__profile"
         )
-        episode_id = request.GET.get("episode")
-        if episode_id:
-            try:
-                episode = Episode.objects.get(id=int(episode_id), movie=movie)
-            except (ValueError, Episode.DoesNotExist):
-                return HttpResponse("Qism topilmadi", status=404)
-            roots = roots.filter(Q(episode=episode) | Q(episode__isnull=True))
         if request.user.is_authenticated:
             liked = Exists(ReviewReaction.objects.filter(review=OuterRef("pk"), user=request.user))
             roots = roots.annotate(user_liked=liked)

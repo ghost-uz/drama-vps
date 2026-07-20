@@ -250,7 +250,6 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
               class="flex items-end gap-2 mb-5">
             {% csrf_token %}
             <input type="hidden" name="parent" value="">
-            {% if active_episode %}<input type="hidden" name="episode" value="{{ active_episode.id }}">{% endif %}
             <textarea name="text" rows="2" required maxlength="5000"
                       placeholder="Fikringizni yozing..."
                       class="flex-1 bg-card border border-[#1f1f1f] rounded-2xl p-3 text-sm text-gray-200 outline-none focus:border-drama-green/50 resize-none"></textarea>
@@ -269,23 +268,6 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
         </a>
         {% endif %}
 
-        {% if active_episode and episodes|length > 1 %}
-        {# [V2B-T3] Muhokama-ko'lami toggle #}
-        <div style="display:flex;gap:8px;margin-bottom:12px;">
-            <button type="button"
-                    hx-get="{% url 'drama:movie_comments' movie.id %}?episode={{ active_episode.id }}"
-                    hx-target="#rCommentList" hx-swap="innerHTML"
-                    style="padding:8px 14px;border:1px solid rgba(0,204,76,0.4);background:rgba(0,204,76,0.12);color:#00cc4c;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;">
-                {{ active_episode.episode_number }}-qism muhokamasi
-            </button>
-            <button type="button"
-                    hx-get="{% url 'drama:movie_comments' movie.id %}"
-                    hx-target="#rCommentList" hx-swap="innerHTML"
-                    style="padding:8px 14px;border:1px solid rgba(255,255,255,0.15);background:none;color:rgba(255,255,255,0.6);border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;">
-                Hammasi
-            </button>
-        </div>
-        {% endif %}
         <div id="rCommentList" class="space-y-4">
             {% include 'movies/partials/comment_list.html' with reviews=sheet_reviews|slice:":5" %}
         </div>

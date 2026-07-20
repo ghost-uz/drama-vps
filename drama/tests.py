@@ -2345,7 +2345,7 @@ def test_storage_cache_headers_p9t3():
     assert "max-age=2592000" in media_cc and "immutable" not in media_cc
 
 
-# --- V2B-T3: epizod-darajali izohlar + spoyler ---
+# --- izohlar (spoyler + umumiy-ro'yxat; qism-bo'linishi OLIB TASHLANDI) ---
 
 
 def _ep_movie(title="EpKom", n=2):
@@ -2358,92 +2358,84 @@ def _ep_movie(title="EpKom", n=2):
 
 
 @pytest.mark.django_db
-def test_add_review_with_episode_and_spoiler(client):
-    """Forma episode + is_spoiler qabul qiladi; qism SHU kinoniki."""
-    movie, (ep1, _ep2) = _ep_movie("EpYoz")
+def test_add_review_with_spoiler(client):
+    """Forma is_spoiler qabul qiladi (episode BOG'LANMAYDI — faqat umumiy izoh)."""
+    movie, (_ep1, _ep2) = _ep_movie("EpYoz")
     user = User.objects.create_user(username="ep_user", password="pass12345")
     client.force_login(user)
     client.post(
         reverse("drama:add_review", args=[movie.id]),
-        {"text": "1-qism zo'r!", "episode": ep1.id, "is_spoiler": "1"},
+        {"text": "Zo'r kino!", "is_spoiler": "1"},
     )
-    r = Review.objects.get(text="1-qism zo'r!")
-    assert r.episode_id == ep1.id
+    r = Review.objects.get(text="Zo'r kino!")
     assert r.is_spoiler is True
+    assert r.episode_id is None  # umumiy — qismga bog'lanmaydi
 
 
 @pytest.mark.django_db
-def test_add_review_foreign_episode_404(client):
-    """Boshqa kinoning qismi bilan yozib bo'lmaydi — 404, izoh YARATILMAYDI."""
-    movie, _eps = _ep_movie("EpAsl")
-    _other, (oep, _o2) = _ep_movie("EpBegona")
-    user = User.objects.create_user(username="ep_yot", password="pass12345")
+def test_add_review_ignores_episode_param(client):
+    """Episode POST-param YUBORILSA HAM inobatga olinmaydi (umumiy izoh qoladi)."""
+    movie, (ep1, _ep2) = _ep_movie("EpIgnore")
+    user = User.objects.create_user(username="ep_ig", password="pass12345")
     client.force_login(user)
     resp = client.post(
         reverse("drama:add_review", args=[movie.id]),
-        {"text": "xato", "episode": oep.id},
+        {"text": "umumiy bo'lsin", "episode": ep1.id},
     )
-    assert resp.status_code == 404
-    assert not Review.objects.filter(text="xato").exists()
+    assert resp.status_code in (200, 302)
+    r = Review.objects.get(text="umumiy bo'lsin")
+    assert r.episode_id is None  # param e'tiborsiz — qism-bog'lanish yo'q
 
 
 @pytest.mark.django_db
-def test_reply_inherits_parent_episode(client):
-    """Javob threadi bir joyda: reply'ning episode'i ROOT'dan meros (POST'dagi emas)."""
-    movie, (ep1, ep2) = _ep_movie("EpMeros")
-    author = User.objects.create_user(username="ep_a", password="pass12345")
-    root = Review.objects.create(user=author, movie=movie, text="root", episode=ep1)
-    replier = User.objects.create_user(username="ep_r", password="pass12345")
-    client.force_login(replier)
-    client.post(
-        reverse("drama:add_review", args=[movie.id]),
-        {"text": "javob", "parent": root.id, "episode": ep2.id},  # ep2 BERILSA HAM
-    )
-    reply = Review.objects.get(text="javob")
-    assert reply.parent_id == root.id
-    assert reply.episode_id == ep1.id  # root'niki g'olib
-
-
-@pytest.mark.django_db
-def test_comments_partial_episode_scope(client):
-    """?episode=<id>: shu qism + UMUMIY (null) chiqadi, boshqa qismniki CHIQMAYDI."""
-    movie, (ep1, ep2) = _ep_movie("EpFiltr")
+def test_comments_partial_shows_all(client):
+    """MovieCommentsPartial kinoning BARCHA asosiy izohlarini beradi (qism-filtri yo'q)."""
+    movie, (_ep1, _ep2) = _ep_movie("EpAll")
     a = User.objects.create_user(username="ep_f", password="pass12345")
-    Review.objects.create(user=a, movie=movie, text="umumiy-izoh")
-    Review.objects.create(user=a, movie=movie, text="birinchi-qism-izoh", episode=ep1)
-    Review.objects.create(user=a, movie=movie, text="ikkinchi-qism-izoh", episode=ep2)
-
+    Review.objects.create(user=a, movie=movie, text="birinchi-izoh")
+    Review.objects.create(user=a, movie=movie, text="ikkinchi-izoh")
     url = reverse("drama:movie_comments", args=[movie.id])
-    html = client.get(url, {"episode": ep1.id}).content.decode()
-    assert "umumiy-izoh" in html and "birinchi-qism-izoh" in html
-    assert "ikkinchi-qism-izoh" not in html
-
-    html_all = client.get(url).content.decode()
-    assert "ikkinchi-qism-izoh" in html_all and "umumiy-izoh" in html_all
-
-    # begona qism -> 404
-    _o, (oep, _o2) = _ep_movie("EpFiltrBegona")
-    assert client.get(url, {"episode": oep.id}).status_code == 404
+    html = client.get(url).content.decode()
+    assert "birinchi-izoh" in html and "ikkinchi-izoh" in html
 
 
 @pytest.mark.django_db
-def test_detail_default_scope_is_current_episode(client):
-    """Detail sahifada default sheet ro'yxati = aktiv qism + umumiy (AC-1)."""
-    movie, (ep1, ep2) = _ep_movie("EpDefault")
+def test_detail_sheet_shows_all_reviews(client):
+    """Detail sheet ro'yxati = kinoning HAMMA izohi (qism-bo'linishi yo'q)."""
+    movie, (_ep1, _ep2) = _ep_movie("EpSheetAll")
     a = User.objects.create_user(username="ep_d", password="pass12345")
-    Review.objects.create(user=a, movie=movie, text="umumiy-d")
-    Review.objects.create(user=a, movie=movie, text="ep1-d", episode=ep1)
-    Review.objects.create(user=a, movie=movie, text="ep2-d", episode=ep2)
+    for txt in ("izoh-a", "izoh-b", "izoh-c"):
+        Review.objects.create(user=a, movie=movie, text=txt)
     resp = client.get(movie.get_absolute_url() + "?episode=1")
-    texts = [r.text for r in resp.context["sheet_reviews"]]
-    assert "umumiy-d" in texts and "ep1-d" in texts
-    assert "ep2-d" not in texts
+    texts = {r.text for r in resp.context["sheet_reviews"]}
+    assert texts == {"izoh-a", "izoh-b", "izoh-c"}
+
+
+@pytest.mark.django_db
+def test_no_episode_toggle_in_players(client):
+    """Regressiya: pleyerlarda 'N-qism muhokamasi' toggle va episode-input YO'Q."""
+    from drama.models import Category
+
+    # reels
+    movie, (ep1, _ep2) = _ep_movie("NoToggleReels")
+    Episode.objects.filter(pk=ep1.pk).update(bunny_video_id="ntvid")
+    reels = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert "muhokamasi" not in reels
+    assert 'name="episode"' not in reels
+    # klassik
+    cat = Category.objects.create(
+        name="NoToggleK", slug="no-toggle-k", player_type=Category.PlayerType.CLASSIC
+    )
+    Movie.objects.filter(pk=movie.pk).update(category=cat)
+    classic = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert "muhokamasi" not in classic
+    assert 'name="episode"' not in classic
 
 
 @pytest.mark.django_db
 def test_spoiler_rendered_with_details_fallback(client):
-    """Spoyler <details> bilan yopiq keladi (JS'siz ham ishlaydi — AC-2)."""
-    movie, (ep1, _ep2) = _ep_movie("EpSpoyler")
+    """Spoyler <details> bilan yopiq keladi (JS'siz ham ishlaydi)."""
+    movie, (_ep1, _ep2) = _ep_movie("EpSpoyler")
     a = User.objects.create_user(username="ep_s", password="pass12345")
     Review.objects.create(user=a, movie=movie, text="katta-sir-matni", is_spoiler=True)
     Review.objects.create(user=a, movie=movie, text="oddiy-matn")
@@ -2451,21 +2443,7 @@ def test_spoiler_rendered_with_details_fallback(client):
     assert "Spoyler — ochish uchun bosing" in html
     assert "<details>" in html
     assert "katta-sir-matni" in html  # matn details ichida (yashirin, DOM'da bor)
-    # oddiy izoh spoyler o'ramisiz
-    assert html.count("Spoyler — ochish uchun bosing") == 1
-
-
-@pytest.mark.django_db
-def test_old_reviews_unbroken_episode_null(client):
-    """Eski izohlar (episode=null) buzilmaydi: umumiy sifatida hamma scope'da (AC-3)."""
-    movie, (ep1, ep2) = _ep_movie("EpEski")
-    a = User.objects.create_user(username="ep_o", password="pass12345")
-    r = Review.objects.create(user=a, movie=movie, text="eski-izoh")
-    assert r.episode is None and r.is_spoiler is False
-    url = reverse("drama:movie_comments", args=[movie.id])
-    assert "eski-izoh" in client.get(url, {"episode": ep1.id}).content.decode()
-    assert "eski-izoh" in client.get(url, {"episode": ep2.id}).content.decode()
-    assert "eski-izoh" in client.get(url).content.decode()
+    assert html.count("Spoyler — ochish uchun bosing") == 1  # oddiy izoh o'ramsiz
 
 
 # --- V2B-T5: bloklangan muallif izohlari collapse + reply-taqiq ---
