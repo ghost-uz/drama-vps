@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import redirect
+from django.urls import NoReverseMatch, reverse
 from django_ratelimit.exceptions import Ratelimited
 
 
@@ -138,6 +139,27 @@ class SecurityHeadersMiddleware:
             "img-src 'self' data: blob: image.tmdb.org",
         )
 
+        # [RFC 8288 / RFC 9727] Agent-discovery Link sarlavhasi.
+        # HTML sahifalarda MAVJUD API resurslarini e'lon qiladi — avtomatlashgan
+        # agentlar (crawler/LLM) HTML'ni tahlil qilmasdan, faqat javob
+        # sarlavhasidan OpenAPI sxemasi va hujjatlarni topa oladi:
+        #   service-desc — mashina o'qiydigan API ta'rifi (drf-spectacular OpenAPI)
+        #   service-doc  — inson o'qiydigan hujjat (Swagger UI)
+        # URL'lar reverse() bilan ISH BOSHIDA (bir marta) quriladi: endpoint
+        # mavjudligini tekshiradi — yo'q bo'lsa Link umuman qo'shilmaydi (hech
+        # qachon 404'ga ishora qilmaymiz). Nisbiy URL: domenga bog'liq emas
+        # (localhost/staging/drama.uz) — so'rov URL'iga nisbatan hal qilinadi.
+        try:
+            self.link_header: str | None = ", ".join(
+                [
+                    f'<{reverse("api:schema")}>; rel="service-desc";'
+                    ' type="application/vnd.oai.openapi+json"',
+                    f'<{reverse("api:docs")}>; rel="service-doc"; type="text/html"',
+                ]
+            )
+        except NoReverseMatch:
+            self.link_header = None
+
     def __call__(self, request):
         response = self.get_response(request)
 
@@ -164,6 +186,17 @@ class SecurityHeadersMiddleware:
 
         # X-XSS-Protection ATAYIN yuborilmaydi [P10-T1]: header deprecated,
         # eski brauzerlarda XSS Auditor'ni suiiste'mol qilish xavfi bor edi.
+
+        # Link (agent-discovery) — FAQAT HTML javoblarga [RFC 8288].
+        # text/html sharti API/JSON, media va HLS video segment javoblarini
+        # ifloslantirmaslik uchun. Mavjud "Link"ni bosib o'tmaymiz (masalan,
+        # DRF pagination o'z Link'ini qo'ysa — u JSON, baribir bu shartga tushmaydi).
+        if (
+            self.link_header
+            and "Link" not in response
+            and response.get("Content-Type", "").startswith("text/html")
+        ):
+            response["Link"] = self.link_header
 
         return response
 

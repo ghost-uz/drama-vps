@@ -167,3 +167,42 @@ def test_csp_script_src_allows_static_cdn(client):
     # P14-T1 invarianti buzilmadi: eval FAQAT admin variantida
     assert "'unsafe-eval'" in client.get("/admin/login/")["Content-Security-Policy"]
     assert "'unsafe-eval'" not in client.get("/")["Content-Security-Policy"]
+
+
+# --- Link: agent-discovery sarlavhasi [RFC 8288 / RFC 9727] ---
+
+
+@pytest.mark.django_db
+def test_homepage_advertises_api_discovery_links(client):
+    """Bosh sahifa HTML javobi Link sarlavhasida MAVJUD API resurslarini e'lon
+    qiladi (RFC 8288): avtomatlashgan agentlar HTML'ni tahlil qilmasdan OpenAPI
+    sxemasi (service-desc) va Swagger hujjatini (service-doc) topa oladi.
+    """
+    resp = client.get("/")
+    assert resp.status_code == 200
+
+    link = resp["Link"]
+    assert 'rel="service-desc"' in link
+    assert 'rel="service-doc"' in link
+    # Agentlar uchun media-type maslahati (mashina o'qiydigan JSON OpenAPI)
+    assert "application/vnd.oai.openapi+json" in link
+
+    # Havolalar HAQIQATAN mavjud endpointlarga ishora qiladi (404 emas) —
+    # "faqat mavjudini e'lon qil" invarianti (Link reverse() bilan quriladi).
+    schema_url, docs_url = reverse("api:schema"), reverse("api:docs")
+    assert schema_url in link
+    assert docs_url in link
+    assert client.get(schema_url).status_code == 200
+    assert client.get(docs_url).status_code == 200
+
+
+@pytest.mark.django_db
+def test_discovery_link_scoped_to_html_only(client):
+    """Discovery Link FAQAT text/html javoblarga qo'shiladi — API/JSON, media va
+    HLS video-segment javoblari ifloslantirilmaydi. robots.txt (text/plain)
+    scoping regressiya qo'riqchisi sifatida.
+    """
+    resp = client.get("/robots.txt")
+    assert resp.status_code == 200
+    assert resp["Content-Type"].startswith("text/plain")
+    assert "service-desc" not in resp.get("Link", "")

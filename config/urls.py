@@ -6,6 +6,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from django.views.generic import TemplateView
 
+from core.agent_discovery import agent_index
 from core.health import healthz, readyz
 from core.monitoring import metrics_view
 from core.pwa import manifest, offline, service_worker
@@ -44,6 +45,9 @@ urlpatterns = [
     path("metrics", metrics_view, name="metrics"),
     # 2. Maxsus SEO fayllar
     path("robots.txt", robots_txt, name="robots_txt"),
+    # Agent-discovery indeksi [DNS-AID] — `_index._agents.drama.uz` SVCB yozuvi shu
+    # hostga ishora qiladi; agentlar bu yerdan mashina-o'qiydigan API xaritasini oladi.
+    path(".well-known/agent-index.json", agent_index, name="agent_index"),
     path(
         "sitemap.xml",
         sitemap,
