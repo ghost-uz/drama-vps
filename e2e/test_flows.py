@@ -272,7 +272,13 @@ def test_player_speed_persists_across_reload(live_server, page):
     from users.factories import UserFactory
 
     movie = MovieFactory(title="Speed Drama")
-    EpisodeFactory(movie=movie, episode_number=1, bunny_video_id="spd1")
+    # video_embed_code -> video_720 truthy: "Sozlash" rail tugmasi BUNNY-siz
+    # ham render bo'ladi (CI'da BUNNY sozlanmagan — .env-sizish gotcha'si)
+    EpisodeFactory(
+        movie=movie,
+        episode_number=1,
+        video_embed_code="https://cdn.example.com/v720.mp4,https://cdn.example.com/v1080.mp4",
+    )
     UserFactory(username="e2e_speed")
 
     page.goto(f"{live_server.url}/users/login/")

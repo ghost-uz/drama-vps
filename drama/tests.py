@@ -2771,6 +2771,19 @@ def test_reels_settings_sheet_has_speed_group(client, bunny):
 
 
 @pytest.mark.django_db
+def test_reels_settings_button_without_bunny(client):
+    """[V2E-T4] BUNNY sozlanmagan bo'lsa ham (video_embed_code -> video_720)
+    "Sozlash" rail tugmasi + tezlik guruhi render bo'ladi (CI/.env-sizish yo'li)."""
+    movie, (ep1, _ep2) = _ep_movie("NoBunnySpeed")
+    Episode.objects.filter(pk=ep1.pk).update(
+        video_embed_code="https://cdn.example.com/a.mp4,https://cdn.example.com/b.mp4"
+    )
+    html = client.get(movie.get_absolute_url() + "?episode=1").content.decode()
+    assert 'title="Sozlamalar"' in html  # rail tugma (use_bunny=False, video_720 truthy)
+    assert 'data-set="speed"' in html  # tezlik guruhi sheet'da
+
+
+@pytest.mark.django_db
 def test_classic_has_speed_menu(client, bunny):
     """[V2E-T4] Klassik pleyerda tezlik menyu (data-speed) bor."""
     from drama.models import Category
