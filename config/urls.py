@@ -94,6 +94,17 @@ if settings.DEBUG:
         urlpatterns += debug_toolbar_urls()
     except ImportError:
         pass
+elif getattr(settings, "SERVE_MEDIA_FROM_STORAGE", False):
+    # Test/e2e: InMemoryStorage (disk'da yo'q) -> media'ni storage backend orqali
+    # ber, aks holda live_server har poster so'roviga 404 warning yozadi [barqarorlik].
+    from django.urls import re_path
+
+    from core.media import serve_from_storage
+
+    _media_prefix = settings.MEDIA_URL.lstrip("/")
+    urlpatterns += [
+        re_path(rf"^{_media_prefix}(?P<path>.*)$", serve_from_storage, name="test_media"),
+    ]
 
 # 404 Xatolik uchun handler
 handler404 = "drama.views.error_404"

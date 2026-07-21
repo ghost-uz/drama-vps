@@ -34,6 +34,10 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
+# E2E/test live_server: InMemoryStorage disk'da EMAS -> media'ni storage backend
+# orqali serve qil (config/urls.py elif). Aks holda har poster URL 404 warning yozadi.
+SERVE_MEDIA_FROM_STORAGE = True
+
 # HTTPS majburlanmaydi
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
