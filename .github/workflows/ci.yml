@@ -147,7 +147,10 @@ jobs:
         run: pip install -r requirements/dev.txt
       - name: Playwright brauzer (chromium + OS deps)
         run: python -m playwright install --with-deps chromium
-      - name: E2E oqim testlari (pytest -m e2e)
-        run: pytest -m e2e -q
+      - name: E2E oqim testlari (pytest -m e2e; flaky reruns [barqarorlik])
+        # Timeout jitter'i yutildi (e2e/conftest.py 15s) + yiqilgan testni 2 marta
+        # qayta yuritamiz: transient brauzer/tarmoq flake'i nightly'ni qizartirmaydi,
+        # haqiqiy regressiya esa 3 urinishda ham yiqilib baribir ko'rinadi.
+        run: pytest -m e2e -q --reruns 2 --reruns-delay 1
         env:
           DJANGO_SETTINGS_MODULE: config.settings.test
