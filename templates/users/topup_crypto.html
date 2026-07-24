@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block page_title %}Kripto orqali to'ldirish - Drama.uz{% endblock %}
+{% block page_title %}{% trans "Kripto orqali to'ldirish" %} - Drama.uz{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -36,8 +36,8 @@
             <div class="w-16 h-16 mx-auto bg-[#0098EA]/10 rounded-full flex items-center justify-center mb-4 border border-[#0098EA]/30 ton-glow">
                 <i class="fas fa-wallet text-3xl text-[#0098EA]"></i>
             </div>
-            <h1 class="text-3xl md:text-4xl font-black uppercase tracking-widest mb-2">Hisobni to'ldirish</h1>
-            <p class="text-gray-400 text-sm">Aktyorlarga sovg'a yuborish uchun hisobingizni Coinlar bilan to'ldiring</p>
+            <h1 class="text-3xl md:text-4xl font-black uppercase tracking-widest mb-2">{% trans "Hisobni to'ldirish" %}</h1>
+            <p class="text-gray-400 text-sm">{% trans "Aktyorlarga sovg'a yuborish uchun hisobingizni Coinlar bilan to'ldiring" %}</p>
         </div>
 
         {# To'lov usuli tanlash #}
@@ -85,7 +85,7 @@
                         <i class="fas fa-hourglass-half text-3xl text-[#0098EA]"></i>
                     </div>
 
-                    <h2 class="text-2xl md:text-3xl font-black text-white mb-3 tracking-tighter uppercase">So'rovingiz ko'rib chiqilmoqda</h2>
+                    <h2 class="text-2xl md:text-3xl font-black text-white mb-3 tracking-tighter uppercase">{% trans "So'rovingiz ko'rib chiqilmoqda" %}</h2>
                     <p class="text-gray-400 text-sm md:text-base mb-8 leading-relaxed">
                         Sizning <span class="text-white font-black bg-white/10 px-2 py-0.5 rounded">{{ pending_request.amount_usdt }} USDT</span> miqdoridagi
                         kripto to'lovingiz admin tomonidan tekshirilmoqda. Skrinshot tasdiqlangach, hisobingizga
@@ -93,7 +93,7 @@
                     </p>
 
                     <div class="inline-flex items-center gap-3 px-5 py-3 bg-black/50 border border-white/5 rounded-xl text-xs font-bold text-gray-400 shadow-inner">
-                        <i class="fas fa-clock text-[#0098EA]"></i> Yuborilgan vaqt: <span class="text-white">{{ pending_request.created_at|date:"d M Y, H:i" }}</span>
+                        <i class="fas fa-clock text-[#0098EA]"></i> {% trans "Yuborilgan vaqt:" %} <span class="text-white">{{ pending_request.created_at|date:"d M Y, H:i" }}</span>
                     </div>
                 </div>
             </div>
@@ -124,10 +124,10 @@
                         </div>
 
                         <div class="relative z-10 mb-3">
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 ml-1">TON Hamyon manzili (USDT)</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 ml-1">{% trans "TON Hamyon manzili (USDT)" %}</p>
                             <div class="flex items-start gap-2 bg-black/60 p-3 md:p-4 rounded-2xl border border-[#0098EA]/20 backdrop-blur-sm group">
                                 <span class="font-mono text-xs md:text-sm font-bold tracking-wide text-white break-all leading-relaxed flex-1" id="walletAddress">UQCkgzsrVXi0ttQm2yJ8dwufWccEfgAAi23RJBIlVGoKflFC</span>
-                                <button onclick="copyAddress()" class="text-gray-400 hover:text-[#0098EA] bg-white/5 hover:bg-[#0098EA]/10 w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 group-hover:scale-110 mt-0.5" title="Nusxa olish">
+                                <button onclick="copyAddress()" class="text-gray-400 hover:text-[#0098EA] bg-white/5 hover:bg-[#0098EA]/10 w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 group-hover:scale-110 mt-0.5" title="{% trans 'Nusxa olish' %}">
                                     <i class="fas fa-copy" id="copyIcon"></i>
                                 </button>
                             </div>
@@ -135,13 +135,13 @@
 
                         <div class="relative z-10 flex items-center gap-2 bg-[#0098EA]/5 border border-[#0098EA]/15 rounded-xl p-3">
                             <i class="fas fa-exclamation-triangle text-yellow-400 text-sm shrink-0"></i>
-                            <p class="text-xs text-yellow-300/80 font-medium leading-relaxed">Faqat <span class="font-black text-yellow-300">TON tarmog'idagi USDT</span> yuboring. Boshqa tarmoq yoki token qabul qilinmaydi!</p>
+                            <p class="text-xs text-yellow-300/80 font-medium leading-relaxed">Faqat <span class="font-black text-yellow-300">TON tarmog'idagi USDT</span> {% trans "yuboring. Boshqa tarmoq yoki token qabul qilinmaydi!" %}</p>
                         </div>
                     </div>
 
                     <div class="bg-[#0098EA]/10 border border-[#0098EA]/20 rounded-2xl p-5 flex gap-4 text-sm text-blue-300 shadow-inner">
                         <i class="fas fa-info-circle text-xl mt-0.5 shrink-0"></i>
-                        <p class="leading-relaxed">TON hamyoningizdan (Tonkeeper, MyTonWallet yoki boshqa) yuqoridagi manzilga kerakli miqdorda USDT yuboring. To'lov skrinshotini saqlab oling.</p>
+                        <p class="leading-relaxed">{% trans "TON hamyoningizdan (Tonkeeper, MyTonWallet yoki boshqa) yuqoridagi manzilga kerakli miqdorda USDT yuboring. To'lov skrinshotini saqlab oling." %}</p>
                     </div>
                 </div>
 
@@ -181,7 +181,7 @@
                         </div>
 
                         <button type="submit" class="w-full bg-gradient-to-r from-[#0098EA] to-[#00c2ff] text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_5px_20px_rgba(0,152,234,0.3)] hover:scale-[1.02] transition-transform text-sm md:text-base flex items-center justify-center gap-2 mt-4">
-                            <i class="fas fa-paper-plane"></i> So'rovni yuborish
+                            <i class="fas fa-paper-plane"></i> {% trans "So'rovni yuborish" %}
                         </button>
                     </form>
                 </div>

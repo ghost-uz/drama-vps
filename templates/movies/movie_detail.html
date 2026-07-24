@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block page_title %}{{ movie.title }}{% if active_episode %} {{ active_episode.episode_number }}-qism{% endif %} - DramaUz{% endblock %}
-{% block meta_description %}{{ movie.title }} ({{ movie.year }}){% if active_episode %} {{ active_episode.episode_number }}-qism{% endif %} o'zbek tilida - {{ movie.description|truncatechars:120 }}{% endblock %}
-{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}, drama uz, reels, o'zbekcha{% endblock %}
+{% block page_title %}{{ movie.title }}{% if active_episode %} {% blocktrans with n=active_episode.episode_number %}{{ n }}-qism{% endblocktrans %}{% endif %} - DramaUz{% endblock %}
+{% block meta_description %}{{ movie.title }} ({{ movie.year }}){% if active_episode %} {% blocktrans with n=active_episode.episode_number %}{{ n }}-qism{% endblocktrans %}{% endif %} {% trans "o'zbek tilida" %} - {{ movie.description|truncatechars:120 }}{% endblock %}
+{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% for genre in movie.genres.all %}{{ genre.name }}{% if not forloop.last %}, {% endif %}{% endfor %}, drama uz, reels, {% trans "o'zbekcha" %}{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ movie.get_absolute_url }}{% endblock %}
-{% block og_title %}{{ movie.title }} {{ active_episode.episode_number }}-qism - DramaUz{% endblock %}
+{% block og_title %}{{ movie.title }} {% blocktrans with n=active_episode.episode_number %}{{ n }}-qism{% endblocktrans %} - DramaUz{% endblock %}
 {% block og_description %}{{ movie.description|truncatechars:160 }}{% endblock %}
 {% block og_image %}{{ movie.poster.url }}{% endblock %}
 {% block tw_image %}{{ movie.poster.url }}{% endblock %}
@@ -982,11 +982,11 @@ body > main {
                 <div class="r-lock-icon" style="background:rgba(0,204,76,0.10);border:1px solid rgba(0,204,76,0.30);">
                     <i class="fas fa-lock" style="color:#00cc4c;"></i>
                 </div>
-                <h3>Ushbu qism yopiq</h3>
-                <p>Ko'rish uchun "O'zbekcha Dublyaj Loyihasi"ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi.</p>
+                <h3>{% trans "Ushbu qism yopiq" %}</h3>
+                <p>{% trans "Ko'rish uchun «O'zbekcha Dublyaj Loyihasi»ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi." %}</p>
                 <a href="{{ movie.get_absolute_url }}#crowdfunding-section"
                    style="background:#00cc4c;color:#000;padding:12px 28px;border-radius:30px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none;transition:opacity 0.2s;">
-                    To'lov qilish
+                    {% trans "To'lov qilish" %}
                 </a>
             </div>
             {% elif restriction_type == 'vip' %}
@@ -994,8 +994,8 @@ body > main {
                 <div class="r-lock-icon" style="background:linear-gradient(135deg,#ffd700,#f4d6a1);">
                     <i class="fas fa-crown" style="color:#5c3e0d;"></i>
                 </div>
-                <h3 style="background:linear-gradient(135deg,#ffd700,#f4a01a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">VIP Bo'lim</h3>
-                <p>Ushbu qismni ko'rish uchun premium obuna kerak.</p>
+                <h3 style="background:linear-gradient(135deg,#ffd700,#f4a01a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">{% trans "VIP Bo'lim" %}</h3>
+                <p>{% trans "Ushbu qismni ko'rish uchun premium obuna kerak." %}</p>
                 <a href="{% url 'users:subscription' %}"
                    style="background:linear-gradient(135deg,#ffd700,#f4a01a);color:#000;padding:12px 28px;border-radius:30px;font-weight:900;font-size:13px;text-transform:uppercase;letter-spacing:1px;text-decoration:none;">
                     VIP Olish
@@ -1058,11 +1058,11 @@ body > main {
     {% if next_episode %}
     <div id="rNextOverlay" class="r-next-overlay">
         <div class="r-next-info">
-            <p class="r-next-label">Keyingi qism</p>
-            <p class="r-next-title">{{ next_episode.episode_number }}-qism</p>
+            <p class="r-next-label">{% trans "Keyingi qism" %}</p>
+            <p class="r-next-title">{% blocktrans with n=next_episode.episode_number %}{{ n }}-qism{% endblocktrans %}</p>
         </div>
         <div class="r-next-count"><span id="rNextCount">15</span></div>
-        <button id="rNextCancel" type="button" class="r-next-cancel">Bekor qilish</button>
+        <button id="rNextCancel" type="button" class="r-next-cancel">{% trans "Bekor qilish" %}</button>
     </div>
     {% endif %}
 
@@ -1087,7 +1087,7 @@ body > main {
 
     <!-- ── Top Bar ───────────────────────────────────── -->
     <div class="r-topbar controls-ui">
-        <a href="/" class="r-back-btn" title="Bosh sahifaga qaytish">
+        <a href="/" class="r-back-btn" title="{% trans 'Bosh sahifaga qaytish' %}">
             <i class="fas fa-chevron-left" style="font-size:14px;"></i>
         </a>
         <div class="r-topbar-info">
@@ -1104,15 +1104,15 @@ body > main {
     <!-- ── Right Action Buttons ──────────────────────── -->
     <div class="r-actions">
         <!-- 1. Like -->
-        <div class="r-act-item" onclick="doLike()" title="Yoqdi">
+        <div class="r-act-item" onclick="doLike()" title="{% trans 'Yoqdi' %}">
             <div class="r-act-circle" id="likeCircle">
                 <i class="fas fa-heart"></i>
             </div>
-            <span class="r-act-label" id="likeLabel">Yoqdi</span>
+            <span class="r-act-label" id="likeLabel">{% trans "Yoqdi" %}</span>
         </div>
 
         <!-- 2. Comment -->
-        <div class="r-act-item" onclick="openSheet('commentSheet')" title="Fikrlar">
+        <div class="r-act-item" onclick="openSheet('commentSheet')" title="{% trans 'Fikrlar' %}">
             <div class="r-act-circle">
                 <i class="fas fa-comment-dots"></i>
             </div>
@@ -1120,28 +1120,28 @@ body > main {
         </div>
 
         <!-- 3. Bookmark / Library -->
-        <div class="r-act-item" onclick="doBookmark()" title="Saqlash">
+        <div class="r-act-item" onclick="doBookmark()" title="{% trans 'Saqlash' %}">
             <div class="r-act-circle {% if user_movie_status %}is-saved{% endif %}" id="bookmarkCircle">
                 <i class="fas fa-bookmark"></i>
             </div>
-            <span class="r-act-label">Saqlash</span>
+            <span class="r-act-label">{% trans "Saqlash" %}</span>
         </div>
 
         <!-- 4. Episode List -->
-        <div class="r-act-item" onclick="openSheet('episodeSheet')" title="Qismlar">
+        <div class="r-act-item" onclick="openSheet('episodeSheet')" title="{% trans 'Qismlar' %}">
             <div class="r-act-circle">
                 <i class="fas fa-list-ol"></i>
             </div>
-            <span class="r-act-label">Qismlar</span>
+            <span class="r-act-label">{% trans "Qismlar" %}</span>
         </div>
 
         <!-- 5. Pleyer sozlamalari [V2E-T1 UX] — sifat + subtitr -->
         {% if not is_restricted %}{% if use_bunny or video_720 %}
-        <div class="r-act-item" onclick="openSheet('playerSheet')" title="Sozlamalar">
+        <div class="r-act-item" onclick="openSheet('playerSheet')" title="{% trans 'Sozlamalar' %}">
             <div class="r-act-circle">
                 <i class="fas fa-sliders"></i>
             </div>
-            <span class="r-act-label">Sozlash</span>
+            <span class="r-act-label">{% trans "Sozlash" %}</span>
         </div>
         {% endif %}{% endif %}
     </div>
@@ -1149,7 +1149,7 @@ body > main {
     <!-- ── TAP TO PLAY overlay ──────────────────────────── -->
     <div id="tapToPlay" onclick="startPlay()"{% if is_restricted %} class="hide"{% endif %}>
         <div class="ttp-circle"><i class="fas fa-play" style="margin-left:4px;"></i></div>
-        <span class="ttp-label">Bosib ko'rish</span>
+        <span class="ttp-label">{% trans "Bosib ko'rish" %}</span>
     </div>
 
     <!-- ── Bottom Info (controls bilan auto-hide) ──────── -->
@@ -1185,7 +1185,7 @@ body > main {
     <div class="r-sheet" id="commentSheet">
         <div class="r-sheet-handle"></div>
         <div class="r-sheet-header">
-            <h3><i class="fas fa-comments" style="color:#00cc4c;margin-right:8px;"></i>Fikrlar ({{ movie.reviews.all|length }})</h3>
+            <h3><i class="fas fa-comments" style="color:#00cc4c;margin-right:8px;"></i>{% trans "Fikrlar" %} ({{ movie.reviews.all|length }})</h3>
             <button class="r-sheet-close" onclick="closeSheet('commentSheet')">
                 <i class="fas fa-times"></i>
             </button>
@@ -1197,7 +1197,7 @@ body > main {
             <div id="replyIndicator" style="display:none;align-items:center;gap:8px;padding:6px 12px;margin:8px 14px 0;background:rgba(0,204,76,0.08);border:1px solid rgba(0,204,76,0.25);border-radius:12px;font-size:11px;color:#00cc4c;">
                 <i class="fas fa-reply"></i>
                 <span id="replyIndicatorName" style="font-weight:800;"></span>
-                <button type="button" onclick="cancelReply()" aria-label="Javobni bekor qilish" style="margin-left:auto;background:none;border:none;color:#00cc4c;cursor:pointer;font-size:13px;padding:2px;"><i class="fas fa-times"></i></button>
+                <button type="button" onclick="cancelReply()" aria-label="{% trans 'Javobni bekor qilish' %}" style="margin-left:auto;background:none;border:none;color:#00cc4c;cursor:pointer;font-size:13px;padding:2px;"><i class="fas fa-times"></i></button>
             </div>
             <form id="rCommentForm"
                   hx-post="{% url 'drama:add_review' movie.id %}"
@@ -1207,21 +1207,21 @@ body > main {
                 {% csrf_token %}
                 <input type="hidden" name="parent" value="">
                 <textarea name="text" class="r-comment-input" rows="2"
-                          placeholder="Fikringizni yozing..."></textarea>
+                          placeholder="{% trans 'Fikringizni yozing...' %}"></textarea>
                 <button type="submit" class="r-comment-send">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
             {# [V2B-T3] Spoyler belgisi — form= atributi orqali formaga bog'langan #}
             <label style="display:flex;align-items:center;gap:6px;margin:6px 14px 4px;font-size:11px;color:rgba(255,255,255,0.55);cursor:pointer;width:fit-content;">
-                <input type="checkbox" name="is_spoiler" value="1" form="rCommentForm" style="accent-color:#00cc4c;"> Spoyler bor
+                <input type="checkbox" name="is_spoiler" value="1" form="rCommentForm" style="accent-color:#00cc4c;"> {% trans "Spoyler bor" %}
             </label>
         </div>
         {% else %}
         <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
             <a href="{% url 'users:login' %}"
                style="display:block;text-align:center;padding:12px;border:1px solid rgba(0,204,76,0.35);border-radius:14px;color:#00cc4c;font-size:13px;font-weight:800;text-decoration:none;transition:all 0.2s;">
-                <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>Fikr qoldirish uchun kiring
+                <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>{% trans "Fikr qoldirish uchun kiring" %}
             </a>
         </div>
         {% endif %}
@@ -1237,7 +1237,7 @@ body > main {
     <div class="r-sheet" id="episodeSheet">
         <div class="r-sheet-handle"></div>
         <div class="r-sheet-header">
-            <h3><i class="fas fa-list-ol" style="color:#00cc4c;margin-right:8px;"></i>Qismlar ({{ episodes|length }})</h3>
+            <h3><i class="fas fa-list-ol" style="color:#00cc4c;margin-right:8px;"></i>{% trans "Qismlar" %} ({{ episodes|length }})</h3>
             <button class="r-sheet-close" onclick="closeSheet('episodeSheet')">
                 <i class="fas fa-times"></i>
             </button>
@@ -1255,7 +1255,7 @@ body > main {
             {# ── O'xshash dramalar [P8-T2] — teg+janr mosligi ── #}
             {% if similar_movies %}
             <div class="r-similar">
-                <h4 class="r-similar-title"><i class="fas fa-layer-group" style="color:#00cc4c;margin-right:6px;"></i>O'xshash dramalar</h4>
+                <h4 class="r-similar-title"><i class="fas fa-layer-group" style="color:#00cc4c;margin-right:6px;"></i>{% trans "O'xshash dramalar" %}</h4>
                 <div class="r-similar-row">
                     {% for sm in similar_movies %}
                     <a href="{{ sm.get_absolute_url }}" class="r-similar-card">
@@ -1275,17 +1275,17 @@ body > main {
     <div class="r-sheet" id="playerSheet">
         <div class="r-sheet-handle"></div>
         <div class="r-sheet-header">
-            <h3><i class="fas fa-sliders" style="color:#00cc4c;margin-right:8px;"></i>Pleyer sozlamalari</h3>
-            <button class="r-sheet-close" onclick="closeSheet('playerSheet')" aria-label="Yopish">
+            <h3><i class="fas fa-sliders" style="color:#00cc4c;margin-right:8px;"></i>{% trans "Pleyer sozlamalari" %}</h3>
+            <button class="r-sheet-close" onclick="closeSheet('playerSheet')" aria-label="{% trans 'Yopish' %}">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <div class="r-set-scroll">
             {% if use_bunny %}
             <div class="r-set-group">
-                <div class="r-set-title"><i class="fas fa-gauge-high"></i> Sifat</div>
+                <div class="r-set-title"><i class="fas fa-gauge-high"></i> {% trans "Sifat" %}</div>
                 <button type="button" class="r-set-option active" data-set="quality" data-val="auto" onclick="playerSet(this)">
-                    <span>Avto (tavsiya etiladi)</span><i class="fas fa-check"></i>
+                    <span>{% trans "Avto (tavsiya etiladi)" %}</span><i class="fas fa-check"></i>
                 </button>
                 <button type="button" class="r-set-option" data-set="quality" data-val="fhd" onclick="playerSet(this)">
                     <span>Full HD · 1080p</span><i class="fas fa-check"></i>
@@ -1293,7 +1293,7 @@ body > main {
             </div>
             {% elif video_1080 and video_1080 != video_720 %}
             <div class="r-set-group">
-                <div class="r-set-title"><i class="fas fa-gauge-high"></i> Sifat</div>
+                <div class="r-set-title"><i class="fas fa-gauge-high"></i> {% trans "Sifat" %}</div>
                 <button type="button" class="r-set-option active" data-set="quality" data-val="720" onclick="playerSet(this)">
                     <span>HD · 720p</span><i class="fas fa-check"></i>
                 </button>
@@ -1304,18 +1304,18 @@ body > main {
             {% endif %}
             {# [V2E-T4] Tezlik — universal (0.75x–2x); tanlov localStorage'da #}
             <div class="r-set-group">
-                <div class="r-set-title"><i class="fas fa-gauge"></i> Tezlik</div>
+                <div class="r-set-title"><i class="fas fa-gauge"></i> {% trans "Tezlik" %}</div>
                 <button type="button" class="r-set-option" data-set="speed" data-val="0.75" onclick="playerSet(this)"><span>0.75x</span><i class="fas fa-check"></i></button>
-                <button type="button" class="r-set-option active" data-set="speed" data-val="1" onclick="playerSet(this)"><span>Normal (1x)</span><i class="fas fa-check"></i></button>
+                <button type="button" class="r-set-option active" data-set="speed" data-val="1" onclick="playerSet(this)"><span>{% trans "Normal (1x)" %}</span><i class="fas fa-check"></i></button>
                 <button type="button" class="r-set-option" data-set="speed" data-val="1.25" onclick="playerSet(this)"><span>1.25x</span><i class="fas fa-check"></i></button>
                 <button type="button" class="r-set-option" data-set="speed" data-val="1.5" onclick="playerSet(this)"><span>1.5x</span><i class="fas fa-check"></i></button>
                 <button type="button" class="r-set-option" data-set="speed" data-val="2" onclick="playerSet(this)"><span>2x</span><i class="fas fa-check"></i></button>
             </div>
             {% if subtitles %}
             <div class="r-set-group">
-                <div class="r-set-title"><i class="fas fa-closed-captioning"></i> Subtitr</div>
+                <div class="r-set-title"><i class="fas fa-closed-captioning"></i> {% trans "Subtitr" %}</div>
                 <button type="button" class="r-set-option active" data-set="subtitle" data-val="" onclick="playerSet(this)">
-                    <span>O'chiq</span><i class="fas fa-check"></i>
+                    <span>{% trans "O'chiq" %}</span><i class="fas fa-check"></i>
                 </button>
                 {% for sub in subtitles %}
                 <button type="button" class="r-set-option" data-set="subtitle" data-val="{{ sub.lang }}" onclick="playerSet(this)">
@@ -1334,16 +1334,16 @@ body > main {
         <div class="r-modal-box" onclick="event.stopPropagation()">
             <form action="{% url 'drama:add_to_list' movie.id %}" method="POST">
                 {% csrf_token %}
-                <h3>My Library</h3>
+                <h3>{% trans "My Library" %}</h3>
                 <select name="status" class="r-select">
-                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>▶ Ko'ryapman</option>
-                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>✓ Tugallangan</option>
-                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>📌 Rejamda bor</option>
-                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>⏸ To'xtatilgan</option>
-                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>✕ Qiziq emas</option>
+                    <option value="1" {% if user_movie_status.status == 1 %}selected{% endif %}>{% trans "▶ Ko'ryapman" %}</option>
+                    <option value="2" {% if user_movie_status.status == 2 %}selected{% endif %}>{% trans "✓ Tugallangan" %}</option>
+                    <option value="3" {% if user_movie_status.status == 3 or not user_movie_status %}selected{% endif %}>{% trans "📌 Rejamda bor" %}</option>
+                    <option value="4" {% if user_movie_status.status == 4 %}selected{% endif %}>{% trans "⏸ To'xtatilgan" %}</option>
+                    <option value="5" {% if user_movie_status.status == 5 %}selected{% endif %}>{% trans "✕ Qiziq emas" %}</option>
                 </select>
-                <button type="submit" class="r-modal-save">Saqlash</button>
-                <button type="button" class="r-modal-cancel" onclick="closeLibrary()">Bekor qilish</button>
+                <button type="submit" class="r-modal-save">{% trans "Saqlash" %}</button>
+                <button type="button" class="r-modal-cancel" onclick="closeLibrary()">{% trans "Bekor qilish" %}</button>
             </form>
         </div>
     </div>

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Bildirishnomalar | Drama.uz{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Bildirishnomalar" %} | Drama.uz{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-[#050505] text-white py-12 px-4 md:px-8">
@@ -8,14 +9,14 @@
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
         <span class="w-1.5 h-7 bg-[#00cc4c] rounded-full"></span>
-        Bildirishnomalar
+        {% trans "Bildirishnomalar" %}
       </h1>
       {% if page_obj.object_list %}
       <form action="{% url 'users:notifications_read_all' %}" method="post">
         {% csrf_token %}
         <button type="submit"
                 class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-[#00cc4c] transition-colors">
-          <i class="fas fa-check-double mr-1"></i> Barchasini o'qildi
+          <i class="fas fa-check-double mr-1"></i> {% trans "Barchasini o'qildi" %}
         </button>
       </form>
       {% endif %}
@@ -38,7 +39,7 @@
               {% if not n.is_read %}<span class="w-2 h-2 rounded-full bg-[#00cc4c] flex-shrink-0"></span>{% endif %}
             </div>
             {% if n.body %}<p class="text-xs text-gray-500 mt-0.5 truncate">{{ n.body }}</p>{% endif %}
-            <p class="text-[10px] text-gray-600 mt-1 uppercase tracking-widest">{{ n.created_at|timesince }} oldin</p>
+            <p class="text-[10px] text-gray-600 mt-1 uppercase tracking-widest">{% blocktrans with t=n.created_at|timesince %}{{ t }} oldin{% endblocktrans %}</p>
           </div>
         </button>
       </form>
@@ -47,7 +48,7 @@
         <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
           <i class="fas fa-bell-slash text-gray-600 text-2xl"></i>
         </div>
-        <p class="text-gray-500 text-sm italic">Hozircha bildirishnoma yo'q.</p>
+        <p class="text-gray-500 text-sm italic">{% trans "Hozircha bildirishnoma yo'q." %}</p>
       </div>
       {% endfor %}
     </div>
@@ -56,12 +57,12 @@
     <div class="flex justify-center items-center gap-2 pt-4">
       {% if page_obj.has_previous %}
       <a href="?page={{ page_obj.previous_page_number }}"
-         class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">Oldingi</a>
+         class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">{% trans "Oldingi" %}</a>
       {% endif %}
       <span class="px-4 py-2 text-sm text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
       {% if page_obj.has_next %}
       <a href="?page={{ page_obj.next_page_number }}"
-         class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">Keyingi</a>
+         class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">{% trans "Keyingi" %}</a>
       {% endif %}
     </div>
     {% endif %}

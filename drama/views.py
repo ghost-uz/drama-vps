@@ -7,6 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import DetailView, ListView
 from django.views.generic.base import View
@@ -190,9 +191,9 @@ def report_review(request, pk):
         return render(request, "movies/partials/_report_done.html", {"already": not created})
 
     if created:
-        messages.success(request, "Shikoyat yuborildi — moderatorlar ko'rib chiqadi.")
+        messages.success(request, _("Shikoyat yuborildi — moderatorlar ko'rib chiqadi."))
     else:
-        messages.info(request, "Siz bu izohga allaqachon shikoyat yuborgansiz.")
+        messages.info(request, _("Siz bu izohga allaqachon shikoyat yuborgansiz."))
     return redirect(review.movie.get_absolute_url())
 
 
@@ -484,7 +485,7 @@ def add_to_list(request, movie_id):
         try:
             status = int(request.POST.get("status", 0))
         except ValueError:
-            messages.error(request, "Noto'g'ri status tanlandi.")
+            messages.error(request, _("Noto'g'ri status tanlandi."))
             return redirect("drama:movie_detail", slug=movie.slug)
 
         # 2. QISMLARNI XAVFSIZ OLISH
@@ -513,11 +514,11 @@ def add_to_list(request, movie_id):
                     clean_score = parsed_score
                 else:
                     messages.warning(
-                        request, "Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi."
+                        request, _("Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi.")
                     )
             except ValueError:
                 # Agar raqam o'rniga harf yoki bo'sh joy kelsa:
-                messages.warning(request, "Noto'g'ri baho kiritildi. Kino bahosiz saqlandi.")
+                messages.warning(request, _("Noto'g'ri baho kiritildi. Kino bahosiz saqlandi."))
 
         # 4. BAZAGA XAVFSIZ YOZISH
         entry, created = UserMovieList.objects.update_or_create(
@@ -536,7 +537,9 @@ def add_to_list(request, movie_id):
             # Faqatgina 'xp' maydonini yangilaymiz (Tezroq ishlashi uchun update_fields)
             request.user.profile.save(update_fields=["xp"])
 
-        messages.success(request, f"'{movie.title}' ro'yxatingizga saqlandi!")
+        messages.success(
+            request, _("'%(title)s' ro'yxatingizga saqlandi!") % {"title": movie.title}
+        )
         return redirect("drama:movie_detail", slug=movie.slug)
 
 
@@ -811,7 +814,7 @@ def send_gift_to_actor(request, actor_id):
 
                 # 3. NARXNI TEKSHIRISH (Agar notanish sovg'a jo'natilsa)
                 if not price:
-                    messages.error(request, "Noto'g'ri sovg'a tanlandi.")
+                    messages.error(request, _("Noto'g'ri sovg'a tanlandi."))
                     return redirect(actor.get_absolute_url())
 
                 # 4. BALANSNI TEKSHIRISH VA YECHISH (ledger orqali, atomik)
@@ -826,7 +829,9 @@ def send_gift_to_actor(request, actor_id):
                 except wallet.InsufficientFundsError:
                     messages.error(
                         request,
-                        "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring.",
+                        _(
+                            "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
+                        ),
                     )
                     return redirect(actor.get_absolute_url())
 
@@ -841,14 +846,15 @@ def send_gift_to_actor(request, actor_id):
                 )
 
                 # Muvaffaqiyatli xabar
-                gift_names = {"rose": "Gul 🌹", "coffee": "Qahva ☕", "crown": "Toj 👑"}
+                gift_names = {"rose": _("Gul 🌹"), "coffee": _("Qahva ☕"), "crown": _("Toj 👑")}
                 messages.success(
                     request,
-                    f"{actor.name} ga {gift_names[gift_type]} yubordingiz! U bundan juda xursand bo'ladi 🎉",
+                    _("%(actor)s ga %(gift)s yubordingiz! U bundan juda xursand bo'ladi 🎉")
+                    % {"actor": actor.name, "gift": gift_names[gift_type]},
                 )
 
         except Actor.DoesNotExist:
-            messages.error(request, "Aktyor topilmadi.")
+            messages.error(request, _("Aktyor topilmadi."))
             return redirect("drama:explore")
 
         return redirect(actor.get_absolute_url())

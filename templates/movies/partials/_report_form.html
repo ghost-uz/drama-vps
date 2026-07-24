@@ -1,24 +1,25 @@
 {# Izoh shikoyati [P14-T3] — <details>: JS'siz ochilib-yopiladi (progressive enhancement); HTMX bo'lsa forma o'rnida tasdiq chiqadi #}
+{% load i18n %}
 {% if user.is_authenticated and user != review.user and not review.user.is_superuser %}
 <details class="inline-block">
     <summary class="cursor-pointer list-none text-[10px] text-gray-600 hover:text-red-400 font-bold uppercase tracking-widest flex items-center gap-1 transition-colors">
-        <i class="fas fa-flag text-[9px]" aria-hidden="true"></i> Shikoyat
+        <i class="fas fa-flag text-[9px]" aria-hidden="true"></i> {% trans "Shikoyat" %}
     </summary>
     <form method="post" action="{% url 'drama:report_review' review.id %}"
           hx-post="{% url 'drama:report_review' review.id %}"
           hx-target="closest details" hx-swap="outerHTML"
           class="mt-2 flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl p-2">
         {% csrf_token %}
-        <select name="reason" aria-label="Shikoyat sababi"
+        <select name="reason" aria-label="{% trans 'Shikoyat sababi' %}"
                 class="bg-[#111] text-gray-300 text-[10px] rounded-lg px-2 py-1.5 border border-white/10 outline-none">
-            <option value="spam">Spam / reklama</option>
-            <option value="abuse">Haqorat</option>
-            <option value="spoiler">Belgisiz spoyler</option>
-            <option value="other" selected>Boshqa</option>
+            <option value="spam">{% trans "Spam / reklama" %}</option>
+            <option value="abuse">{% trans "Haqorat" %}</option>
+            <option value="spoiler">{% trans "Belgisiz spoyler" %}</option>
+            <option value="other" selected>{% trans "Boshqa" %}</option>
         </select>
         <button type="submit"
                 class="text-[10px] font-black text-red-400 uppercase px-2 py-1.5 hover:bg-red-500/10 rounded-lg transition-colors">
-            Yuborish
+            {% trans "Yuborish" %}
         </button>
     </form>
 </details>

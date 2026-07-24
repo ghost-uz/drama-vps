@@ -4,7 +4,21 @@ from django.urls import reverse
 from .models import Actor, Category, Genre, Movie
 
 
-class MovieSitemap(Sitemap):
+class I18nSitemap(Sitemap):
+    """Har item uchun uz + /en/ variant + hreflang alternates [V2G-T1].
+
+    Django i18n sitemap'i har til uchun alohida <url> yozadi va `alternates`
+    orqali har biriga xhtml:link (hreflang) qo'shadi; `x_default` esa default
+    (uz, prefikssiz) variantni x-default sifatida e'lon qiladi. `location()`
+    til-neytral get_absolute_url'ni qaytaradi — prefiksni Django qo'yadi.
+    """
+
+    i18n = True
+    alternates = True
+    x_default = True
+
+
+class MovieSitemap(I18nSitemap):
     changefreq = "weekly"  # Kinolar haftada bir yangilanishi mumkin
     priority = 0.9  # Qidiruvda ustunlik darajasi (0.0 dan 1.0 gacha)
 
@@ -17,7 +31,7 @@ class MovieSitemap(Sitemap):
         return obj.updated_at
 
 
-class ActorSitemap(Sitemap):
+class ActorSitemap(I18nSitemap):
     changefreq = "monthly"
     priority = 0.6
 
@@ -26,7 +40,7 @@ class ActorSitemap(Sitemap):
         return Actor.objects.all().order_by("id")
 
 
-class CategorySitemap(Sitemap):
+class CategorySitemap(I18nSitemap):
     changefreq = "monthly"
     priority = 0.2
 
@@ -34,7 +48,7 @@ class CategorySitemap(Sitemap):
         return Category.objects.all().order_by("id")
 
 
-class GenreSitemap(Sitemap):
+class GenreSitemap(I18nSitemap):
     changefreq = "monthly"
     priority = 0.5
 
@@ -66,7 +80,7 @@ class VideoSitemap(Sitemap):
         return obj.updated_at
 
 
-class StaticPagesSitemap(Sitemap):
+class StaticPagesSitemap(I18nSitemap):
     """Statik huquqiy sahifalar (oferta/maxfiylik) [P10-T5 qisman]."""
 
     changefreq = "yearly"

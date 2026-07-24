@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
@@ -67,13 +68,16 @@ def register(request):
                 username = form.cleaned_data.get("username")
                 messages.success(
                     request,
-                    f"Xush kelibsiz {username}! Account yaratildi. "
-                    f"Emailingizga tasdiqlash havolasi yubordik (spam papkasini ham "
-                    f"tekshiring). Endi username va parolingiz bilan kiring.",
+                    _(
+                        "Xush kelibsiz %(username)s! Account yaratildi. "
+                        "Emailingizga tasdiqlash havolasi yubordik (spam papkasini ham "
+                        "tekshiring). Endi username va parolingiz bilan kiring."
+                    )
+                    % {"username": username},
                 )
                 return redirect("users:login")
             except Exception as e:
-                messages.error(request, f"Xatolik yuz berdi: {e}")
+                messages.error(request, _("Xatolik yuz berdi: %(err)s") % {"err": e})
     else:
         form = UserRegisterForm()
 
@@ -85,9 +89,11 @@ def verify_email(request, key):
     imzolangan kalitning o'zi yetarli (havola boshqa qurilmada ochilishi mumkin)."""
     email_address = email_verification.confirm_key(key)
     if email_address is None:
-        messages.error(request, "Tasdiqlash havolasi yaroqsiz yoki muddati o'tgan.")
+        messages.error(request, _("Tasdiqlash havolasi yaroqsiz yoki muddati o'tgan."))
     else:
-        messages.success(request, f"{email_address.email} manzili tasdiqlandi ✅")
+        messages.success(
+            request, _("%(email)s manzili tasdiqlandi ✅") % {"email": email_address.email}
+        )
     if request.user.is_authenticated:
         return redirect("users:settings")
     return redirect("users:login")
@@ -101,12 +107,12 @@ def resend_verification(request):
         return redirect("users:settings")
 
     if not request.user.email:
-        messages.error(request, "Avval sozlamalarda email manzil kiriting.")
+        messages.error(request, _("Avval sozlamalarda email manzil kiriting."))
     elif email_verification.is_verified(request.user):
-        messages.info(request, "Emailingiz allaqachon tasdiqlangan.")
+        messages.info(request, _("Emailingiz allaqachon tasdiqlangan."))
     else:
         email_verification.send_verification_email(request.user, request)
-        messages.success(request, "Tasdiqlash havolasi qayta yuborildi.")
+        messages.success(request, _("Tasdiqlash havolasi qayta yuborildi."))
     return redirect("users:settings")
 
 
@@ -149,17 +155,22 @@ def telegram_login(request):
         tg = telegram_auth.verify_webapp_init_data(init_data, bot_token=bot_token, max_age=max_age)
         if tg is None:
             return JsonResponse({"ok": False, "detail": "Telegram imzosi yaroqsiz."}, status=403)
-        user, _ = telegram_auth.get_or_create_user(tg, current_user=current)
+        user, _created = telegram_auth.get_or_create_user(tg, current_user=current)
         auth_login(request, user, backend=_MODELBACKEND)
         return JsonResponse({"ok": True, "redirect": _safe_next(request)})
 
     tg = telegram_auth.verify_login_widget(request.GET.dict(), bot_token=bot_token, max_age=max_age)
     if tg is None:
-        messages.error(request, "Telegram orqali kirishda xatolik (imzo yaroqsiz yoki eskirgan).")
+        messages.error(
+            request, _("Telegram orqali kirishda xatolik (imzo yaroqsiz yoki eskirgan).")
+        )
         return redirect("users:login")
     user, _created = telegram_auth.get_or_create_user(tg, current_user=current)
     auth_login(request, user, backend=_MODELBACKEND)
-    messages.success(request, f"Xush kelibsiz, {user.username}! Telegram orqali kirdingiz.")
+    messages.success(
+        request,
+        _("Xush kelibsiz, %(username)s! Telegram orqali kirdingiz.") % {"username": user.username},
+    )
     return redirect(_safe_next(request))
 
 
@@ -318,11 +329,11 @@ def settings_view(request):
             with transaction.atomic():
                 u_form.save()
                 p_form.save()
-            messages.success(request, "Ma'lumotlaringiz muvaffaqiyatli yangilandi!")
+            messages.success(request, _("Ma'lumotlaringiz muvaffaqiyatli yangilandi!"))
             # Email o'zgardi -> yangi manzil tasdiqlanmagan, havola yuboramiz [P6-T1]
             if (request.user.email or "").lower() != (old_email or "").lower():
                 email_verification.send_verification_email(request.user, request)
-                messages.info(request, "Yangi emailingizga tasdiqlash havolasi yubordik.")
+                messages.info(request, _("Yangi emailingizga tasdiqlash havolasi yubordik."))
             return redirect("users:settings")
     else:
         u_form = UserUpdateForm(instance=request.user)
@@ -372,7 +383,7 @@ def buy_premium(request):
         plan = plans.filter(pk=plan_id).first() if plan_id else plans.first()
 
         if plan is None:
-            messages.error(request, "Obuna rejasi topilmadi yoki sotuvda emas.")
+            messages.error(request, _("Obuna rejasi topilmadi yoki sotuvda emas."))
             return redirect("users:subscription")
 
         try:
@@ -382,14 +393,18 @@ def buy_premium(request):
                 auto_renew=request.POST.get("auto_renew") == "on",
             )
             messages.success(
-                request, f"Tabriklaymiz! {plan.name} obunasi muvaffaqiyatli xarid qilindi 👑"
+                request,
+                _("Tabriklaymiz! %(plan)s obunasi muvaffaqiyatli xarid qilindi 👑")
+                % {"plan": plan.name},
             )
         except wallet.InsufficientFundsError:
             messages.error(
-                request, f"Hisobingizda mablag' yetarli emas! Narxi: {plan.price_coins} Coin."
+                request,
+                _("Hisobingizda mablag' yetarli emas! Narxi: %(price)s Coin.")
+                % {"price": plan.price_coins},
             )
         except subscriptions.LifetimeSubscriptionError:
-            messages.info(request, "Sizda muddatsiz VIP mavjud — xarid shart emas.")
+            messages.info(request, _("Sizda muddatsiz VIP mavjud — xarid shart emas."))
 
     return redirect("users:profile", username=request.user.username)
 
@@ -402,12 +417,12 @@ def toggle_auto_renew(request):
 
     sub = subscriptions.active_subscription(request.user.profile)
     if sub is None:
-        messages.error(request, "Sizda aktiv obuna yo'q.")
+        messages.error(request, _("Sizda aktiv obuna yo'q."))
     else:
         sub.auto_renew = not sub.auto_renew
         sub.save(update_fields=["auto_renew", "updated_at"])
-        holat = "yoqildi" if sub.auto_renew else "o'chirildi"
-        messages.success(request, f"Avto-uzaytirish {holat}.")
+        holat = _("yoqildi") if sub.auto_renew else _("o'chirildi")
+        messages.success(request, _("Avto-uzaytirish %(state)s.") % {"state": holat})
     return redirect("users:subscription")
 
 
@@ -435,7 +450,7 @@ def topup_view(request):
 
     if request.method == "POST":
         if pending_request:
-            messages.error(request, "Sizda allaqachon kutilayotgan so'rov mavjud!")
+            messages.error(request, _("Sizda allaqachon kutilayotgan so'rov mavjud!"))
             return redirect("users:topup")
 
         form = TopUpRequestForm(request.POST, request.FILES)
@@ -454,7 +469,7 @@ def topup_view(request):
             notify_telegram_task.delay(msg)
 
             messages.success(
-                request, "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."
+                request, _("So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting.")
             )
             return redirect("users:topup")
     else:
@@ -478,7 +493,7 @@ def crypto_topup_view(request):
 
     if request.method == "POST":
         if pending_request:
-            messages.error(request, "Sizda allaqachon kutilayotgan kripto so'rov mavjud!")
+            messages.error(request, _("Sizda allaqachon kutilayotgan kripto so'rov mavjud!"))
             return redirect("users:crypto_topup")
 
         form = CryptoTopUpRequestForm(request.POST, request.FILES)
@@ -497,7 +512,7 @@ def crypto_topup_view(request):
             notify_telegram_task.delay(msg)
 
             messages.success(
-                request, "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."
+                request, _("So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting.")
             )
             return redirect("users:crypto_topup")
     else:
@@ -546,7 +561,7 @@ def mark_all_notifications_read(request):
     if request.method != "POST":
         return redirect("users:notifications")
     notifications.mark_all_read(request.user)
-    messages.success(request, "Barcha bildirishnomalar o'qilgan deb belgilandi.")
+    messages.success(request, _("Barcha bildirishnomalar o'qilgan deb belgilandi."))
     return redirect("users:notifications")
 
 
@@ -561,7 +576,7 @@ def telegram_bot_link(request):
     from core import telegram_bot
 
     if not settings.TELEGRAM_BOT_USERNAME:
-        messages.error(request, "Telegram bot hali sozlanmagan.")
+        messages.error(request, _("Telegram bot hali sozlanmagan."))
         return redirect("users:settings")
     token = telegram_bot.make_link_token(request.user.id)
     return redirect(telegram_bot.bot_deep_link(token))
@@ -574,7 +589,7 @@ def telegram_bot_unlink(request):
     profile = request.user.profile
     profile.telegram_chat_id = None
     profile.save(update_fields=["telegram_chat_id"])
-    messages.success(request, "Telegram bot uzildi — endi botdan xabar kelmaydi.")
+    messages.success(request, _("Telegram bot uzildi — endi botdan xabar kelmaydi."))
     return redirect("users:settings")
 
 
@@ -602,7 +617,9 @@ def my_collections(request):
             collection = form.save(commit=False)
             collection.owner = request.user.profile
             collection.save()
-            messages.success(request, f"“{collection.name}” kolleksiyasi yaratildi.")
+            messages.success(
+                request, _("“%(name)s” kolleksiyasi yaratildi.") % {"name": collection.name}
+            )
             return redirect(collection.get_absolute_url())
     else:
         form = CollectionForm()
@@ -645,7 +662,7 @@ def collection_edit(request, slug):
     form = CollectionForm(request.POST, instance=collection)
     if form.is_valid():
         form.save()  # auto_now updated_at -> kesh yangilanadi
-        messages.success(request, "Kolleksiya yangilandi.")
+        messages.success(request, _("Kolleksiya yangilandi."))
     return redirect(collection.get_absolute_url())
 
 
@@ -654,7 +671,7 @@ def collection_edit(request, slug):
 def collection_delete(request, slug):
     collection = _own_collection_or_404(request, slug)
     collection.delete()
-    messages.success(request, "Kolleksiya o'chirildi.")
+    messages.success(request, _("Kolleksiya o'chirildi."))
     return redirect("users:my_collections")
 
 
@@ -665,7 +682,9 @@ def collection_add(request, slug):
     collection = _own_collection_or_404(request, slug)
     if collection.items.count() >= Collection.MAX_ITEMS:
         messages.error(
-            request, f"Kolleksiyada eng ko'pi {Collection.MAX_ITEMS} ta kino bo'la oladi."
+            request,
+            _("Kolleksiyada eng ko'pi %(max)s ta kino bo'la oladi.")
+            % {"max": Collection.MAX_ITEMS},
         )
         return redirect(collection.get_absolute_url())
     movie = get_object_or_404(Movie.objects.published(), id=request.POST.get("movie_id"))
@@ -677,7 +696,7 @@ def collection_add(request, slug):
     )
     if created:
         _touch_collection(collection)
-        messages.success(request, f"“{movie.title}” qo'shildi.")
+        messages.success(request, _("“%(title)s” qo'shildi.") % {"title": movie.title})
     return redirect(collection.get_absolute_url())
 
 
@@ -743,19 +762,23 @@ def block_add(request):
     username = (request.POST.get("username") or "").strip()
     target = User.objects.filter(username=username).first()
     if target is None:
-        messages.error(request, f"“{username}” topilmadi.")
+        messages.error(request, _("“%(username)s” topilmadi.") % {"username": username})
     elif target == request.user:
-        messages.error(request, "O'zingizni bloklay olmaysiz.")
+        messages.error(request, _("O'zingizni bloklay olmaysiz."))
     else:
         _b, created = UserBlock.objects.get_or_create(
             blocker=request.user.profile, blocked=target.profile
         )
         if created:
             messages.success(
-                request, f"{target.username} bloklandi — izohlari yig'ilgan ko'rinadi."
+                request,
+                _("%(username)s bloklandi — izohlari yig'ilgan ko'rinadi.")
+                % {"username": target.username},
             )
         else:
-            messages.info(request, f"{target.username} allaqachon bloklangan.")
+            messages.info(
+                request, _("%(username)s allaqachon bloklangan.") % {"username": target.username}
+            )
     return redirect(_safe_next(request, fallback="users:settings"))
 
 
@@ -764,9 +787,9 @@ def block_add(request):
 def block_remove(request):
     """Blokdan olish: POST username."""
     username = (request.POST.get("username") or "").strip()
-    deleted, _ = UserBlock.objects.filter(
+    deleted, _detail = UserBlock.objects.filter(
         blocker=request.user.profile, blocked__user__username=username
     ).delete()
     if deleted:
-        messages.success(request, f"{username} blokdan olindi.")
+        messages.success(request, _("%(username)s blokdan olindi.") % {"username": username})
     return redirect(_safe_next(request, fallback="users:settings"))

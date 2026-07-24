@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -118,8 +119,8 @@
         <div class="mb-10 flex items-center gap-4">
             <div class="w-2 h-10 bg-[#00cc4c] shadow-[0_0_15px_#00cc4c] rounded-full"></div>
             <div>
-                <h1 class="text-3xl font-black text-white tracking-tight">PROFILE SETTINGS</h1>
-                <p class="text-gray-500 font-medium">O'z shaxsiy profilingizni mukammallashtiring</p>
+                <h1 class="text-3xl font-black text-white tracking-tight">{% trans "PROFILE SETTINGS" %}</h1>
+                <p class="text-gray-500 font-medium">{% trans "O'z shaxsiy profilingizni mukammallashtiring" %}</p>
             </div>
         </div>
 
@@ -171,7 +172,7 @@
                                     <i class="fab fa-telegram-plane"></i>
                                 </div>
                                 <div class="text-left">
-                                    <p class="text-[10px] text-gray-500 uppercase font-bold">Telegram ID</p>
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold">{% trans "Telegram ID" %}</p>
                                     <p class="text-sm text-gray-200">@{{ user.profile.telegram_id|default:"---" }}</p>
                                 </div>
                             </div>
@@ -182,17 +183,17 @@
                                     <i class="fas fa-robot"></i>
                                 </div>
                                 <div class="text-left flex-1">
-                                    <p class="text-[10px] text-gray-500 uppercase font-bold">Telegram bot</p>
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold">{% trans "Telegram bot" %}</p>
                                     {% if user.profile.telegram_chat_id %}
                                         <p class="text-sm text-[#00cc4c] font-bold flex items-center gap-1">
                                             <i class="fas fa-check-circle text-xs"></i> Ulangan
                                         </p>
                                         <form method="POST" action="{% url 'users:telegram_bot_unlink' %}" class="mt-1">
                                             {% csrf_token %}
-                                            <button type="submit" class="text-[11px] text-gray-500 underline hover:text-red-400 transition-colors">Uzish</button>
+                                            <button type="submit" class="text-[11px] text-gray-500 underline hover:text-red-400 transition-colors">{% trans "Uzish" %}</button>
                                         </form>
                                     {% else %}
-                                        <p class="text-xs text-gray-400 mb-1.5">Yangi qism chiqqanda botdan xabar oling</p>
+                                        <p class="text-xs text-gray-400 mb-1.5">{% trans "Yangi qism chiqqanda botdan xabar oling" %}</p>
                                         <form method="POST" action="{% url 'users:telegram_bot_link' %}">
                                             {% csrf_token %}
                                             <button type="submit" class="text-[11px] font-black text-[#229ED9] uppercase tracking-widest hover:underline">
@@ -204,7 +205,7 @@
                             </div>
 
                             <div class="bg-black/40 rounded-2xl p-4 border border-[#1f1f1f] text-left">
-                                <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Biografiya</p>
+                                <p class="text-[10px] text-gray-500 uppercase font-bold mb-2">{% trans "Biografiya" %}</p>
                                 <p class="text-sm text-gray-400 italic leading-relaxed">
                                     {{ user.profile.bio|default:"Siz haqingizda ma'lumot yo'q..." }}
                                 </p>
@@ -221,17 +222,17 @@
                                     <form method="POST" action="{% url 'users:block_remove' %}">
                                         {% csrf_token %}
                                         <input type="hidden" name="username" value="{{ b.blocked.user.username }}">
-                                        <button type="submit" class="text-[11px] text-gray-500 underline hover:text-[#00cc4c] transition-colors">Blokdan olish</button>
+                                        <button type="submit" class="text-[11px] text-gray-500 underline hover:text-[#00cc4c] transition-colors">{% trans "Blokdan olish" %}</button>
                                     </form>
                                 </div>
                                 {% empty %}
-                                <p class="text-xs text-gray-500">Hech kim bloklanmagan.</p>
+                                <p class="text-xs text-gray-500">{% trans "Hech kim bloklanmagan." %}</p>
                                 {% endfor %}
                                 <form method="POST" action="{% url 'users:block_add' %}" class="mt-3 flex items-center gap-2">
                                     {% csrf_token %}
                                     <input type="text" name="username" placeholder="username" required
                                            class="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#00cc4c] transition">
-                                    <button type="submit" class="px-3 py-2 bg-red-500/10 text-red-400 text-xs font-black rounded-xl hover:bg-red-500/20 transition-colors">Bloklash</button>
+                                    <button type="submit" class="px-3 py-2 bg-red-500/10 text-red-400 text-xs font-black rounded-xl hover:bg-red-500/20 transition-colors">{% trans "Bloklash" %}</button>
                                 </form>
                             </div>
                         </div>
@@ -251,7 +252,7 @@
                                 <span class="p-2 bg-[#00cc4c]/10 rounded-lg text-[#00cc4c]">
                                     <i class="fas fa-user-shield"></i>
                                 </span>
-                                <h3 class="text-xl font-bold text-white">Asosiy Akkaunt</h3>
+                                <h3 class="text-xl font-bold text-white">{% trans "Asosiy Akkaunt" %}</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {{ u_form|crispy }}
@@ -263,7 +264,7 @@
                                 <span class="p-2 bg-[#00cc4c]/10 rounded-lg text-[#00cc4c]">
                                     <i class="fas fa-fingerprint"></i>
                                 </span>
-                                <h3 class="text-xl font-bold text-white">Profil Tafsilotlari</h3>
+                                <h3 class="text-xl font-bold text-white">{% trans "Profil Tafsilotlari" %}</h3>
                             </div>
                             <div class="space-y-6">
                                 {{ p_form|crispy }}

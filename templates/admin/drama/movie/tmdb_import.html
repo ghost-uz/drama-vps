@@ -1,19 +1,19 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 
-{% block title %}TMDB'dan import{% endblock %}
+{% block title %}{% trans "TMDB'dan import" %}{% endblock %}
 
 {% block content %}
 {# TMDB import [V2D-T1]: qidiruv (GET) + tanlangan yozuvni import (POST) #}
 <div style="max-width: 760px">
   <form method="get" style="display:flex; gap:8px; margin-bottom:16px">
     <input type="text" name="q" value="{{ query }}" style="flex:1; padding:8px"
-           placeholder="Nomi, TMDB ID yoki havola (masalan: Vincenzo, 71712, themoviedb.org/tv/71712)" />
+           placeholder="{% trans 'Nomi, TMDB ID yoki havola (masalan: Vincenzo, 71712, themoviedb.org/tv/71712)' %}" />
     <select name="media_type" style="padding:8px">
-      <option value="tv" {% if media_type == "tv" %}selected{% endif %}>Serial (TV)</option>
-      <option value="movie" {% if media_type == "movie" %}selected{% endif %}>Film</option>
+      <option value="tv" {% if media_type == "tv" %}selected{% endif %}>{% trans "Serial (TV)" %}</option>
+      <option value="movie" {% if media_type == "movie" %}selected{% endif %}>{% trans "Film" %}</option>
     </select>
-    <button type="submit" class="button default">Qidirish</button>
+    <button type="submit" class="button default">{% trans "Qidirish" %}</button>
   </form>
 
   {% if results %}
@@ -34,7 +34,7 @@
           <td style="padding:8px; width:90px; text-align:right">
             <form method="post">{% csrf_token %}
               <input type="hidden" name="tmdb_ref" value="{{ r.tmdb_ref }}" />
-              <button type="submit" class="button default">Import</button>
+              <button type="submit" class="button default">{% trans "Import" %}</button>
             </form>
           </td>
         </tr>
@@ -42,12 +42,12 @@
       </tbody>
     </table>
   {% elif query %}
-    <p>«{{ query }}» bo'yicha hech narsa topilmadi.</p>
+    <p>{% blocktrans %}«{{ query }}» bo'yicha hech narsa topilmadi.{% endblocktrans %}</p>
   {% endif %}
 
   <p style="margin-top:20px; opacity:.6; font-size:12px">
-    Import <strong>qoralama</strong> yaratadi — tekshirib, tarjima qilib, keyin nashr etasiz.
-    Poster va rasm huquqlari haqida: <code>docs/ops/tmdb-import.md</code>.
+    {% blocktrans %}Import <strong>qoralama</strong> yaratadi — tekshirib, tarjima qilib, keyin nashr etasiz.
+    Poster va rasm huquqlari haqida: <code>docs/ops/tmdb-import.md</code>.{% endblocktrans %}
   </p>
 </div>
 {% endblock %}

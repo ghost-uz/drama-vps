@@ -7,6 +7,7 @@ Kutilgan kontekst:
   carousel_more   — (ixtiyoriy) "hammasi" havolasi URL
 Bo'sh ro'yxatda HECH NARSA chiqmaydi (blok yashiriladi).
 {% endcomment %}
+{% load i18n %}
 {% if carousel_movies %}
 <section class="mb-8 md:mb-10">
     <div class="flex items-center justify-between mb-3 md:mb-4">
@@ -16,7 +17,7 @@ Bo'sh ro'yxatda HECH NARSA chiqmaydi (blok yashiriladi).
         </h2>
         {% if carousel_more %}
         <a href="{{ carousel_more }}" class="text-xs md:text-sm text-gray-400 hover:text-[#00cc4c] transition">
-            Hammasi <i class="fas fa-chevron-right text-[10px]"></i>
+            {% trans "Hammasi" %} <i class="fas fa-chevron-right text-[10px]"></i>
         </a>
         {% endif %}
     </div>

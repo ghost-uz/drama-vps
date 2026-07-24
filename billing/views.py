@@ -8,6 +8,7 @@ qo'shiladi — bu view HECH QACHON kredit bermaydi.
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.utils.translation import gettext as _
 from django_ratelimit.decorators import ratelimit
 
 from billing import services
@@ -32,7 +33,7 @@ def checkout(request):
         amount_uzs = 0
 
     if amount_uzs < MIN_AMOUNT_UZS:
-        messages.error(request, f"Eng kam summa {MIN_AMOUNT_UZS} UZS.")
+        messages.error(request, _("Eng kam summa %(amount)s UZS.") % {"amount": MIN_AMOUNT_UZS})
         return redirect("billing:checkout")
 
     order = services.create_order(request.user, Order.Provider.PAYME, amount_uzs)
@@ -41,7 +42,7 @@ def checkout(request):
         # Provider sozlanmagan (dev) — buyurtma qoldi, admin/qo'lda hal qiladi
         messages.warning(
             request,
-            "To'lov tizimi hozircha sozlanmagan. Iltimos, qo'lda to'ldirishdan foydalaning.",
+            _("To'lov tizimi hozircha sozlanmagan. Iltimos, qo'lda to'ldirishdan foydalaning."),
         )
         return redirect("users:topup")
     return redirect(url)

@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html lang="uz">
+{% load i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#050505">
-    <title>Oflayn — Drama.Uz</title>
+    <title>{% trans "Oflayn — Drama.Uz" %}</title>
     <style>
         /* Inline + tashqi bog'liqliksiz: oflaynda hech qanday CDN/font yuklanmaydi */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,9 +38,9 @@
     <main class="wrap">
         <div class="logo">Drama<span>.Uz</span></div>
         <div class="badge" aria-hidden="true">&#9889;</div>
-        <h1>Internet aloqasi yo'q</h1>
-        <p>Hozircha tarmoqqa ulanmadingiz. Ulanishni tekshirib, qayta urinib ko'ring — ko'rgan sahifalaringiz keshdan ochilishi mumkin.</p>
-        <button type="button" onclick="location.reload()">Qayta urinish</button>
+        <h1>{% trans "Internet aloqasi yo'q" %}</h1>
+        <p>{% trans "Hozircha tarmoqqa ulanmadingiz. Ulanishni tekshirib, qayta urinib ko'ring — ko'rgan sahifalaringiz keshdan ochilishi mumkin." %}</p>
+        <button type="button" onclick="location.reload()">{% trans "Qayta urinish" %}</button>
     </main>
 </body>
 </html>

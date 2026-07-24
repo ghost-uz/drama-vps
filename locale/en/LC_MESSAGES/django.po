@@ -1,0 +1,1687 @@
+# drama.uz tarjima katalogi — en
+#
+# BU FAYL `manage.py pomessages` TOMONIDAN YANGILANADI (gettext binarlari
+# shart emas). Faqat `msgstr` qatorlarini tahrirlang; `msgid` manba kodidan
+# keladi. Tarjimadan keyin `manage.py pocompile` bilan .mo quring.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: drama.uz\n"
+"Report-Msgid-Bugs-To: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: templates/404.html:4
+msgid "Sahifa topilmadi - 404"
+msgstr "Page not found - 404"
+
+#: templates/404.html:13
+msgid "Voy! Sahifa topilmadi"
+msgstr "Oops! Page not found"
+
+#: templates/404.html:16
+msgid "Siz qidirayotgan sahifa o'chirilgan, nomi o'zgartirilgan yoki vaqtincha mavjud emas."
+msgstr "The page you are looking for was removed, renamed, or is temporarily unavailable."
+
+#: templates/404.html:21
+msgid "Bosh sahifa"
+msgstr "Home"
+
+#: templates/404.html:24
+msgid "Ortga qaytish"
+msgstr "Go back"
+
+#: templates/admin/drama/movie/tmdb_import.html:4 drama/admin.py:362
+#: drama/admin.py:347
+msgid "TMDB'dan import"
+msgstr "Import from TMDB"
+
+#: templates/admin/drama/movie/tmdb_import.html:11
+msgid "Nomi, TMDB ID yoki havola (masalan: Vincenzo, 71712, themoviedb.org/tv/71712)"
+msgstr "Title, TMDB ID or link (e.g. Vincenzo, 71712, themoviedb.org/tv/71712)"
+
+#: templates/admin/drama/movie/tmdb_import.html:13
+msgid "Serial (TV)"
+msgstr "Series (TV)"
+
+#: templates/admin/drama/movie/tmdb_import.html:14 drama/admin.py:300
+#: drama/admin.py:515
+msgid "Film"
+msgstr "Movie"
+
+#: templates/admin/drama/movie/tmdb_import.html:16 templates/base.html:285
+msgid "Qidirish"
+msgstr "Search"
+
+#: templates/admin/drama/movie/tmdb_import.html:37
+msgid "Import"
+msgstr "Import"
+
+#: templates/admin/drama/movie/tmdb_import.html:45
+msgid "«%(query)s» bo'yicha hech narsa topilmadi."
+msgstr "Nothing found for “%(query)s”."
+
+#: templates/admin/drama/movie/tmdb_import.html:49
+msgid ""
+"Import <strong>qoralama</strong> yaratadi — tekshirib, tarjima qilib, keyin nashr etasiz.\n"
+"    Poster va rasm huquqlari haqida: <code>docs/ops/tmdb-import.md</code>."
+msgstr ""
+"Import creates a <strong>draft</strong> — review it, translate it, then publish.\n"
+"    On poster and image rights: <code>docs/ops/tmdb-import.md</code>."
+
+#: templates/admin_2fa_verify.html:8
+msgid "Ikki bosqichli tasdiqlash"
+msgstr "Two-factor authentication"
+
+#: templates/admin_2fa_verify.html:27
+msgid "Ikki bosqichli tasdiqlash (2FA)"
+msgstr "Two-factor authentication (2FA)"
+
+#: templates/admin_2fa_verify.html:29
+msgid "Authenticator ilovangizdagi 6 xonali kodni kiriting."
+msgstr "Enter the 6-digit code from your authenticator app."
+
+#: templates/admin_2fa_verify.html:34
+msgid "Qurilma"
+msgstr "Device"
+
+#: templates/admin_2fa_verify.html:36
+msgid "Token"
+msgstr "Token"
+
+#: templates/admin_2fa_verify.html:38
+msgid "Tasdiqlash"
+msgstr "Verify"
+
+#: templates/admin_2fa_verify.html:41
+msgid "Hisobingizda tasdiqlangan TOTP qurilma yo'q — admin'ga kirish uchun avval serverda qurilma yarating:"
+msgstr "Your account has no confirmed TOTP device — to access the admin, first create a device on the server:"
+
+#: templates/admin_2fa_verify.html:43
+msgid "Chiqqan otpauth-havolani authenticator ilovaga (Google Authenticator, Aegis…) qo'shing va bu sahifani yangilang."
+msgstr "Add the generated otpauth link to an authenticator app (Google Authenticator, Aegis…) and refresh this page."
+
+#: templates/base-users.html:10
+msgid "Drama.uz - Profile"
+msgstr "Drama.uz - Profile"
+
+#: templates/base.html:15 templates/base.html:35
+msgid "Drama.Uz - Korea va Xitoy dramalari olami"
+msgstr "Drama.Uz - The world of Korean and Chinese dramas"
+
+#: templates/base.html:16 templates/base.html:36 templates/base.html:42
+msgid "DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling."
+msgstr "DramaUz - watch the latest Korean dramas, movies and series in high quality with Uzbek translation."
+
+#: templates/base.html:17
+msgid "dorama, serial, o'zbekcha, dorama uz, drama uz, koreys seriallari, xitoy seriallari, tarjima kinolar"
+msgstr "dorama, series, uzbek, dorama uz, drama uz, korean series, chinese series, translated movies"
+
+#: templates/base.html:41
+msgid "Drama.Uz - Korea va Xitoy dramalari"
+msgstr "Drama.Uz - Korean and Chinese dramas"
+
+#: templates/base.html:211 templates/movies/movie_detail.html:1279
+#: templates/movies/movie_detail_classic.html:296
+msgid "Yopish"
+msgstr "Close"
+
+#: templates/base.html:236
+msgid "Drama.uz Bosh sahifa"
+msgstr "Drama.uz Home"
+
+#: templates/base.html:244
+msgid "Kino, serial qidirish"
+msgstr "Search movies and series"
+
+#: templates/base.html:245
+msgid "Kino, serial qidirish..."
+msgstr "Search movies, series..."
+
+#: templates/base.html:252
+msgid "Qidiruvni ochish"
+msgstr "Open search"
+
+#: templates/base.html:257 templates/users/notifications.html:3
+#: templates/users/notifications.html:12
+msgid "Bildirishnomalar"
+msgstr "Notifications"
+
+#: templates/base.html:267
+msgid "Profilga kirish"
+msgstr "Go to profile"
+
+#: templates/base.html:282
+msgid "Nima ko'ramiz?"
+msgstr "What shall we watch?"
+
+#: templates/base.html:283
+msgid "Kino qidirish"
+msgstr "Search movies"
+
+#: templates/base.html:297
+msgid "Mobil menyu"
+msgstr "Mobile menu"
+
+#: templates/base.html:301 drama/admin.py:433
+msgid "Asosiy"
+msgstr "Home"
+
+#: templates/base.html:305
+msgid "Katalog"
+msgstr "Catalog"
+
+#: templates/base.html:309
+msgid "Profil"
+msgstr "Profile"
+
+#: templates/base.html:323
+msgid "Yordam"
+msgstr "Help"
+
+#: templates/base.html:325 templates/pages/terms.html:4
+#: templates/pages/terms.html:9
+msgid "Foydalanish shartlari"
+msgstr "Terms of Use"
+
+#: templates/base.html:326 templates/pages/privacy.html:4
+#: templates/pages/privacy.html:9
+msgid "Maxfiylik siyosati"
+msgstr "Privacy Policy"
+
+#: templates/base.html:331
+msgid "Ijtimoiy Tarmoqlar"
+msgstr "Social Networks"
+
+#: templates/base.html:333
+msgid "Telegram Kanal"
+msgstr "Telegram Channel"
+
+#: templates/base.html:345
+msgid "Til tanlash"
+msgstr "Choose language"
+
+#: templates/base.html:441
+msgid "Telegram brauzeri aniqlandi"
+msgstr "Telegram browser detected"
+
+#: templates/base.html:444
+msgid "Ushbu platforma Telegram ichki brauzerida to'liq stabil ishlamaydi."
+msgstr "This platform does not work fully stable inside the Telegram in-app browser."
+
+#: templates/base.html:447
+msgid "Davom etish uchun saytni qurilmangizning asosiy brauzerida oching. Masalan Google Chrome orqali Drama.Uz dan foydalaning yoki yuqoridagi 3 nuqtani bosib OCHISH ni tanlang."
+msgstr "To continue, open the site in your device's main browser. For example use Drama.Uz via Google Chrome, or tap the 3 dots above and choose OPEN."
+
+#: templates/base.html:456
+msgid "Brauzerda ochish"
+msgstr "Open in browser"
+
+#: templates/base.html:567
+msgid "posteri"
+msgstr "poster"
+
+#: templates/base.html:576
+msgid "Hech narsa topilmadi :("
+msgstr "Nothing found :("
+
+#: templates/billing/checkout.html:4 templates/billing/checkout.html:13
+msgid "Payme orqali to'ldirish"
+msgstr "Top up via Payme"
+
+#: templates/billing/checkout.html:14
+msgid "1 000 UZS = 1 Coin. To'lov tasdiqlangach Coin avtomatik qo'shiladi."
+msgstr "1,000 UZS = 1 Coin. Coins are added automatically once the payment is confirmed."
+
+#: templates/billing/checkout.html:19
+msgid "Summa (UZS)"
+msgstr "Amount (UZS)"
+
+#: templates/index.html:57
+msgid "Eng yaxshi dramalar"
+msgstr "The best dramas"
+
+#: templates/index.html:123
+msgid "DramaUz ga xush kelibsiz"
+msgstr "Welcome to DramaUz"
+
+#: templates/index.html:124
+msgid "Eng so'nggi koreys va xitoy dramalari"
+msgstr "The latest Korean and Chinese dramas"
+
+#: templates/index.html:131
+msgid "Davom ettirish"
+msgstr "Continue watching"
+
+#: templates/index.html:143 templates/movies/movie_detail.html:4
+#: templates/movies/movie_detail.html:5 templates/movies/movie_detail.html:8
+#: templates/movies/movie_detail.html:1062
+#: templates/movies/movie_detail_classic.html:8
+#: templates/movies/movie_detail_classic.html:9
+#: templates/movies/movies_card.html:36
+msgid "%(n)s-qism"
+msgstr "Episode %(n)s"
+
+#: templates/index.html:162
+msgid "Trenddagi"
+msgstr "Trending"
+
+#: templates/index.html:166
+msgid "Siz ko'rganingiz asosida"
+msgstr "Based on what you watched"
+
+#: templates/index.html:172
+msgid "Barcha dramalar"
+msgstr "All dramas"
+
+#: templates/index.html:174 templates/index.html:176
+#: templates/movies/movie_list.html:17
+msgid "Filtrlash"
+msgstr "Filter"
+
+#: templates/movies/_carousel.html:20 templates/movies/explore_list.html:40
+msgid "Hammasi"
+msgstr "All"
+
+#: templates/movies/explore_list.html:4
+msgid "Katalog — barcha dramalar - Drama.uz"
+msgstr "Catalog — all dramas - Drama.uz"
+
+#: templates/movies/explore_list.html:5
+msgid "Janr, yil va davlat bo'yicha filtrlab, o'zbek tilidagi dramalarni toping — Drama.uz katalogi"
+msgstr "Filter by genre, year and country to find dramas in Uzbek — the Drama.uz catalog"
+
+#: templates/movies/explore_list.html:13
+msgid "Filtrlar"
+msgstr "Filters"
+
+#: templates/movies/explore_list.html:31
+msgid "Minimal Reyting"
+msgstr "Minimum rating"
+
+#: templates/movies/explore_list.html:38
+msgid "Davlat"
+msgstr "Country"
+
+#: templates/movies/explore_list.html:48
+msgid "Ishlab chiqarilgan yil"
+msgstr "Year of release"
+
+#: templates/movies/explore_list.html:62
+msgid "Janrlar"
+msgstr "Genres"
+
+#: templates/movies/explore_list.html:81
+msgid "Filtrlarni qo'llash"
+msgstr "Apply filters"
+
+#: templates/movies/explore_list.html:92
+msgid "Yuklanmoqda..."
+msgstr "Loading..."
+
+#: templates/movies/explore_list.html:95
+#: templates/movies/movie_reviews.html:17
+msgid "Saralash"
+msgstr "Sort"
+
+#: templates/movies/inson.html:4
+msgid "Filmografiya va Biografiya"
+msgstr "Filmography and Biography"
+
+#: templates/movies/inson.html:152
+msgid "Cast"
+msgstr "Cast"
+
+#: templates/movies/inson.html:172
+msgid "Ko'proq o'qish"
+msgstr "Read more"
+
+#: templates/movies/inson.html:185
+msgid "Muxlislar qo'llab-quvvatlashi:"
+msgstr "Fan support:"
+
+#: templates/movies/inson.html:188
+msgid "Coin to'plandi"
+msgstr "Coins collected"
+
+#: templates/movies/inson.html:195 templates/movies/inson.html:261
+msgid "Sovg'a yuborish"
+msgstr "Send a gift"
+
+#: templates/movies/inson.html:199
+msgid "Kirish (Sovg'a yuborish)"
+msgstr "Sign in (send a gift)"
+
+#: templates/movies/inson.html:205
+msgid "Filmography"
+msgstr "Filmography"
+
+#: templates/movies/inson.html:244
+msgid "Ushbu aktyor ishtirokidagi doramalar tez orada yuklanadi."
+msgstr "Dramas featuring this actor will be added soon."
+
+#: templates/movies/inson.html:275
+msgid "Balans"
+msgstr "Balance"
+
+#: templates/movies/inson.html:322
+#: templates/movies/movie_detail_classic.html:257
+#: templates/movies/movie_reviews.html:45
+#: templates/movies/partials/_report_form.html:22
+msgid "Yuborish"
+msgstr "Send"
+
+#: templates/movies/movie_detail.html:5
+msgid "o'zbek tilida"
+msgstr "in Uzbek"
+
+#: templates/movies/movie_detail.html:6
+msgid "o'zbekcha"
+msgstr "uzbek"
+
+#: templates/movies/movie_detail.html:985
+msgid "Ushbu qism yopiq"
+msgstr "This episode is locked"
+
+#: templates/movies/movie_detail.html:986
+#: templates/movies/movie_detail_classic.html:39
+msgid "Ko'rish uchun «O'zbekcha Dublyaj Loyihasi»ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi."
+msgstr "To watch, contribute to the “Uzbek Dubbing Project”. All episodes unlock after payment."
+
+#: templates/movies/movie_detail.html:989
+msgid "To'lov qilish"
+msgstr "Make a payment"
+
+#: templates/movies/movie_detail.html:997
+#: templates/movies/movie_detail_classic.html:47
+msgid "VIP Bo'lim"
+msgstr "VIP Section"
+
+#: templates/movies/movie_detail.html:998
+#: templates/movies/movie_detail_classic.html:48
+msgid "Ushbu qismni ko'rish uchun premium obuna kerak."
+msgstr "A premium subscription is required to watch this episode."
+
+#: templates/movies/movie_detail.html:1061
+#: templates/movies/movie_detail_classic.html:105
+msgid "Keyingi qism"
+msgstr "Next episode"
+
+#: templates/movies/movie_detail.html:1065
+#: templates/movies/movie_detail.html:1346
+#: templates/movies/movie_detail_classic.html:92
+msgid "Bekor qilish"
+msgstr "Cancel"
+
+#: templates/movies/movie_detail.html:1090
+msgid "Bosh sahifaga qaytish"
+msgstr "Back to home"
+
+#: templates/movies/movie_detail.html:1107
+#: templates/movies/movie_detail.html:1111
+msgid "Yoqdi"
+msgstr "Liked"
+
+#: templates/movies/movie_detail.html:1115
+#: templates/movies/movie_detail.html:1188
+#: templates/movies/movie_detail_classic.html:235
+msgid "Fikrlar"
+msgstr "Comments"
+
+#: templates/movies/movie_detail.html:1123
+#: templates/movies/movie_detail.html:1127
+#: templates/movies/movie_detail.html:1345
+#: templates/users/collection_detail.html:48
+msgid "Saqlash"
+msgstr "Save"
+
+#: templates/movies/movie_detail.html:1131
+#: templates/movies/movie_detail.html:1135
+#: templates/movies/movie_detail.html:1240
+#: templates/movies/movie_detail_classic.html:219 drama/admin.py:478
+msgid "Qismlar"
+msgstr "Episodes"
+
+#: templates/movies/movie_detail.html:1140
+msgid "Sozlamalar"
+msgstr "Settings"
+
+#: templates/movies/movie_detail.html:1144
+msgid "Sozlash"
+msgstr "Settings"
+
+#: templates/movies/movie_detail.html:1152
+msgid "Bosib ko'rish"
+msgstr "Tap to play"
+
+#: templates/movies/movie_detail.html:1200
+#: templates/movies/movie_detail_classic.html:245
+#: templates/movies/movie_reviews.html:33
+msgid "Javobni bekor qilish"
+msgstr "Cancel reply"
+
+#: templates/movies/movie_detail.html:1210
+#: templates/movies/movie_detail_classic.html:255
+#: templates/movies/movie_reviews.html:43
+msgid "Fikringizni yozing..."
+msgstr "Write your comment..."
+
+#: templates/movies/movie_detail.html:1217
+#: templates/movies/movie_detail_classic.html:264
+#: templates/movies/movie_reviews.html:52
+msgid "Spoyler bor"
+msgstr "Contains spoiler"
+
+#: templates/movies/movie_detail.html:1224
+#: templates/movies/movie_detail_classic.html:268
+#: templates/movies/movie_reviews.html:56
+msgid "Fikr qoldirish uchun kiring"
+msgstr "Sign in to leave a comment"
+
+#: templates/movies/movie_detail.html:1258
+#: templates/movies/movie_detail_classic.html:280
+msgid "O'xshash dramalar"
+msgstr "Similar dramas"
+
+#: templates/movies/movie_detail.html:1278
+msgid "Pleyer sozlamalari"
+msgstr "Player settings"
+
+#: templates/movies/movie_detail.html:1286
+#: templates/movies/movie_detail.html:1296
+#: templates/movies/movie_detail_classic.html:137
+msgid "Sifat"
+msgstr "Quality"
+
+#: templates/movies/movie_detail.html:1288
+msgid "Avto (tavsiya etiladi)"
+msgstr "Auto (recommended)"
+
+#: templates/movies/movie_detail.html:1307
+#: templates/movies/movie_detail_classic.html:126
+msgid "Tezlik"
+msgstr "Speed"
+
+#: templates/movies/movie_detail.html:1309
+msgid "Normal (1x)"
+msgstr "Normal (1x)"
+
+#: templates/movies/movie_detail.html:1316
+msgid "Subtitr"
+msgstr "Subtitles"
+
+#: templates/movies/movie_detail.html:1318
+#: templates/movies/movie_detail_classic.html:118
+msgid "O'chiq"
+msgstr "Off"
+
+#: templates/movies/movie_detail.html:1337
+msgid "My Library"
+msgstr "My Library"
+
+#: templates/movies/movie_detail.html:1339
+msgid "▶ Ko'ryapman"
+msgstr "▶ Watching"
+
+#: templates/movies/movie_detail.html:1340
+msgid "✓ Tugallangan"
+msgstr "✓ Completed"
+
+#: templates/movies/movie_detail.html:1341
+msgid "📌 Rejamda bor"
+msgstr "📌 Plan to watch"
+
+#: templates/movies/movie_detail.html:1342
+msgid "⏸ To'xtatilgan"
+msgstr "⏸ On hold"
+
+#: templates/movies/movie_detail.html:1343
+msgid "✕ Qiziq emas"
+msgstr "✕ Not interested"
+
+#: templates/movies/movie_detail_classic.html:9
+msgid "onlayn tomosha qiling"
+msgstr "watch online"
+
+#: templates/movies/movie_detail_classic.html:10
+msgid "onlayn tomosha"
+msgstr "watch online"
+
+#: templates/movies/movie_detail_classic.html:38
+msgid "Loyihani qo'llab-quvvatlang"
+msgstr "Support the project"
+
+#: templates/movies/movie_detail_classic.html:80
+msgid "Ijro etish"
+msgstr "Play"
+
+#: templates/movies/movie_detail_classic.html:85
+msgid "Intro'ni o'tkazish"
+msgstr "Skip intro"
+
+#: templates/movies/movie_detail_classic.html:90
+msgid "Keyingi qism boshlanmoqda…"
+msgstr "Next episode starting…"
+
+#: templates/movies/movie_detail_classic.html:96
+msgid "Vaqt chizig'i"
+msgstr "Timeline"
+
+#: templates/movies/movie_detail_classic.html:103
+msgid "Ijro / pauza"
+msgstr "Play / pause"
+
+#: templates/movies/movie_detail_classic.html:108
+msgid "Ovoz"
+msgstr "Volume"
+
+#: templates/movies/movie_detail_classic.html:109
+msgid "Ovoz balandligi"
+msgstr "Volume level"
+
+#: templates/movies/movie_detail_classic.html:116
+msgid "Subtitr tili"
+msgstr "Subtitle language"
+
+#: templates/movies/movie_detail_classic.html:137
+#: templates/movies/movie_detail_classic.html:139
+msgid "Avto"
+msgstr "Auto"
+
+#: templates/movies/movie_detail_classic.html:144
+msgid "Kichik oyna"
+msgstr "Picture-in-picture"
+
+#: templates/movies/movie_detail_classic.html:145
+msgid "To'liq ekran"
+msgstr "Fullscreen"
+
+#: templates/movies/movie_detail_classic.html:165
+msgid "%(d)s daqiqa"
+msgstr "%(d)s min"
+
+#: templates/movies/movie_detail_classic.html:177
+#: templates/movies/movie_detail_classic.html:295
+msgid "Treyler"
+msgstr "Trailer"
+
+#: templates/movies/movie_detail_classic.html:197
+msgid "Bosh rollarda"
+msgstr "Starring"
+
+#: templates/movies/movie_detail_classic.html:237
+#: templates/users/collection_detail.html:29
+msgid "Barchasi"
+msgstr "See all"
+
+#: templates/movies/movie_list.html:4
+msgid "Barcha dramalar - Drama.uz"
+msgstr "All dramas - Drama.uz"
+
+#: templates/movies/movie_list.html:5
+msgid "%(title)s — o'zbek tilida, yuqori sifatda: Drama.uz"
+msgstr "%(title)s — in Uzbek, high quality: Drama.uz"
+
+#: templates/movies/movie_list.html:5
+msgid "Barcha koreys va osiyo dramalari o'zbek tilida — Drama.uz katalogi"
+msgstr "All Korean and Asian dramas in Uzbek — the Drama.uz catalog"
+
+#: templates/movies/movie_list.html:12
+msgid "Barcha Dramalar"
+msgstr "All Dramas"
+
+#: templates/movies/movie_reviews.html:4
+msgid "%(t)s — fikrlar va sharhlar - Drama.uz"
+msgstr "%(t)s — comments and reviews - Drama.uz"
+
+#: templates/movies/movie_reviews.html:5
+msgid "%(t)s haqida tomoshabinlar fikrlari va sharhlar — Drama.uz"
+msgstr "Viewer comments and reviews about %(t)s — Drama.uz"
+
+#: templates/movies/movie_reviews.html:11
+msgid "Orqaga"
+msgstr "Back"
+
+#: templates/movies/movie_reviews.html:13
+msgid "%(t)s - Fikrlar"
+msgstr "%(t)s - Comments"
+
+#: templates/movies/movie_reviews.html:20
+msgid "Yangi"
+msgstr "Newest"
+
+#: templates/movies/movie_reviews.html:24
+msgid "Eng foydali"
+msgstr "Most helpful"
+
+#: templates/movies/movie_reviews.html:64
+msgid "Hali hech kim fikr bildirmagan."
+msgstr "No one has commented yet."
+
+#: templates/movies/movies_card.html:34
+msgid "%(n)s qism"
+msgstr "%(n)s episodes"
+
+#: templates/movies/movies_card.html:39
+msgid "Tez kunda"
+msgstr "Coming soon"
+
+#: templates/movies/partials/_like_button.html:9
+msgid "Yoqtirish"
+msgstr "Like"
+
+#: templates/movies/partials/_like_button.html:16
+msgid "Yoqtirish uchun kiring"
+msgstr "Sign in to like"
+
+#: templates/movies/partials/_load_more.html:19
+msgid "Ko'proq yuklash"
+msgstr "Load more"
+
+#: templates/movies/partials/_movie_items.html:14
+msgid "Hech narsa topilmadi"
+msgstr "Nothing found"
+
+#: templates/movies/partials/_report_form.html:6
+msgid "Shikoyat"
+msgstr "Report"
+
+#: templates/movies/partials/_report_form.html:13
+msgid "Shikoyat sababi"
+msgstr "Reason for report"
+
+#: templates/movies/partials/_report_form.html:15
+msgid "Spam / reklama"
+msgstr "Spam / advertising"
+
+#: templates/movies/partials/_report_form.html:16
+msgid "Haqorat"
+msgstr "Abuse"
+
+#: templates/movies/partials/_report_form.html:17
+msgid "Belgisiz spoyler"
+msgstr "Unmarked spoiler"
+
+#: templates/movies/partials/_report_form.html:18
+msgid "Boshqa"
+msgstr "Other"
+
+#: templates/movies/partials/_review_text.html:7
+msgid "Batafsil o'qish"
+msgstr "Read more"
+
+#: templates/movies/partials/comment_item.html:5
+msgid "Bloklangan foydalanuvchi izohi — ko'rsatish"
+msgstr "Comment from a blocked user — show"
+
+#: templates/movies/partials/comment_item.html:14
+msgid "javob berdi"
+msgstr "replied"
+
+#: templates/movies/partials/comment_item.html:19
+#: templates/movies/partials/comment_item.html:62
+msgid "%(t)s avval"
+msgstr "%(t)s ago"
+
+#: templates/movies/partials/comment_item.html:72
+msgid "Javob berish"
+msgstr "Reply"
+
+#: templates/movies/partials/comment_list.html:8
+msgid "Bu bo'limda hali fikr yo'q — birinchi bo'ling!"
+msgstr "No comments here yet — be the first!"
+
+#: templates/pages/privacy.html:5
+msgid "Drama.Uz qanday ma'lumotlarni yig'adi, nima uchun ishlatadi va qanday himoya qiladi — maxfiylik siyosati."
+msgstr "What data Drama.Uz collects, why it uses it, and how it protects it — the privacy policy."
+
+#: templates/pages/privacy.html:14
+msgid "1. Kirish"
+msgstr "1. Introduction"
+
+#: templates/pages/privacy.html:19
+msgid "2. Qanday ma'lumotlarni yig'amiz"
+msgstr "2. What data we collect"
+
+#: templates/pages/privacy.html:29
+msgid "3. Ma'lumotlardan qanday foydalanamiz"
+msgstr "3. How we use the data"
+
+#: templates/pages/privacy.html:39
+msgid "4. Uchinchi tomon xizmatlari"
+msgstr "4. Third-party services"
+
+#: templates/pages/privacy.html:52
+msgid "5. Cookie va sessiyalar"
+msgstr "5. Cookies and sessions"
+
+#: templates/pages/privacy.html:57
+msgid "6. Saqlash muddati"
+msgstr "6. Retention period"
+
+#: templates/pages/privacy.html:66
+msgid "7. Sizning huquqlaringiz"
+msgstr "7. Your rights"
+
+#: templates/pages/privacy.html:71
+msgid "8. Bolalar maxfiyligi"
+msgstr "8. Children's privacy"
+
+#: templates/pages/privacy.html:76
+msgid "9. O'zgarishlar va aloqa"
+msgstr "9. Changes and contact"
+
+#: templates/pages/subscription.html:4
+msgid "VIP Obuna"
+msgstr "VIP Subscription"
+
+#: templates/pages/subscription.html:49
+msgid "Nimalarga ega bo'lasiz?"
+msgstr "What do you get?"
+
+#: templates/pages/subscription.html:56
+msgid "Mutlaqo Reklamasiz"
+msgstr "Completely ad-free"
+
+#: templates/pages/subscription.html:57
+msgid "Videolardagi va saytdagi barcha bezovta qiluvchi reklamalar avtomatik o'chiriladi."
+msgstr "All intrusive ads in videos and on the site are removed automatically."
+
+#: templates/pages/subscription.html:66
+msgid "Yopiq VIP Qismlar"
+msgstr "Exclusive VIP episodes"
+
+#: templates/pages/subscription.html:67
+msgid "Faqatgina VIP foydalanuvchilar uchun mo'ljallangan maxsus dorama va filmlarni ko'rish huquqi."
+msgstr "Access to special dramas and movies made just for VIP users."
+
+#: templates/pages/subscription.html:77
+msgid "FHD / 4K Sifat"
+msgstr "FHD / 4K quality"
+
+#: templates/pages/subscription.html:78
+msgid "Kinolarni eng yuqori va tiniq sifatda, internetingiz tezligiga moslab ko'rish imkoniyati."
+msgstr "Watch movies in the highest, clearest quality, adapted to your internet speed."
+
+#: templates/pages/subscription.html:87
+msgid "Maxsus Status"
+msgstr "Special status"
+
+#: templates/pages/subscription.html:88
+msgid "Profilingizda va yozgan izohlaringizda yonib turuvchi maxsus «Premium» belgisi."
+msgstr "A glowing special “Premium” badge on your profile and comments."
+
+#: templates/pages/subscription.html:97
+msgid "Sizda VIP mavjud."
+msgstr "You have VIP."
+
+#: templates/pages/subscription.html:99
+msgid "Amal qiladi:"
+msgstr "Valid until:"
+
+#: templates/pages/subscription.html:101
+msgid "Muddatsiz"
+msgstr "Lifetime"
+
+#: templates/pages/subscription.html:112
+msgid "Shaxsiy balansingiz:"
+msgstr "Your balance:"
+
+#: templates/pages/subscription.html:142
+msgid "Avto-uzaytirish (balansdan)"
+msgstr "Auto-renew (from balance)"
+
+#: templates/pages/subscription.html:145
+msgid "Muddatni Uzaytirish"
+msgstr "Extend subscription"
+
+#: templates/pages/subscription.html:145
+msgid "Sotib Olish"
+msgstr "Buy"
+
+#: templates/pages/subscription.html:150
+msgid "Hisobingizda Coin yetarli emas"
+msgstr "You don't have enough Coins"
+
+#: templates/pages/subscription.html:162
+msgid "Xarid qilingan coinlar qaytarilmaydi."
+msgstr "Purchased coins are non-refundable."
+
+#: templates/pages/subscription.html:166
+msgid "Hozircha sotuvda obuna rejalari yo'q."
+msgstr "There are no subscription plans on sale yet."
+
+#: templates/pages/subscription.html:171
+msgid "1 coin = 1 000 UZS. Xarid uchun tizimga kiring."
+msgstr "1 coin = 1,000 UZS. Sign in to purchase."
+
+#: templates/pages/terms.html:5
+msgid "Drama.Uz platformasidan foydalanish shartlari: hisob, Coin, VIP obuna, crowdfunding, kontent va hamjamiyat qoidalari."
+msgstr "Terms of use for the Drama.Uz platform: account, Coin, VIP subscription, crowdfunding, content and community rules."
+
+#: templates/pages/terms.html:14
+msgid "1. Umumiy qoidalar"
+msgstr "1. General terms"
+
+#: templates/pages/terms.html:19
+msgid "2. Hisob"
+msgstr "2. Account"
+
+#: templates/pages/terms.html:28
+msgid "3. Coin — ichki hisob birligi"
+msgstr "3. Coin — the internal currency"
+
+#: templates/pages/terms.html:38
+msgid "4. VIP obuna"
+msgstr "4. VIP subscription"
+
+#: templates/pages/terms.html:47
+msgid "5. Crowdfunding (tarjima loyihalari)"
+msgstr "5. Crowdfunding (translation projects)"
+
+#: templates/pages/terms.html:57
+msgid "6. Kontent va mualliflik huquqi"
+msgstr "6. Content and copyright"
+
+#: templates/pages/terms.html:66
+msgid "7. Izohlar va hamjamiyat"
+msgstr "7. Comments and community"
+
+#: templates/pages/terms.html:75
+msgid "8. Taqiqlangan harakatlar"
+msgstr "8. Prohibited actions"
+
+#: templates/pages/terms.html:84
+msgid "9. Javobgarlik chegarasi"
+msgstr "9. Limitation of liability"
+
+#: templates/pages/terms.html:89
+msgid "10. Shartlarning o'zgarishi"
+msgstr "10. Changes to the terms"
+
+#: templates/pages/terms.html:94
+msgid "11. Aloqa"
+msgstr "11. Contact"
+
+#: templates/pwa/offline.html:7
+msgid "Oflayn — Drama.Uz"
+msgstr "Offline — Drama.Uz"
+
+#: templates/pwa/offline.html:41
+msgid "Internet aloqasi yo'q"
+msgstr "No internet connection"
+
+#: templates/pwa/offline.html:42
+msgid "Hozircha tarmoqqa ulanmadingiz. Ulanishni tekshirib, qayta urinib ko'ring — ko'rgan sahifalaringiz keshdan ochilishi mumkin."
+msgstr "You're offline right now. Check your connection and try again — pages you've visited may open from cache."
+
+#: templates/pwa/offline.html:43
+msgid "Qayta urinish"
+msgstr "Try again"
+
+#: templates/users/_social_login.html:5
+msgid "yoki tezkor kirish"
+msgstr "or quick sign-in"
+
+#: templates/users/_social_login.html:11
+msgid "Google bilan davom etish"
+msgstr "Continue with Google"
+
+#: templates/users/collection_detail.html:19
+#: templates/users/collections.html:35
+msgid "Shaxsiy"
+msgstr "Private"
+
+#: templates/users/collection_detail.html:32
+msgid "O'chirish"
+msgstr "Delete"
+
+#: templates/users/collection_detail.html:41
+msgid "Tahrirlash"
+msgstr "Edit"
+
+#: templates/users/collection_detail.html:47
+#: templates/users/collections.html:34
+msgid "Ommaviy"
+msgstr "Public"
+
+#: templates/users/collection_detail.html:55
+msgid "Kolleksiyaga kino qidirish..."
+msgstr "Search a movie to add..."
+
+#: templates/users/collection_detail.html:73
+msgid "Yuqoriga"
+msgstr "Move up"
+
+#: templates/users/collection_detail.html:77
+msgid "Pastga"
+msgstr "Move down"
+
+#: templates/users/collection_detail.html:81
+msgid "Olib tashlash"
+msgstr "Remove"
+
+#: templates/users/collection_detail.html:87
+msgid "Bu kolleksiya hozircha bo'sh."
+msgstr "This collection is empty for now."
+
+#: templates/users/collections.html:20
+msgid "Ommaviy (havola orqali hamma ko'ra oladi)"
+msgstr "Public (anyone with the link can view)"
+
+#: templates/users/collections.html:41
+msgid "Hali kolleksiya yo'q — birinchisini yarating!"
+msgstr "No collections yet — create your first one!"
+
+#: templates/users/followers.html:50
+msgid "Bu foydalanuvchini hali hech kim follow qilmagan."
+msgstr "No one follows this user yet."
+
+#: templates/users/following.html:52
+msgid "Bu foydalanuvchi hozircha hech kimni follow qilmagan."
+msgstr "This user isn't following anyone yet."
+
+#: templates/users/login.html:5
+msgid "Saytga kirish"
+msgstr "Sign in"
+
+#: templates/users/login.html:15
+msgid "Xush kelibsiz!"
+msgstr "Welcome!"
+
+#: templates/users/login.html:19
+msgid "Foydalanuvchi nomi yoki parol xato. Iltimos, qaytadan tekshirib ko'ring."
+msgstr "Wrong username or password. Please check and try again."
+
+#: templates/users/login.html:26
+#: templates/users/password_reset_complete.html:15
+#: templates/users/register.html:27
+msgid "Kirish"
+msgstr "Sign in"
+
+#: templates/users/login.html:31
+msgid "Parolni unutdingizmi?"
+msgstr "Forgot your password?"
+
+#: templates/users/login.html:34
+msgid "Hali ro'yxatdan o'tmadingizmi?"
+msgstr "Not registered yet?"
+
+#: templates/users/login.html:34
+msgid "Yangi ochish"
+msgstr "Create one"
+
+#: templates/users/logout.html:6 templates/users/logout.html:49
+msgid "Siz tizimdan chiqdingiz"
+msgstr "You have been signed out"
+
+#: templates/users/logout.html:51
+msgid "Qayta kirish"
+msgstr "Sign in again"
+
+#: templates/users/my_full_list.html:100
+msgid "Hozirda ko'rilmoqda"
+msgstr "Currently watching"
+
+#: templates/users/my_full_list.html:115
+msgid "Ko'rib tugallangan"
+msgstr "Completed"
+
+#: templates/users/my_full_list.html:130
+msgid "Ko'rish rejamda bor"
+msgstr "Plan to watch"
+
+#: templates/users/my_full_list.html:145
+msgid "Vaqtincha to'xtatilgan"
+msgstr "On hold"
+
+#: templates/users/my_full_list.html:151
+msgid "Hech narsa topilmadi."
+msgstr "Nothing found."
+
+#: templates/users/notifications.html:19
+msgid "Barchasini o'qildi"
+msgstr "Mark all as read"
+
+#: templates/users/notifications.html:42
+msgid "%(t)s oldin"
+msgstr "%(t)s ago"
+
+#: templates/users/notifications.html:51
+msgid "Hozircha bildirishnoma yo'q."
+msgstr "No notifications yet."
+
+#: templates/users/notifications.html:60
+msgid "Oldingi"
+msgstr "Previous"
+
+#: templates/users/notifications.html:65
+msgid "Keyingi"
+msgstr "Next"
+
+#: templates/users/password_reset.html:4
+#: templates/users/password_reset.html:14
+msgid "Parolni tiklash"
+msgstr "Reset password"
+
+#: templates/users/password_reset.html:15
+msgid "Email manzilingizni kiriting — tiklash havolasini yuboramiz."
+msgstr "Enter your email — we'll send you a reset link."
+
+#: templates/users/password_reset.html:21
+msgid "Havola yuborish"
+msgstr "Send link"
+
+#: templates/users/password_reset.html:25
+#: templates/users/password_reset_done.html:18
+msgid "Kirishga qaytish"
+msgstr "Back to sign in"
+
+#: templates/users/password_reset_complete.html:4
+msgid "Parol yangilandi"
+msgstr "Password updated"
+
+#: templates/users/password_reset_complete.html:13
+msgid "Parol yangilandi!"
+msgstr "Password updated!"
+
+#: templates/users/password_reset_complete.html:14
+msgid "Endi yangi parolingiz bilan kirishingiz mumkin."
+msgstr "You can now sign in with your new password."
+
+#: templates/users/password_reset_confirm.html:4
+msgid "Yangi parol"
+msgstr "New password"
+
+#: templates/users/password_reset_confirm.html:15
+msgid "Yangi parol o'rnatish"
+msgstr "Set a new password"
+
+#: templates/users/password_reset_confirm.html:21
+msgid "Parolni saqlash"
+msgstr "Save password"
+
+#: templates/users/password_reset_confirm.html:27
+msgid "Havola yaroqsiz"
+msgstr "Invalid link"
+
+#: templates/users/password_reset_confirm.html:32
+msgid "Qayta so'rash"
+msgstr "Request again"
+
+#: templates/users/password_reset_done.html:4
+#: templates/users/password_reset_done.html:13
+msgid "Havola yuborildi"
+msgstr "Link sent"
+
+#: templates/users/profile.html:4
+msgid "%(u)s Profili"
+msgstr "%(u)s's Profile"
+
+#: templates/users/profile.html:111
+msgid "Default avatar"
+msgstr "Default avatar"
+
+#: templates/users/profile.html:142
+msgid "Obunachilar"
+msgstr "Followers"
+
+#: templates/users/profile.html:148
+msgid "Obunalar"
+msgstr "Following"
+
+#: templates/users/profile.html:177
+msgid "Ro'yxatda"
+msgstr "In list"
+
+#: templates/users/profile.html:182
+msgid "Tugallangan"
+msgstr "Completed"
+
+#: templates/users/profile.html:186
+msgid "Sharhlar"
+msgstr "Reviews"
+
+#: templates/users/profile.html:191
+msgid "Ballar (XP)"
+msgstr "Points (XP)"
+
+#: templates/users/profile.html:206
+msgid "Shaxsiy Balans"
+msgstr "Your balance"
+
+#: templates/users/profile.html:225 templates/users/transactions.html:13
+msgid "Tranzaksiyalar tarixi"
+msgstr "Transaction history"
+
+#: templates/users/profile.html:238
+msgid "Statusingiz"
+msgstr "Your status"
+
+#: templates/users/profile.html:240
+msgid "Premium VIP"
+msgstr "Premium VIP"
+
+#: templates/users/profile.html:245
+msgid "Oddiy User"
+msgstr "Regular user"
+
+#: templates/users/profile.html:246
+msgid "Reklamasiz ko'rish uchun VIP oling"
+msgstr "Get VIP for ad-free watching"
+
+#: templates/users/profile.html:332
+msgid "Hali kolleksiya yo'q — <a href=\"%(coll_url)s\" class=\"text-[#00cc4c] hover:underline\">yarating</a>!"
+msgstr "No collections yet — <a href=\"%(coll_url)s\" class=\"text-[#00cc4c] hover:underline\">create one</a>!"
+
+#: templates/users/profile.html:440
+msgid "30 Kunlik Premium VIP"
+msgstr "30-day Premium VIP"
+
+#: templates/users/profile.html:447
+msgid "Narxi:"
+msgstr "Price:"
+
+#: templates/users/register.html:5
+msgid "Saytda ro`yxatdan o`tish"
+msgstr "Register on the site"
+
+#: templates/users/register.html:13
+msgid "Ro'yxatdan o'tish"
+msgstr "Sign up"
+
+#: templates/users/register.html:18
+msgid "Hozir qo'shilish"
+msgstr "Join now"
+
+#: templates/users/register.html:21
+msgid "Ro'yxatdan o'tish orqali <a href=\"%(terms_url)s\" class=\"text-decoration-none\">Foydalanish shartlari</a> va <a href=\"%(privacy_url)s\" class=\"text-decoration-none\">Maxfiylik siyosati</a>ga rozilik bildirasiz."
+msgstr "By signing up you agree to the <a href=\"%(terms_url)s\" class=\"text-decoration-none\">Terms of Use</a> and <a href=\"%(privacy_url)s\" class=\"text-decoration-none\">Privacy Policy</a>."
+
+#: templates/users/register.html:27
+msgid "Profilingiz bormi?"
+msgstr "Already have an account?"
+
+#: templates/users/settings.html:122
+msgid "PROFILE SETTINGS"
+msgstr "PROFILE SETTINGS"
+
+#: templates/users/settings.html:123
+msgid "O'z shaxsiy profilingizni mukammallashtiring"
+msgstr "Perfect your personal profile"
+
+#: templates/users/settings.html:175
+msgid "Telegram ID"
+msgstr "Telegram ID"
+
+#: templates/users/settings.html:186
+msgid "Telegram bot"
+msgstr "Telegram bot"
+
+#: templates/users/settings.html:193
+msgid "Uzish"
+msgstr "Disconnect"
+
+#: templates/users/settings.html:196
+msgid "Yangi qism chiqqanda botdan xabar oling"
+msgstr "Get notified by the bot when a new episode is out"
+
+#: templates/users/settings.html:208
+msgid "Biografiya"
+msgstr "Biography"
+
+#: templates/users/settings.html:225
+msgid "Blokdan olish"
+msgstr "Unblock"
+
+#: templates/users/settings.html:229
+msgid "Hech kim bloklanmagan."
+msgstr "No one is blocked."
+
+#: templates/users/settings.html:235
+msgid "Bloklash"
+msgstr "Block"
+
+#: templates/users/settings.html:255
+msgid "Asosiy Akkaunt"
+msgstr "Main account"
+
+#: templates/users/settings.html:267
+msgid "Profil Tafsilotlari"
+msgstr "Profile details"
+
+#: templates/users/topup.html:4 templates/users/topup.html:34
+#: templates/users/topup_crypto.html:39
+msgid "Hisobni to'ldirish"
+msgstr "Top up balance"
+
+#: templates/users/topup.html:35 templates/users/topup_crypto.html:40
+msgid "Aktyorlarga sovg'a yuborish uchun hisobingizni Coinlar bilan to'ldiring"
+msgstr "Top up your balance with Coins to send gifts to actors"
+
+#: templates/users/topup.html:56
+msgid "Payme orqali avtomatik"
+msgstr "Automatic via Payme"
+
+#: templates/users/topup.html:57
+msgid "Darhol — chek yuklash va admin tasdig'i kerak emas"
+msgstr "Instant — no receipt upload or admin approval needed"
+
+#: templates/users/topup.html:62
+msgid "— yoki qo'lda chek yuklang —"
+msgstr "— or upload a receipt manually —"
+
+#: templates/users/topup.html:98 templates/users/topup_crypto.html:88
+msgid "So'rovingiz ko'rib chiqilmoqda"
+msgstr "Your request is being reviewed"
+
+#: templates/users/topup.html:102 templates/users/topup_crypto.html:96
+msgid "Yuborilgan vaqt:"
+msgstr "Submitted at:"
+
+#: templates/users/topup.html:126
+msgid "Karta raqami"
+msgstr "Card number"
+
+#: templates/users/topup.html:129 templates/users/topup_crypto.html:130
+msgid "Nusxa olish"
+msgstr "Copy"
+
+#: templates/users/topup.html:136
+msgid "Karta Egasi"
+msgstr "Cardholder"
+
+#: templates/users/topup.html:143
+msgid "Istalgan bank ilovasi (Click, Payme, Uzum) orqali yuqoridagi kartaga kerakli summani o'tkazing va to'lov muvaffaqiyatli bo'lganligi haqidagi chekni saqlab oling."
+msgstr "Transfer the required amount to the card above via any bank app (Click, Payme, Uzum) and save the payment receipt."
+
+#: templates/users/topup.html:183 templates/users/topup_crypto.html:184
+msgid "So'rovni yuborish"
+msgstr "Submit request"
+
+#: templates/users/topup_crypto.html:4
+msgid "Kripto orqali to'ldirish"
+msgstr "Top up via crypto"
+
+#: templates/users/topup_crypto.html:127
+msgid "TON Hamyon manzili (USDT)"
+msgstr "TON wallet address (USDT)"
+
+#: templates/users/topup_crypto.html:138
+msgid "yuboring. Boshqa tarmoq yoki token qabul qilinmaydi!"
+msgstr "only. No other network or token is accepted!"
+
+#: templates/users/topup_crypto.html:144
+msgid "TON hamyoningizdan (Tonkeeper, MyTonWallet yoki boshqa) yuqoridagi manzilga kerakli miqdorda USDT yuboring. To'lov skrinshotini saqlab oling."
+msgstr "From your TON wallet (Tonkeeper, MyTonWallet or other), send the required amount of USDT to the address above. Save the payment screenshot."
+
+#: templates/users/transactions.html:14
+msgid "Coin hisobingizdagi barcha harakatlar"
+msgstr "All activity on your Coin account"
+
+#: templates/users/transactions.html:17
+msgid "Joriy balans"
+msgstr "Current balance"
+
+#: templates/users/transactions.html:46
+msgid "Hozircha tranzaksiyalar yo'q."
+msgstr "No transactions yet."
+
+#: drama/admin.py:43
+msgid "Bunny holati"
+msgstr "Bunny status"
+
+#: drama/admin.py:54
+msgid "Bunny'ga qayta yuklash (lokal fayli borlar)"
+msgstr "Re-upload to Bunny (those with a local file)"
+
+#: drama/admin.py:87
+msgid "Encoding holatini Bunny'dan yangilash"
+msgstr "Refresh encoding status from Bunny"
+
+#: drama/admin.py:128
+msgid "Kadr"
+msgstr "Frame"
+
+#: drama/admin.py:174
+msgid "Filmlar soni"
+msgstr "Number of movies"
+
+#: drama/admin.py:200
+msgid "Aktyor"
+msgstr "Actor"
+
+#: drama/admin.py:236
+msgid "Asosiy Ma'lumotlar"
+msgstr "Main information"
+
+#: drama/admin.py:248
+msgid "Teglar va SEO"
+msgstr "Tags and SEO"
+
+#: drama/admin.py:255
+msgid "Media & Vizual"
+msgstr "Media & Visuals"
+
+#: drama/admin.py:271
+msgid "Metrikalar"
+msgstr "Metrics"
+
+#: drama/admin.py:278
+msgid "Texnik Tafsilotlar"
+msgstr "Technical details"
+
+#: drama/admin.py:288
+msgid "Jamoa"
+msgstr "Cast & crew"
+
+#: drama/admin.py:304
+msgid "Statistika"
+msgstr "Statistics"
+
+#: drama/admin.py:308
+msgid "Poster"
+msgstr "Poster"
+
+#: drama/admin.py:317
+msgid "Holat"
+msgstr "Status"
+
+#: drama/admin.py:331
+msgid "Qoralamaga olish"
+msgstr "Move to draft"
+
+#: drama/admin.py:339
+msgid "Nashr etish"
+msgstr "Publish"
+
+#: drama/admin.py:437
+msgid "Pleyer markerlari [V2E-T2]"
+msgstr "Player markers [V2E-T2]"
+
+#: drama/admin.py:446
+msgid "Video (Bunny — avtomatik)"
+msgstr "Video (Bunny — automatic)"
+
+#: drama/admin.py:457
+msgid "Legacy (qo'lda embed)"
+msgstr "Legacy (manual embed)"
+
+#: drama/admin.py:462
+msgid "Qism"
+msgstr "Episode"
+
+#: drama/admin.py:466
+msgid "Bunny video"
+msgstr "Bunny video"
+
+#: drama/admin.py:499
+msgid "Yashirish (moderatsiya)"
+msgstr "Hide (moderation)"
+
+#: drama/admin.py:505
+msgid "Qayta ochish"
+msgstr "Unhide"
+
+#: drama/admin.py:511
+msgid "Foydalanuvchi"
+msgstr "User"
+
+#: drama/admin.py:522
+msgid "Tur"
+msgstr "Type"
+
+#: drama/admin.py:526
+msgid "Vaqt"
+msgstr "Time"
+
+#: drama/admin.py:530
+msgid "Matn"
+msgstr "Text"
+
+#: drama/admin.py:539
+msgid "Slayd Rasmi"
+msgstr "Slide image"
+
+#: drama/admin.py:600
+msgid "Izoh"
+msgstr "Comment"
+
+#: drama/admin.py:605
+msgid "Kino"
+msgstr "Movie"
+
+#: drama/admin.py:609
+msgid "Qabul qilish — izohni yashirish"
+msgstr "Accept — hide the comment"
+
+#: drama/admin.py:626
+msgid "Rad etish — asossiz shikoyat"
+msgstr "Reject — unfounded report"
+
+#: drama/admin.py:258
+msgid "Yakka film videosi: faylni yuklang — Bunny'ga yuborish va GUID bog'lash avtomatik (qismlar uchun Qismlar tabidan yuklanadi)."
+msgstr "Single-movie video: upload the file — sending to Bunny and GUID linking are automatic (for episodes, upload from the Episodes tab)."
+
+#: drama/admin.py:440
+msgid "Sekundlarda. Ikkalasi to'ldirilsa pleyerda “Intro'ni o'tkazish” chiqadi."
+msgstr "In seconds. If both are filled, a “Skip intro” button appears in the player."
+
+#: drama/admin.py:448
+msgid "Video faylni shu yerga yuklang — Bunny'ga yuborish, encoding va GUID bog'lash avtomatik. GUID'ni qo'lda kiritish odatda shart emas (faqat favqulodda/legacy holat)."
+msgstr "Upload the video file here — sending to Bunny, encoding and GUID linking are automatic. Entering the GUID manually is usually not needed (only for emergency/legacy cases)."
+
+#: drama/views.py:194
+msgid "Shikoyat yuborildi — moderatorlar ko'rib chiqadi."
+msgstr "Report submitted — moderators will review it."
+
+#: drama/views.py:196
+msgid "Siz bu izohga allaqachon shikoyat yuborgansiz."
+msgstr "You have already reported this comment."
+
+#: drama/views.py:540
+msgid "'%(title)s' ro'yxatingizga saqlandi!"
+msgstr "'%(title)s' was saved to your list!"
+
+#: drama/views.py:488
+msgid "Noto'g'ri status tanlandi."
+msgstr "Invalid status selected."
+
+#: drama/views.py:845
+msgid "Gul 🌹"
+msgstr "Rose 🌹"
+
+#: drama/views.py:845
+msgid "Qahva ☕"
+msgstr "Coffee ☕"
+
+#: drama/views.py:845
+msgid "Toj 👑"
+msgstr "Crown 👑"
+
+#: drama/views.py:853
+msgid "Aktyor topilmadi."
+msgstr "Actor not found."
+
+#: drama/views.py:517
+msgid "Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi."
+msgstr "The rating must be between 1 and 10. The movie was saved without a rating."
+
+#: drama/views.py:521
+msgid "Noto'g'ri baho kiritildi. Kino bahosiz saqlandi."
+msgstr "Invalid rating entered. The movie was saved without a rating."
+
+#: drama/views.py:815
+msgid "Noto'g'ri sovg'a tanlandi."
+msgstr "Invalid gift selected."
+
+#: drama/views.py:848
+msgid "%(actor)s ga %(gift)s yubordingiz! U bundan juda xursand bo'ladi 🎉"
+msgstr "You sent %(gift)s to %(actor)s! They will be very happy 🎉"
+
+#: drama/views.py:830
+msgid "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
+msgstr "Not enough Coins to send a gift. Please top up your balance."
+
+#: users/views.py:553
+msgid "Barcha bildirishnomalar o'qilgan deb belgilandi."
+msgstr "All notifications marked as read."
+
+#: users/views.py:581
+msgid "Telegram bot uzildi — endi botdan xabar kelmaydi."
+msgstr "Telegram bot disconnected — you'll no longer get messages from the bot."
+
+#: users/views.py:661
+msgid "Kolleksiya o'chirildi."
+msgstr "Collection deleted."
+
+#: users/views.py:92
+msgid "Tasdiqlash havolasi yaroqsiz yoki muddati o'tgan."
+msgstr "The confirmation link is invalid or expired."
+
+#: users/views.py:108
+msgid "Avval sozlamalarda email manzil kiriting."
+msgstr "First add an email address in settings."
+
+#: users/views.py:162
+msgid "Telegram orqali kirishda xatolik (imzo yaroqsiz yoki eskirgan)."
+msgstr "Telegram sign-in error (signature invalid or expired)."
+
+#: users/views.py:166
+msgid "Xush kelibsiz, %(username)s! Telegram orqali kirdingiz."
+msgstr "Welcome, %(username)s! You signed in via Telegram."
+
+#: users/views.py:409
+msgid "Sizda aktiv obuna yo'q."
+msgstr "You have no active subscription."
+
+#: users/views.py:413
+msgid "yoqildi"
+msgstr "enabled"
+
+#: users/views.py:413
+msgid "o'chirildi"
+msgstr "disabled"
+
+#: users/views.py:568
+msgid "Telegram bot hali sozlanmagan."
+msgstr "The Telegram bot is not set up yet."
+
+#: users/views.py:652
+msgid "Kolleksiya yangilandi."
+msgstr "Collection updated."
+
+#: users/views.py:94
+msgid "%(email)s manzili tasdiqlandi ✅"
+msgstr "%(email)s has been confirmed ✅"
+
+#: users/views.py:110
+msgid "Emailingiz allaqachon tasdiqlangan."
+msgstr "Your email is already confirmed."
+
+#: users/views.py:113
+msgid "Tasdiqlash havolasi qayta yuborildi."
+msgstr "The confirmation link was resent."
+
+#: users/views.py:325
+msgid "Ma'lumotlaringiz muvaffaqiyatli yangilandi!"
+msgstr "Your information was updated successfully!"
+
+#: users/views.py:379
+msgid "Obuna rejasi topilmadi yoki sotuvda emas."
+msgstr "The subscription plan was not found or is not on sale."
+
+#: users/views.py:414
+msgid "Avto-uzaytirish %(state)s."
+msgstr "Auto-renew %(state)s."
+
+#: users/views.py:442
+msgid "Sizda allaqachon kutilayotgan so'rov mavjud!"
+msgstr "You already have a pending request!"
+
+#: users/views.py:461 users/views.py:504
+msgid "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."
+msgstr "Your request was submitted successfully! Please wait for admin approval."
+
+#: users/views.py:485
+msgid "Sizda allaqachon kutilayotgan kripto so'rov mavjud!"
+msgstr "You already have a pending crypto request!"
+
+#: users/views.py:672
+msgid "Kolleksiyada eng ko'pi %(max)s ta kino bo'la oladi."
+msgstr "A collection can hold at most %(max)s movies."
+
+#: users/views.py:684
+msgid "“%(title)s” qo'shildi."
+msgstr "“%(title)s” was added."
+
+#: users/views.py:750
+msgid "“%(username)s” topilmadi."
+msgstr "“%(username)s” was not found."
+
+#: users/views.py:752
+msgid "O'zingizni bloklay olmaysiz."
+msgstr "You can't block yourself."
+
+#: users/views.py:775
+msgid "%(username)s blokdan olindi."
+msgstr "%(username)s was unblocked."
+
+#: users/views.py:329
+msgid "Yangi emailingizga tasdiqlash havolasi yubordik."
+msgstr "We sent a confirmation link to your new email."
+
+#: users/views.py:389
+msgid "Tabriklaymiz! %(plan)s obunasi muvaffaqiyatli xarid qilindi 👑"
+msgstr "Congratulations! The %(plan)s subscription was purchased successfully 👑"
+
+#: users/views.py:396
+msgid "Sizda muddatsiz VIP mavjud — xarid shart emas."
+msgstr "You have lifetime VIP — no purchase needed."
+
+#: users/views.py:609
+msgid "“%(name)s” kolleksiyasi yaratildi."
+msgstr "The “%(name)s” collection was created."
+
+#: users/views.py:71
+msgid "Xush kelibsiz %(username)s! Account yaratildi. Emailingizga tasdiqlash havolasi yubordik (spam papkasini ham tekshiring). Endi username va parolingiz bilan kiring."
+msgstr "Welcome %(username)s! Your account was created. We sent a confirmation link to your email (check the spam folder too). Now sign in with your username and password."
+
+#: users/views.py:393
+msgid "Hisobingizda mablag' yetarli emas! Narxi: %(price)s Coin."
+msgstr "You don't have enough balance! Price: %(price)s Coin."
+
+#: users/views.py:759
+msgid "%(username)s bloklandi — izohlari yig'ilgan ko'rinadi."
+msgstr "%(username)s was blocked — their comments appear collapsed."
+
+#: users/views.py:762
+msgid "%(username)s allaqachon bloklangan."
+msgstr "%(username)s is already blocked."
+
+#: users/views.py:80
+msgid "Xatolik yuz berdi: %(err)s"
+msgstr "An error occurred: %(err)s"
+
+#: billing/views.py:45
+msgid "To'lov tizimi hozircha sozlanmagan. Iltimos, qo'lda to'ldirishdan foydalaning."
+msgstr "The payment system is not set up yet. Please use manual top-up."
+
+#: billing/views.py:36
+msgid "Eng kam summa %(amount)s UZS."
+msgstr "The minimum amount is %(amount)s UZS."
+
+#: funding/views.py:32
+msgid "Noto'g'ri summa kiritildi."
+msgstr "Invalid amount entered."
+
+#: funding/views.py:46
+msgid "Hisobingizda Coin yetarli emas. Iltimos, profile bo'limidan hisobingizni to'ldiring."
+msgstr "You don't have enough Coins. Please top up your balance from the profile section."
+
+#: funding/views.py:51
+msgid "Muvaffaqiyatli! Loyihaga %(coins)s Coin hissa qo'shdingiz. Rahmat!"
+msgstr "Success! You contributed %(coins)s Coin to the project. Thank you!"

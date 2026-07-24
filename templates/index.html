@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load cache %}
+{% load cache i18n %}
 
 {% block slayder %}
 <style>
@@ -54,7 +54,7 @@
         <div class="swiper-slide relative bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
             <div class="text-center px-4">
                 <h1 class="text-3xl md:text-6xl font-black uppercase text-white">DramaUz</h1>
-                <p class="text-gray-400 mt-2 text-sm md:text-base">Eng yaxshi dramalar</p>
+                <p class="text-gray-400 mt-2 text-sm md:text-base">{% trans "Eng yaxshi dramalar" %}</p>
             </div>
         </div>
         {% endfor %}
@@ -120,15 +120,15 @@
 
     <!-- Welcome Text -->
     <div class="mb-4 md:mb-6">
-        <h2 class="text-lg md:text-2xl font-bold text-white">DramaUz ga xush kelibsiz</h2>
-        <p class="text-gray-400 text-xs md:text-sm mt-1">Eng so'nggi koreys va xitoy dramalari</p>
+        <h2 class="text-lg md:text-2xl font-bold text-white">{% trans "DramaUz ga xush kelibsiz" %}</h2>
+        <p class="text-gray-400 text-xs md:text-sm mt-1">{% trans "Eng so'nggi koreys va xitoy dramalari" %}</p>
     </div>
 
     {# ── 'Davom ettirish' karuseli [P8-T2] — tugatilmagan progresslar ── #}
     {% if continue_watching %}
     <section class="mb-8 md:mb-10">
         <h2 class="text-base md:text-xl lg:text-2xl font-bold flex items-center gap-2 mb-3 md:mb-4">
-            <i class="fas fa-history text-[#00cc4c]"></i> Davom ettirish
+            <i class="fas fa-history text-[#00cc4c]"></i> {% trans "Davom ettirish" %}
         </h2>
         <div class="flex gap-3 md:gap-4 overflow-x-auto pb-2 snap-x scrollbar-hide -mx-1 px-1">
             {% for wp in continue_watching %}
@@ -140,7 +140,7 @@
                          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none"></div>
                     <div class="absolute bottom-0 left-0 right-0 p-2">
-                        <p class="text-white text-[10px] md:text-xs font-medium truncate mb-1">{{ wp.episode.episode_number }}-qism</p>
+                        <p class="text-white text-[10px] md:text-xs font-medium truncate mb-1">{% blocktrans with n=wp.episode.episode_number %}{{ n }}-qism{% endblocktrans %}</p>
                         <div class="h-1 w-full bg-white/20 rounded-full overflow-hidden">
                             <div class="h-full bg-[#00cc4c]" style="width: {{ wp.percent }}%;"></div>
                         </div>
@@ -159,19 +159,21 @@
     {% endif %}
 
     {# ── Trenddagi karusel [P8-T2] ── #}
-    {% include 'movies/_carousel.html' with carousel_title="Trenddagi" carousel_icon="fa-fire" carousel_movies=trending_movies %}
+    {% trans "Trenddagi" as t_trending %}
+    {% include 'movies/_carousel.html' with carousel_title=t_trending carousel_icon="fa-fire" carousel_movies=trending_movies %}
 
     {# ── 'Siz ko'rganingiz asosida' [P8-T2] — faqat tarixli foydalanuvchi ── #}
-    {% include 'movies/_carousel.html' with carousel_title="Siz ko'rganingiz asosida" carousel_icon="fa-wand-magic-sparkles" carousel_movies=recommended_movies %}
+    {% trans "Siz ko'rganingiz asosida" as t_reco %}
+    {% include 'movies/_carousel.html' with carousel_title=t_reco carousel_icon="fa-wand-magic-sparkles" carousel_movies=recommended_movies %}
 
     <!-- Section Header -->
     <div class="flex items-center justify-between mb-4 md:mb-6">
         <h2 class="text-lg md:text-2xl lg:text-3xl font-bold border-l-4 border-green-500 pl-3">
-            Barcha dramalar
+            {% trans "Barcha dramalar" %}
         </h2>
-        <a href="{% url 'drama:explore' %}" aria-label="Filtrlash" class="flex items-center gap-2 text-xs md:text-sm text-gray-400 hover:text-green-500 transition bg-white/5 px-3 py-2 rounded-lg">
+        <a href="{% url 'drama:explore' %}" aria-label="{% trans 'Filtrlash' %}" class="flex items-center gap-2 text-xs md:text-sm text-gray-400 hover:text-green-500 transition bg-white/5 px-3 py-2 rounded-lg">
             <i class="fas fa-filter" aria-hidden="true"></i>
-            <span class="hidden sm:inline">Filtrlash</span>
+            <span class="hidden sm:inline">{% trans "Filtrlash" %}</span>
         </a>
     </div>
 

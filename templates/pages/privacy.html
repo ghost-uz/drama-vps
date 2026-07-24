@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Maxfiylik siyosati - Drama.Uz{% endblock %}
-{% block meta_description %}Drama.Uz qanday ma'lumotlarni yig'adi, nima uchun ishlatadi va qanday himoya qiladi — maxfiylik siyosati.{% endblock %}
+{% block title %}{% trans "Maxfiylik siyosati" %} - Drama.Uz{% endblock %}
+{% block meta_description %}{% trans "Drama.Uz qanday ma'lumotlarni yig'adi, nima uchun ishlatadi va qanday himoya qiladi — maxfiylik siyosati." %}{% endblock %}
 
 {% block content %}
 <section class="max-w-3xl mx-auto px-4 md:px-6 py-10 md:py-14">
-    <h1 class="text-2xl md:text-3xl font-black mb-2 text-white">Maxfiylik siyosati</h1>
+    <h1 class="text-2xl md:text-3xl font-black mb-2 text-white">{% trans "Maxfiylik siyosati" %}</h1>
     <p class="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-8">Oxirgi yangilanish: 2026-yil 11-iyul</p>
 
     <div class="space-y-8 text-sm leading-relaxed text-gray-300">
         <div>
-            <h2 class="text-lg font-black text-white mb-2">1. Kirish</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "1. Kirish" %}</h2>
             <p>Ushbu hujjat Drama.Uz qaysi ma'lumotlarni yig'ishi, ulardan qanday foydalanishi va sizning huquqlaringizni tushuntiradi. Saytdan foydalanish shu siyosatga rozilik hisoblanadi.</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">2. Qanday ma'lumotlarni yig'amiz</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "2. Qanday ma'lumotlarni yig'amiz" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li><strong class="text-white">Hisob ma'lumotlari:</strong> foydalanuvchi nomi, elektron pochta, avatar; Telegram orqali kirsangiz — Telegram ID va ismingiz.</li>
                 <li><strong class="text-white">Foydalanish ma'lumotlari:</strong> ko'rish tarixi va "davom ettirish" pozitsiyasi, kino ro'yxatlaringiz, baholaringiz, izohlaringiz.</li>
@@ -25,7 +26,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">3. Ma'lumotlardan qanday foydalanamiz</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "3. Ma'lumotlardan qanday foydalanamiz" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Xizmat ko'rsatish: to'xtagan joydan davom ettirish, shaxsiy tavsiyalar, bildirishnomalar.</li>
                 <li>To'lovlarni tasdiqlash va Coin balansini yuritish.</li>
@@ -35,7 +36,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">4. Uchinchi tomon xizmatlari</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "4. Uchinchi tomon xizmatlari" %}</h2>
             <p class="mb-2">Platforma ishlashi uchun quyidagi xizmatlardan foydalanamiz — ularga faqat zarur minimal ma'lumot o'tadi:</p>
             <ul class="list-disc pl-5 space-y-1">
                 <li><strong class="text-white">Bunny Stream</strong> — video yetkazib berish (CDN).</li>
@@ -48,12 +49,12 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">5. Cookie va sessiyalar</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "5. Cookie va sessiyalar" %}</h2>
             <p>Login sessiyasi, xavfsizlik (CSRF) va sozlamalarni eslab qolish uchun cookie'lardan foydalanamiz. Brauzeringizda cookie'ni o'chirishingiz mumkin, lekin bunda saytga kirish ishlamay qoladi.</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">6. Saqlash muddati</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "6. Saqlash muddati" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Hisob ma'lumotlari — hisobingiz mavjud ekan saqlanadi.</li>
                 <li>Tranzaksiya tarixi va ma'muriy audit yozuvlari — moliyaviy aniqlik va xavfsizlik uchun uzoqroq saqlanishi mumkin.</li>
@@ -62,17 +63,17 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">7. Sizning huquqlaringiz</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "7. Sizning huquqlaringiz" %}</h2>
             <p>Hisobingizdagi ma'lumotlarning nusxasini so'rash yoki hisobni butunlay o'chirtirish uchun <a href="https://t.me/suxroboff" class="text-[#00cc4c] hover:underline" target="_blank" rel="noopener noreferrer">@Suxroboff</a> ga murojaat qiling — so'rov 30 kun ichida bajariladi. (Kelajakda bu amallar profil sozlamalarida avtomatik bo'ladi.)</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">8. Bolalar maxfiyligi</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "8. Bolalar maxfiyligi" %}</h2>
             <p>Xizmat 13 yoshdan kichik bolalarga mo'ljallanmagan; bunday foydalanuvchi aniqlansa hisob ma'lumotlari o'chiriladi.</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">9. O'zgarishlar va aloqa</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "9. O'zgarishlar va aloqa" %}</h2>
             <p>Siyosat yangilanishi mumkin — sana tepada ko'rsatiladi, muhim o'zgarishlar e'lon qilinadi. Savollar: <a href="https://t.me/suxroboff" class="text-[#00cc4c] hover:underline" target="_blank" rel="noopener noreferrer">@Suxroboff</a>. Foydalanish qoidalari: <a href="{% url 'terms' %}" class="text-[#00cc4c] hover:underline">Foydalanish shartlari</a>.</p>
         </div>
     </div>

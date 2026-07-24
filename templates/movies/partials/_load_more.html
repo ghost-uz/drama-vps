@@ -7,6 +7,7 @@ Cheksiz skroll sentineli [P5-T3] — progressive enhancement:
 `{% querystring %}` (Django 5.1+) joriy GET paramlarini (filtr/sort) saqlab qolib, faqat
 `page` ni almashtiradi — filtrlangan katalogda ham skroll to'g'ri sahifani yuklaydi.
 {% endcomment %}
+{% load i18n %}
 {% if page_obj.has_next %}
 <a id="load-more"
    href="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
@@ -15,7 +16,7 @@ Cheksiz skroll sentineli [P5-T3] — progressive enhancement:
    hx-swap="outerHTML"
    class="col-span-full flex items-center justify-center gap-2.5 py-8 mt-2 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-[#00cc4c] transition-colors cursor-pointer">
     <i class="fas fa-circle-notch fa-spin htmx-indicator"></i>
-    <span>Ko'proq yuklash</span>
+    <span>{% trans "Ko'proq yuklash" %}</span>
     <i class="fas fa-chevron-down text-[10px]"></i>
 </a>
 {% endif %}

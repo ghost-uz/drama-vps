@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Payme orqali to'ldirish | Drama.uz{% endblock %}
+{% block title %}{% trans "Payme orqali to'ldirish" %} | Drama.uz{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-[#050505] text-white py-16 px-4">
@@ -9,13 +10,13 @@
             <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#00cc4c]/10 border border-[#00cc4c]/30 mb-4">
                 <i class="fas fa-wallet text-3xl text-[#00cc4c]"></i>
             </div>
-            <h1 class="text-3xl font-black">Payme orqali to'ldirish</h1>
-            <p class="text-gray-400 text-sm mt-2">1 000 UZS = 1 Coin. To'lov tasdiqlangach Coin avtomatik qo'shiladi.</p>
+            <h1 class="text-3xl font-black">{% trans "Payme orqali to'ldirish" %}</h1>
+            <p class="text-gray-400 text-sm mt-2">{% trans "1 000 UZS = 1 Coin. To'lov tasdiqlangach Coin avtomatik qo'shiladi." %}</p>
         </div>
 
         <form method="POST" action="{% url 'billing:checkout' %}" class="bg-[#0f0f0f] border border-[#1f1f1f] rounded-3xl p-8">
             {% csrf_token %}
-            <label class="block text-xs text-gray-500 uppercase font-bold mb-2">Summa (UZS)</label>
+            <label class="block text-xs text-gray-500 uppercase font-bold mb-2">{% trans "Summa (UZS)" %}</label>
             <input type="number" name="amount_uzs" min="{{ min_amount }}" step="1000" value="10000" required
                    class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-lg outline-none focus:border-[#00cc4c] transition-colors">
             <p class="text-[11px] text-gray-500 mt-2">Eng kam: {{ min_amount }} UZS</p>

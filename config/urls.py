@@ -1,5 +1,6 @@
 # config/urls.py
 from django.conf import settings
+from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
@@ -32,9 +33,27 @@ sitemaps = {
     "pages": StaticPagesSitemap,
 }
 
+# ---------------------------------------------------------------------------
+# 1-BLOK — TIL-NEYTRAL yo'llar (i18n_patterns'dan TASHQARIDA) [V2G-T1]
+#
+# Bu yerdagi URL'lar hech qachon `/en/` prefiksini olmaydi, chunki:
+#   • Tashqi tizimlarda QAYD ETILGAN: Bunny/Telegram webhook, Payme merchant
+#     endpoint (billing ichida), Search Console sitemap, DNS-AID agent-index.
+#     reverse() `/en/` faol paytda prefiks qo'shsa — tashqi chaqiruv sinadi.
+#   • Service worker `/sw.js` ILDIZ scope'da bo'lishi SHART; `/offline/` esa
+#     SW keshida qat'iy nom bilan yotadi (prefiks kesh-kalitni buzardi).
+#   • Infratuzilma (healthz/readyz/metrics), admin va set_language — til-neytral.
+#
+# ⚠️ allauth (`accounts/`) ATAYLAB shu blokda: allauth OAuth `redirect_uri`ni
+#    reverse() bilan quradi. `/en/` faol bo'lsa u `/en/accounts/google/login/
+#    callback/` chiqaradi — Google konsolida qayd etilgan URL bilan mos kelmaydi
+#    va oqim `redirect_uri_mismatch` bilan yiqiladi.
+# ---------------------------------------------------------------------------
 urlpatterns = [
     # 1. Admin va tizim yo'llari
     path("admin/", admin.site.urls),
+    # set_language view — i18n_patterns ICHIDA BO'LMASLIGI kerak (o'zi til
+    # almashtiradi; prefiksli variantda POST target tilga bog'lanib qolardi).
     path("i18n/", include("django.conf.urls.i18n")),
     # Admin 2FA tasdiqlash [P10-T4] — ataylab /admin/ TASHQARISIDA (redirect-loop yo'q)
     path("admin-2fa/", admin_2fa_verify, name="admin_2fa_verify"),
@@ -61,22 +80,39 @@ urlpatterns = [
         {"sitemaps": {"videos": VideoSitemap}, "template_name": "sitemaps/sitemap-video.xml"},
         name="sitemap_video",
     ),
-    # 3. App yo'llari (Namespace bilan)
-    path("users/", include("users.urls", namespace="users")),
     # allauth — Google OAuth callback yo'llari (/accounts/google/login/...) [P6-T2].
     # Birinchi-tomon login/register MAXSUS (users:) — allauth account view'lariga
     # havola qilinmaydi; faqat socialaccount oqimi ishlatiladi.
     path("accounts/", include("allauth.urls")),
-    path("billing/", include("billing.urls")),  # checkout + Payme webhook [P7-T2]
-    # 4. REST API (P2)
+    # 3. REST API (P2)
     path("api/v1/", include("config.api_urls")),
-    # 5. Tashqi webhook'lar (P3)
+    # 4. Tashqi webhook'lar (P3)
     path("webhooks/bunny/", bunny_webhook, name="bunny_webhook"),
     path("webhooks/telegram/", telegram_webhook, name="telegram_webhook"),
     # PWA [P5-T6] — drama catch-all'dan OLDIN (aks holda "offline/" -> <slug>/ ga tushardi)
     path("manifest.webmanifest", manifest, name="manifest"),
     path("sw.js", service_worker, name="service_worker"),
     path("offline/", offline, name="offline"),
+]
+
+# ---------------------------------------------------------------------------
+# 2-BLOK — TIL-PREFIKSLI ommaviy sahifalar [V2G-T1]
+#
+# `prefix_default_language=False` → uz (LANGUAGE_CODE) PREFIKSSIZ qoladi:
+# mavjud barcha URL'lar, tashqi havolalar va indekslangan sahifalar aynan
+# o'zgarishsiz ishlaydi; ingliz UI faqat `/en/...` ostida paydo bo'ladi.
+#
+# Django 6 LocaleMiddleware prefikssiz yo'lda tilni MAJBURAN LANGUAGE_CODE'ga
+# qo'yadi (Accept-Language / cookie / sessiyani e'tiborsiz qoldiradi — qarang
+# django/middleware/locale.py). Ya'ni `/janr/melodrama/` ingliz brauzerda ham
+# doim o'zbekcha — hreflang e'lon qilgan narsa bilan ziddiyat YO'Q.
+#
+# Ichki tartib ASL urlpatterns tartibini saqlaydi: drama'ning `<slug:slug>/`
+# catch-all'i eng oxirida (shartlar/maxfiylik undan OLDIN turishi shart).
+# ---------------------------------------------------------------------------
+urlpatterns += i18n_patterns(
+    path("users/", include("users.urls", namespace="users")),
+    path("billing/", include("billing.urls")),  # checkout + Payme webhook [P7-T2]
     # Huquqiy sahifalar [P10-T5 qisman] — drama catch-all'dan OLDIN turishi shart
     path("shartlar/", TemplateView.as_view(template_name="pages/terms.html"), name="terms"),
     path(
@@ -86,7 +122,8 @@ urlpatterns = [
     ),
     path("", include("drama.urls", namespace="drama")),
     path("funding/", include("funding.urls")),
-]
+    prefix_default_language=False,
+)
 
 # Media fayllar uchun (Faqat DEBUG rejimida)
 if settings.DEBUG:

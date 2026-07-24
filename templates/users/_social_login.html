@@ -1,14 +1,14 @@
-{% load socialaccount %}
+{% load socialaccount i18n %}
 {# Ijtimoiy login tugmalari [P6-T2] — faqat tegishli sozlama berilgan bo'lsa #}
 {% if google_login_enabled or telegram_login_bot %}
   <div class="text-center my-3">
-    <small class="text-muted">— yoki tezkor kirish —</small>
+    <small class="text-muted">— {% trans "yoki tezkor kirish" %} —</small>
   </div>
   {% if google_login_enabled %}
     <div class="d-grid mb-2">
       <a href="{% provider_login_url 'google' %}"
          class="btn btn-outline-danger rounded-pill">
-        <i class="fab fa-google me-2"></i>Google bilan davom etish
+        <i class="fab fa-google me-2"></i>{% trans "Google bilan davom etish" %}
       </a>
     </div>
   {% endif %}

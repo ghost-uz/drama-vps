@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load cache %}
 
 {% block page_title %}{{ collection.name }} — {{ person.username }} kolleksiyasi - Drama.uz{% endblock %}
@@ -15,7 +16,7 @@
         <div>
             <h1 class="text-2xl md:text-3xl font-black flex items-center gap-3">
                 <span class="w-1.5 h-7 bg-[#00cc4c] rounded-full"></span> {{ collection.name }}
-                {% if not collection.is_public %}<span class="text-xs text-gray-500 font-bold"><i class="fas fa-lock"></i> Shaxsiy</span>{% endif %}
+                {% if not collection.is_public %}<span class="text-xs text-gray-500 font-bold"><i class="fas fa-lock"></i> {% trans "Shaxsiy" %}</span>{% endif %}
             </h1>
             <p class="text-sm text-gray-500 mt-2">
                 <a href="{% url 'users:profile' person.username %}" class="text-[#00cc4c] hover:underline font-bold">{{ person.username }}</a>
@@ -25,10 +26,10 @@
         </div>
         {% if is_owner %}
         <div class="flex items-center gap-2">
-            <a href="{% url 'users:my_collections' %}" class="px-3 py-2 bg-white/5 rounded-xl text-xs font-black text-gray-400 hover:text-white transition-colors"><i class="fas fa-list mr-1"></i> Barchasi</a>
+            <a href="{% url 'users:my_collections' %}" class="px-3 py-2 bg-white/5 rounded-xl text-xs font-black text-gray-400 hover:text-white transition-colors"><i class="fas fa-list mr-1"></i> {% trans "Barchasi" %}</a>
             <form method="post" action="{% url 'users:collection_delete' collection.slug %}" onsubmit="return confirm('Kolleksiya o\'chirilsinmi?');">
                 {% csrf_token %}
-                <button type="submit" class="px-3 py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-black hover:bg-red-500/20 transition-colors"><i class="fas fa-trash mr-1"></i> O'chirish</button>
+                <button type="submit" class="px-3 py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-black hover:bg-red-500/20 transition-colors"><i class="fas fa-trash mr-1"></i> {% trans "O'chirish" %}</button>
             </form>
         </div>
         {% endif %}
@@ -37,21 +38,21 @@
     {% if is_owner %}
     {# Tahrirlash [V2B-T4] — details: JS'siz ochilib-yopiladi #}
     <details class="mb-6 bg-white/3 border border-white/5 rounded-2xl">
-        <summary class="cursor-pointer list-none p-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-white transition-colors"><i class="fas fa-pen mr-2"></i>Tahrirlash</summary>
+        <summary class="cursor-pointer list-none p-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-white transition-colors"><i class="fas fa-pen mr-2"></i>{% trans "Tahrirlash" %}</summary>
         <form method="post" action="{% url 'users:collection_edit' collection.slug %}" class="p-4 pt-0 space-y-3">
             {% csrf_token %}
             {{ edit_form.name }}
             {{ edit_form.description }}
             <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">{{ edit_form.is_public }} Ommaviy</label>
-                <button type="submit" class="px-4 py-2 bg-[#00cc4c] text-black font-black rounded-xl text-xs">Saqlash</button>
+                <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">{{ edit_form.is_public }} {% trans "Ommaviy" %}</label>
+                <button type="submit" class="px-4 py-2 bg-[#00cc4c] text-black font-black rounded-xl text-xs">{% trans "Saqlash" %}</button>
             </div>
         </form>
     </details>
 
     {# Kino qo'shish — HTMX jonli qidiruv #}
     <div class="mb-8 bg-white/3 border border-white/5 rounded-2xl p-4">
-        <input type="search" name="q" placeholder="Kolleksiyaga kino qidirish..."
+        <input type="search" name="q" placeholder="{% trans 'Kolleksiyaga kino qidirish...' %}"
                hx-get="{% url 'users:collection_search' collection.slug %}"
                hx-trigger="input changed delay:400ms" hx-target="#searchResults"
                class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#00cc4c] transition">
@@ -69,21 +70,21 @@
             <div class="flex items-center gap-1.5 px-1">
                 <form method="post" action="{% url 'users:collection_item_move' collection.slug item.id %}">
                     {% csrf_token %}<input type="hidden" name="direction" value="up">
-                    <button type="submit" aria-label="Yuqoriga" class="px-2 py-1 bg-white/5 rounded-lg text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-up"></i></button>
+                    <button type="submit" aria-label="{% trans 'Yuqoriga' %}" class="px-2 py-1 bg-white/5 rounded-lg text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-up"></i></button>
                 </form>
                 <form method="post" action="{% url 'users:collection_item_move' collection.slug item.id %}">
                     {% csrf_token %}<input type="hidden" name="direction" value="down">
-                    <button type="submit" aria-label="Pastga" class="px-2 py-1 bg-white/5 rounded-lg text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-down"></i></button>
+                    <button type="submit" aria-label="{% trans 'Pastga' %}" class="px-2 py-1 bg-white/5 rounded-lg text-xs text-gray-400 hover:text-white"><i class="fas fa-arrow-down"></i></button>
                 </form>
                 <form method="post" action="{% url 'users:collection_item_remove' collection.slug item.id %}" class="ml-auto">
                     {% csrf_token %}
-                    <button type="submit" aria-label="Olib tashlash" class="px-2 py-1 bg-red-500/10 rounded-lg text-xs text-red-400 hover:bg-red-500/20"><i class="fas fa-times"></i></button>
+                    <button type="submit" aria-label="{% trans 'Olib tashlash' %}" class="px-2 py-1 bg-red-500/10 rounded-lg text-xs text-red-400 hover:bg-red-500/20"><i class="fas fa-times"></i></button>
                 </form>
             </div>
             {% endif %}
         </div>
         {% empty %}
-        <p class="col-span-full text-sm text-gray-500 text-center py-10">Bu kolleksiya hozircha bo'sh.</p>
+        <p class="col-span-full text-sm text-gray-500 text-center py-10">{% trans "Bu kolleksiya hozircha bo'sh." %}</p>
         {% endfor %}
     </div>
     {% endcache %}

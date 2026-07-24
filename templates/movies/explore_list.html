@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block page_title %}{% if title %}{{ title }} - Drama.uz{% else %}Katalog — barcha dramalar - Drama.uz{% endif %}{% endblock %}
-{% block meta_description %}{% if title %}{{ title }} — Drama.uz{% else %}Janr, yil va davlat bo'yicha filtrlab, o'zbek tilidagi dramalarni toping — Drama.uz katalogi{% endif %}{% endblock %}
+{% block page_title %}{% if title %}{{ title }} - Drama.uz{% else %}{% trans "Katalog — barcha dramalar - Drama.uz" %}{% endif %}{% endblock %}
+{% block meta_description %}{% if title %}{{ title }} — Drama.uz{% else %}{% trans "Janr, yil va davlat bo'yicha filtrlab, o'zbek tilidagi dramalarni toping — Drama.uz katalogi" %}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-[1600px] mx-auto px-4 md:px-8 py-10">
@@ -9,7 +10,7 @@
 
         <aside class="w-full lg:w-1/4 space-y-6">
             <div class="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 sticky top-24">
-                <h3 class="text-lg font-black uppercase italic tracking-tighter mb-6 text-[#00cc4c]">Filtrlar</h3>
+                <h3 class="text-lg font-black uppercase italic tracking-tighter mb-6 text-[#00cc4c]">{% trans "Filtrlar" %}</h3>
 
                 {% comment %}
                 Selected holat request'ga xos -> template fragment kesh YO'Q;
@@ -26,16 +27,16 @@
                       class="space-y-6">
 
                     <div>
-                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Minimal Reyting: <span id="rating-val" class="text-[#00cc4c]">{{ selected_min_rating }}</span></label>
+                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">{% trans "Minimal Reyting" %}: <span id="rating-val" class="text-[#00cc4c]">{{ selected_min_rating }}</span></label>
                         <input type="range" name="min_rating" min="0" max="10" step="0.5" value="{{ selected_min_rating }}"
                                oninput="document.getElementById('rating-val').innerText = this.value"
                                class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00cc4c]">
                     </div>
 
                     <div>
-                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Davlat</label>
+                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">{% trans "Davlat" %}</label>
                         <select name="country" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs outline-none focus:border-[#00cc4c]">
-                            <option value="">Hammasi</option>
+                            <option value="">{% trans "Hammasi" %}</option>
                             {% for c in country_facets %}
                             <option value="{{ c.country }}" {% if c.country == selected_country %}selected{% endif %}>{{ c.country }} ({{ c.count }})</option>
                             {% endfor %}
@@ -43,7 +44,7 @@
                     </div>
 
                     <div>
-                        <label class="text-[10px] font-black uppercase text-gray-500 mb-3 block">Ishlab chiqarilgan yil</label>
+                        <label class="text-[10px] font-black uppercase text-gray-500 mb-3 block">{% trans "Ishlab chiqarilgan yil" %}</label>
                         <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                             {% for y in year_facets %}
                             <label class="flex items-center space-x-2 cursor-pointer group">
@@ -57,7 +58,7 @@
                     </div>
 
                     <div>
-                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">Janrlar</label>
+                        <label class="text-[10px] font-black uppercase text-gray-500 mb-2 block">{% trans "Janrlar" %}</label>
                         <div class="flex flex-wrap gap-2">
                             {% for g in genre_facets %}
                             <label class="cursor-pointer">
@@ -75,7 +76,7 @@
                     render bo'lmaydi) [P5-T3] {% endcomment %}
                     <noscript>
                         <button type="submit" class="w-full mt-2 py-3 rounded-xl bg-[#00cc4c] text-black text-xs font-black uppercase tracking-widest">
-                            Filtrlarni qo'llash
+                            {% trans "Filtrlarni qo'llash" %}
                         </button>
                     </noscript>
                 </form>
@@ -86,10 +87,10 @@
             {# Saralash [P8-T3] — o'zgarganda filtrlarni ham qo'shib yuboradi (hx-include) #}
             <div class="flex items-center justify-between mb-6 gap-4">
                 <span id="loading-indicator" class="htmx-indicator text-xs text-[#00cc4c] font-black uppercase tracking-widest">
-                    <i class="fas fa-circle-notch fa-spin"></i> Yuklanmoqda...
+                    <i class="fas fa-circle-notch fa-spin"></i> {% trans "Yuklanmoqda..." %}
                 </span>
                 <label class="ml-auto flex items-center gap-2 text-xs text-gray-400">
-                    <span class="font-black uppercase tracking-widest">Saralash</span>
+                    <span class="font-black uppercase tracking-widest">{% trans "Saralash" %}</span>
                     <select name="sort"
                             hx-get="{% url 'drama:explore' %}"
                             hx-target="#movie-grid"

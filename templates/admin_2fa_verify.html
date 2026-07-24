@@ -1,11 +1,11 @@
 {# Admin 2FA tasdiqlash [P10-T4] — ataylab minimal, mustaqil sahifa (admin/base'siz) #}
-<!DOCTYPE html>
-<html lang="uz">
+{% load i18n %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Ikki bosqichli tasdiqlash — Drama.Uz</title>
+    <title>{% trans "Ikki bosqichli tasdiqlash" %} — Drama.Uz</title>
     <style>
         body { font-family: system-ui, sans-serif; background:#050505; color:#eee;
                min-height:100vh; display:flex; align-items:center; justify-content:center; margin:0; }
@@ -24,23 +24,23 @@
 </head>
 <body>
 <main class="card">
-    <h1>Ikki bosqichli tasdiqlash (2FA)</h1>
+    <h1>{% trans "Ikki bosqichli tasdiqlash (2FA)" %}</h1>
     {% if has_device %}
-        <p>Authenticator ilovangizdagi 6 xonali kodni kiriting.</p>
+        <p>{% trans "Authenticator ilovangizdagi 6 xonali kodni kiriting." %}</p>
         <form method="post">
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="err">{{ form.non_field_errors }}</div>{% endif %}
             {% if form.otp_token.errors %}<div class="err">{{ form.otp_token.errors }}</div>{% endif %}
-            <label for="{{ form.otp_device.id_for_label }}">Qurilma</label>
+            <label for="{{ form.otp_device.id_for_label }}">{% trans "Qurilma" %}</label>
             {{ form.otp_device }}
-            <label for="{{ form.otp_token.id_for_label }}">Token</label>
+            <label for="{{ form.otp_token.id_for_label }}">{% trans "Token" %}</label>
             {{ form.otp_token }}
-            <button type="submit">Tasdiqlash</button>
+            <button type="submit">{% trans "Tasdiqlash" %}</button>
         </form>
     {% else %}
-        <p>Hisobingizda tasdiqlangan TOTP qurilma yo'q — admin'ga kirish uchun avval serverda qurilma yarating:</p>
+        <p>{% trans "Hisobingizda tasdiqlangan TOTP qurilma yo'q — admin'ga kirish uchun avval serverda qurilma yarating:" %}</p>
         <p><code>python manage.py bootstrap_totp {{ request.user.username }}</code></p>
-        <p>Chiqqan otpauth-havolani authenticator ilovaga (Google Authenticator, Aegis…) qo'shing va bu sahifani yangilang.</p>
+        <p>{% trans "Chiqqan otpauth-havolani authenticator ilovaga (Google Authenticator, Aegis…) qo'shing va bu sahifani yangilang." %}</p>
     {% endif %}
 </main>
 </body>

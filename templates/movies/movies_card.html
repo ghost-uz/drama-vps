@@ -1,4 +1,4 @@
-<a href="{{ movie.get_absolute_url }}" class="group relative block touch-manipulation">
+{% load i18n %}<a href="{{ movie.get_absolute_url }}" class="group relative block touch-manipulation">
     <div class="relative aspect-[2/3] overflow-hidden rounded-lg md:rounded-xl bg-gray-800">
         <img src="{{ movie.poster.url }}"
              {% if movie.poster_card %}srcset="{{ movie.poster_card.url }} 342w, {{ movie.poster.url }} 780w"
@@ -31,12 +31,12 @@
                 {# live_episode_count = with_card_data() annotation — .count N+1 emas [P9-T2] #}
                 {% if movie.live_episode_count > 0 %}
                     {% if movie.live_episode_count == movie.episodes_count %}
-                        {{ movie.episodes_count }} qism
+                        {% blocktrans with n=movie.episodes_count %}{{ n }} qism{% endblocktrans %}
                     {% else %}
-                        {{ movie.live_episode_count }}-qism
+                        {% blocktrans with n=movie.live_episode_count %}{{ n }}-qism{% endblocktrans %}
                     {% endif %}
                 {% else %}
-                    Tez kunda
+                    {% trans "Tez kunda" %}
                 {% endif %}
             </p>
         </div>

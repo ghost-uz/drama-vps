@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}{{ person.username }} Profili | Drama.uz{% endblock %}
+{% block title %}{% blocktrans with u=person.username %}{{ u }} Profili{% endblocktrans %} | Drama.uz{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -108,7 +108,7 @@
                             {% else %}
                                 <img src="{% static 'images/default.jpg' %}"
                                      class="w-full h-full rounded-full object-cover"
-                                     alt="Default avatar">
+                                     alt="{% trans 'Default avatar' %}">
                             {% endif %}
                         </div>
                     </div>
@@ -139,13 +139,13 @@
                             <a href="{% url 'users:followers' person.username %}"
                                class="flex flex-col items-center md:items-start hover:text-[#00cc4c] transition-colors">
                                 <span class="text-lg font-black text-white">{{ followers_count }}</span>
-                                <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Obunachilar</span>
+                                <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{% trans "Obunachilar" %}</span>
                             </a>
                             <div class="w-px h-8 bg-white/10"></div>
                             <a href="{% url 'users:following' person.username %}"
                                class="flex flex-col items-center md:items-start hover:text-[#00cc4c] transition-colors">
                                 <span class="text-lg font-black text-white">{{ following_count }}</span>
-                                <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Obunalar</span>
+                                <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{% trans "Obunalar" %}</span>
                             </a>
                         </div>
 
@@ -174,21 +174,21 @@
         <!-- ===== STATISTIKA KARTALAR ===== -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-blue-500">
-                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Ro'yxatda</p>
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">{% trans "Ro'yxatda" %}</p>
                 <!-- FIX: profile.movie_list.count o'rniga viewdan kelgan list_count -->
                 <h4 class="text-2xl font-black">{{ list_count }}</h4>
             </div>
             <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-[#00cc4c]">
-                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Tugallangan</p>
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">{% trans "Tugallangan" %}</p>
                 <h4 class="text-2xl font-black">{{ watched_count }}</h4>
             </div>
             <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-purple-500">
-                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Sharhlar</p>
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">{% trans "Sharhlar" %}</p>
                 <!-- FIX: person.reviews → viewdan kelgan review_count (related_name yo'q edi) -->
                 <h4 class="text-2xl font-black">{{ review_count }}</h4>
             </div>
             <div class="glass-card p-6 rounded-[2rem] border-b-2 border-b-yellow-500">
-                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">Ballar (XP)</p>
+                <p class="text-gray-500 text-[10px] font-bold uppercase mb-1">{% trans "Ballar (XP)" %}</p>
                 <h4 class="text-2xl font-black">{{ profile.xp }}</h4>
             </div>
         </div>
@@ -203,7 +203,7 @@
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-[#00cc4c]/10 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Shaxsiy Balans</p>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">{% trans "Shaxsiy Balans" %}</p>
                         <div class="flex items-baseline gap-2">
                             <h2 class="text-3xl md:text-4xl font-black text-white">{{ profile.balance|default:"0" }}</h2>
                             <span class="text-[#00cc4c] font-bold text-sm">Coin</span>
@@ -222,7 +222,7 @@
                     </a>
                     <a href="{% url 'users:transactions' %}"
                        class="px-5 flex items-center bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl transition-colors"
-                       title="Tranzaksiyalar tarixi">
+                       title="{% trans 'Tranzaksiyalar tarixi' %}">
                         <i class="fas fa-history"></i>
                     </a>
                 </div>
@@ -235,15 +235,15 @@
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-yellow-500/20 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Statusingiz</p>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">{% trans "Statusingiz" %}</p>
                         {% if profile.is_currently_premium %}
-                            <h2 class="text-2xl font-black text-[#ffd700] uppercase tracking-widest">Premium VIP</h2>
+                            <h2 class="text-2xl font-black text-[#ffd700] uppercase tracking-widest">{% trans "Premium VIP" %}</h2>
                             <p class="text-xs text-gray-400 mt-1">
                                 Amal qiladi: <span class="text-white">{{ profile.premium_until|date:"d M Y" }}</span>
                             </p>
                         {% else %}
-                            <h2 class="text-2xl font-black text-gray-300 uppercase tracking-widest">Oddiy User</h2>
-                            <p class="text-xs text-gray-500 mt-1">Reklamasiz ko'rish uchun VIP oling</p>
+                            <h2 class="text-2xl font-black text-gray-300 uppercase tracking-widest">{% trans "Oddiy User" %}</h2>
+                            <p class="text-xs text-gray-500 mt-1">{% trans "Reklamasiz ko'rish uchun VIP oling" %}</p>
                         {% endif %}
                     </div>
                     <div class="w-14 h-14 bg-yellow-500/20 rounded-full flex items-center justify-center
@@ -329,7 +329,7 @@
                     </p>
                 </a>
                 {% empty %}
-                <p class="text-sm text-gray-500">Hali kolleksiya yo'q — <a href="{% url 'users:my_collections' %}" class="text-[#00cc4c] hover:underline">yarating</a>!</p>
+                <p class="text-sm text-gray-500">{% url 'users:my_collections' as coll_url %}{% blocktrans %}Hali kolleksiya yo'q — <a href="{{ coll_url }}" class="text-[#00cc4c] hover:underline">yarating</a>!{% endblocktrans %}</p>
                 {% endfor %}
             </div>
         </div>
@@ -437,14 +437,14 @@
                 <i class="fas fa-gem text-4xl text-yellow-900"></i>
             </div>
 
-            <h4 class="text-2xl font-black text-white mb-2">30 Kunlik Premium VIP</h4>
+            <h4 class="text-2xl font-black text-white mb-2">{% trans "30 Kunlik Premium VIP" %}</h4>
             <p class="text-gray-400 text-sm mb-6">
                 Reklamalarsiz va barcha VIP doramalarni cheklovsiz tomosha qiling.
             </p>
 
             <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6
                         flex justify-between items-center">
-                <span class="text-gray-400 font-bold uppercase tracking-widest text-xs">Narxi:</span>
+                <span class="text-gray-400 font-bold uppercase tracking-widest text-xs">{% trans "Narxi:" %}</span>
                 <div class="text-right">
                     <span class="text-xl font-black text-[#ffd700]">15</span>
                     <span class="text-xs text-yellow-500 font-bold"> Coin</span>

@@ -58,6 +58,12 @@ jobs:
           cache-dependency-path: requirements/dev.txt
       - name: Bog'liqliklar
         run: pip install -r requirements/dev.txt
+      - name: i18n katalog drift (yangi string ekstrakt qilinmagan / .mo eskirgan)
+        run: |
+          python manage.py pomessages --check
+          python manage.py pocompile --check
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
       - name: pytest + coverage gate (fail_under pyproject'da)
         run: pytest --cov -q
       - name: OpenAPI sxema validatsiyasi (drf-spectacular)

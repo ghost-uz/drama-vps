@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block page_title %}Mening kolleksiyalarim - Drama.uz{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -16,7 +17,7 @@
         {{ form.description }}
         <div class="flex items-center justify-between">
             <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-                {{ form.is_public }} Ommaviy (havola orqali hamma ko'ra oladi)
+                {{ form.is_public }} {% trans "Ommaviy (havola orqali hamma ko'ra oladi)" %}
             </label>
             <button type="submit" class="px-5 py-2.5 bg-[#00cc4c] text-black font-black rounded-xl text-sm hover:opacity-90 transition-opacity">
                 <i class="fas fa-plus mr-1"></i> Yaratish
@@ -30,14 +31,14 @@
             <div>
                 <p class="font-black text-sm">{{ c.name }}</p>
                 <p class="text-xs text-gray-500 mt-1">{{ c.movies.count }} ta kino
-                    {% if c.is_public %}<span class="text-[#00cc4c] ml-2"><i class="fas fa-globe"></i> Ommaviy</span>
-                    {% else %}<span class="text-gray-600 ml-2"><i class="fas fa-lock"></i> Shaxsiy</span>{% endif %}
+                    {% if c.is_public %}<span class="text-[#00cc4c] ml-2"><i class="fas fa-globe"></i> {% trans "Ommaviy" %}</span>
+                    {% else %}<span class="text-gray-600 ml-2"><i class="fas fa-lock"></i> {% trans "Shaxsiy" %}</span>{% endif %}
                 </p>
             </div>
             <i class="fas fa-arrow-right text-gray-600"></i>
         </a>
         {% empty %}
-        <p class="text-sm text-gray-500 text-center py-8">Hali kolleksiya yo'q — birinchisini yarating!</p>
+        <p class="text-sm text-gray-500 text-center py-8">{% trans "Hali kolleksiya yo'q — birinchisini yarating!" %}</p>
         {% endfor %}
     </div>
 </div>

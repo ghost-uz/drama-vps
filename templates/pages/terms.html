@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}Foydalanish shartlari - Drama.Uz{% endblock %}
-{% block meta_description %}Drama.Uz platformasidan foydalanish shartlari: hisob, Coin, VIP obuna, crowdfunding, kontent va hamjamiyat qoidalari.{% endblock %}
+{% block title %}{% trans "Foydalanish shartlari" %} - Drama.Uz{% endblock %}
+{% block meta_description %}{% trans "Drama.Uz platformasidan foydalanish shartlari: hisob, Coin, VIP obuna, crowdfunding, kontent va hamjamiyat qoidalari." %}{% endblock %}
 
 {% block content %}
 <section class="max-w-3xl mx-auto px-4 md:px-6 py-10 md:py-14">
-    <h1 class="text-2xl md:text-3xl font-black mb-2 text-white">Foydalanish shartlari</h1>
+    <h1 class="text-2xl md:text-3xl font-black mb-2 text-white">{% trans "Foydalanish shartlari" %}</h1>
     <p class="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-8">Oxirgi yangilanish: 2026-yil 11-iyul</p>
 
     <div class="space-y-8 text-sm leading-relaxed text-gray-300">
         <div>
-            <h2 class="text-lg font-black text-white mb-2">1. Umumiy qoidalar</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "1. Umumiy qoidalar" %}</h2>
             <p>Drama.Uz — koreys va osiyo drammalarini (kino-serial) o'zbek tilida tomosha qilish uchun onlayn platforma. Saytdan foydalanish (ro'yxatdan o'tish, tomosha qilish, to'lov qilish) ushbu shartlarga rozilik hisoblanadi. Rozi bo'lmasangiz, iltimos, xizmatdan foydalanmang.</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">2. Hisob</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "2. Hisob" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Ro'yxatdan o'tishda haqiqiy elektron pochta ko'rsatilishi va tasdiqlanishi kerak.</li>
                 <li>Hisob shaxsiy — login-parolni uchinchi shaxsga berish yoki hisobni sotish taqiqlanadi.</li>
@@ -24,7 +25,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">3. Coin — ichki hisob birligi</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "3. Coin — ichki hisob birligi" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Coin — faqat sayt ichida ishlaydigan hisob birligi; u pul emas va real pulga qaytarib berilmaydi.</li>
                 <li>Hisob to'ldirish so'rovlari (chek/kvitansiya) ma'muriyat tomonidan tekshirilib tasdiqlanadi.</li>
@@ -34,7 +35,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">4. VIP obuna</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "4. VIP obuna" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>VIP obuna tanlangan reja muddatiga amal qiladi va yopiq (VIP) kontentni ochadi.</li>
                 <li>Avto-uzaytirish yoqilgan bo'lsa, muddat tugashida obuna balansdan avtomatik yangilanadi; uni profil sozlamalarida istalgan payt o'chirish mumkin.</li>
@@ -43,7 +44,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">5. Crowdfunding (tarjima loyihalari)</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "5. Crowdfunding (tarjima loyihalari)" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Ba'zi seriallar tarjimasi jamoaviy mablag' (Coin) hisobiga amalga oshiriladi — hissa qo'shganlar serialga to'liq kirish huquqini oladi.</li>
                 <li>Maqsad summasi yig'ilganda loyiha "Tarjima jarayonida" holatiga o'tadi va hissadorlarga xabar boradi.</li>
@@ -53,7 +54,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">6. Kontent va mualliflik huquqi</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "6. Kontent va mualliflik huquqi" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Saytdagi video, tarjima, poster va matnlar faqat shaxsiy, notijorat tomosha uchun taqdim etiladi.</li>
                 <li>Kontentni yuklab olish, nusxalash, qayta efirga uzatish, boshqa saytga joylash yoki tijorat maqsadida ishlatish taqiqlanadi.</li>
@@ -62,7 +63,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">7. Izohlar va hamjamiyat</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "7. Izohlar va hamjamiyat" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Izohlarda haqorat, millatchilik, reklama/spam, shaxsiy ma'lumot tarqatish va belgisiz spoyler taqiqlanadi.</li>
                 <li>Har bir izoh ostidagi "Shikoyat" tugmasi orqali qoidabuzarlikni xabar qilishingiz mumkin — shikoyatlar moderatsiya navbatida ko'rib chiqiladi.</li>
@@ -71,7 +72,7 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">8. Taqiqlangan harakatlar</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "8. Taqiqlangan harakatlar" %}</h2>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Saytning texnik himoyasini chetlab o'tishga urinish (video havolalarini ajratib olish, himoya tokenlarini buzish).</li>
                 <li>Avtomatlashtirilgan yig'ish (scraping), soxta hisoblar ochish, to'lov tizimini aldashga urinish.</li>
@@ -80,17 +81,17 @@
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">9. Javobgarlik chegarasi</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "9. Javobgarlik chegarasi" %}</h2>
             <p>Xizmat "boricha" (as is) taqdim etiladi. Texnik ishlar, provayder uzilishlari yoki fors-major sabab qisqa muddatli uzilishlar uchun platforma moddiy javobgarlik olmaydi; biz xizmatni imkon qadar barqaror ushlab turishga intilamiz.</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">10. Shartlarning o'zgarishi</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "10. Shartlarning o'zgarishi" %}</h2>
             <p>Shartlar yangilanishi mumkin — muhim o'zgarishlar sayt yoki Telegram kanal orqali e'lon qilinadi. Yangilanishdan keyin foydalanishni davom ettirish yangi tahrirga rozilik hisoblanadi.</p>
         </div>
 
         <div>
-            <h2 class="text-lg font-black text-white mb-2">11. Aloqa</h2>
+            <h2 class="text-lg font-black text-white mb-2">{% trans "11. Aloqa" %}</h2>
             <p>Savol va murojaatlar: <a href="https://t.me/suxroboff" class="text-[#00cc4c] hover:underline" target="_blank" rel="noopener noreferrer">@Suxroboff</a> (Telegram). Maxfiylik bo'yicha alohida hujjat: <a href="{% url 'privacy' %}" class="text-[#00cc4c] hover:underline">Maxfiylik siyosati</a>.</p>
         </div>
     </div>

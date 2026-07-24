@@ -83,6 +83,10 @@ MIDDLEWARE = [
     "config.middleware.SecurityHeadersMiddleware",
     "config.middleware.RatelimitTo429Middleware",  # Ratelimited -> 429 [P10-T2]
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # i18n [V2G-T1] — Session'dan KEYIN, Common'dan OLDIN turishi SHART (Django talabi):
+    # sessiya/cookie tildan o'qiladi, CommonMiddleware esa allaqachon faollashgan
+    # tilda APPEND_SLASH redirect qiladi.
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -221,6 +225,12 @@ USE_I18N = True
 USE_TZ = True
 TIME_ZONE = "Asia/Tashkent"
 LANGUAGES = [("uz", "Oʻzbekcha"), ("en", "English")]
+
+# Tarjima kataloglari [V2G-T1] — loyiha-darajali `locale/` (app'lar ichida alohida
+# katalog YO'Q: barcha string bitta joyda). gettext binarlari (xgettext/msgfmt)
+# Windows-dev muhitida mavjud emas → `manage.py pomessages` (ekstrakt) va
+# `manage.py pocompile` (.po→.mo) sof-Python o'rnini bosadi.
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
 # -- CRISPY FORMS --
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

@@ -1,6 +1,6 @@
-{% load static %}
+{% load static i18n i18n_urls %}{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -12,29 +12,33 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>{% block page_title %}{% block title %}Drama.Uz - Korea va Xitoy dramalari olami{% endblock %}{% endblock %}</title>
-    <meta name="description" content="{% block seo_description %}{% block meta_description %}DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling.{% endblock %}{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}dorama, serial, o'zbekcha, dorama uz, drama uz, koreys seriallari, xitoy seriallari, tarjima kinolar{% endblock %}">
+    <title>{% block page_title %}{% block title %}{% trans "Drama.Uz - Korea va Xitoy dramalari olami" %}{% endblock %}{% endblock %}</title>
+    <meta name="description" content="{% block seo_description %}{% block meta_description %}{% trans "DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling." %}{% endblock %}{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}{% trans "dorama, serial, o'zbekcha, dorama uz, drama uz, koreys seriallari, xitoy seriallari, tarjima kinolar" %}{% endblock %}">
     <meta name="robots" content="{% block robots %}index, follow, max-image-preview:large{% endblock %}">
     <meta name="author" content="Drama.Uz">
 
     <link rel="canonical" href="{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
-    {# hreflang [P5-T4]: faqat uz + x-default — en uchun alohida URL yo'q (i18n_patterns yo'q); en'ni bir xil URLga ko'rsatish duplicate-signal bo'lardi #}
-    <link rel="alternate" hreflang="uz" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-    <link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    {% comment %} hreflang [V2G-T1]: endi HAQIQIY uz/en juftligi bor (i18n_patterns).
+    `alternate_url` joriy yo'lni translate_url() orqali boshqa tilga o'giradi;
+    query-string ATAYLAB tashlanadi (canonical bilan bir xil shakl bo'lsin).
+    x-default -> uz, chunki prefikssiz URL default til hisoblanadi. {% endcomment %}
+    <link rel="alternate" hreflang="uz" href="{% alternate_url 'uz' %}">
+    <link rel="alternate" hreflang="en" href="{% alternate_url 'en' %}">
+    <link rel="alternate" hreflang="x-default" href="{% alternate_url 'uz' %}">
 
     <meta property="og:site_name" content="Drama.Uz">
-    <meta property="og:locale" content="uz_UZ">
+    <meta property="og:locale" content="{% if LANGUAGE_CODE == 'en' %}en_US{% else %}uz_UZ{% endif %}">
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
-    <meta property="og:title" content="{% block og_title %}Drama.Uz - Korea va Xitoy dramalari olami{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{% trans "Drama.Uz - Korea va Xitoy dramalari olami" %}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{% trans "DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling." %}{% endblock %}">
     <meta property="og:image" content="{% block og_image %}https://cdn.drama.uz/static/img/og-main.jpg{% endblock %}">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@drama_uz">
-    <meta name="twitter:title" content="{% block tw_title %}Drama.Uz - Korea va Xitoy dramalari{% endblock %}">
-    <meta name="twitter:description" content="{% block tw_description %}DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling.{% endblock %}">
+    <meta name="twitter:title" content="{% block tw_title %}{% trans "Drama.Uz - Korea va Xitoy dramalari" %}{% endblock %}">
+    <meta name="twitter:description" content="{% block tw_description %}{% trans "DramaUz - eng so'nggi koreys dorama, filmlari va seriallarini o'zbek tilida yuqori sifatda tomosha qiling." %}{% endblock %}">
     <meta name="twitter:image" content="{% block tw_image %}https://cdn.drama.uz/static/img/og-main.jpg{% endblock %}">
 
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
@@ -203,7 +207,7 @@
                 <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% elif message.tags == 'success' %}fa-check{% else %}fa-info{% endif %} text-lg"></i>
             </div>
             <div class="ms-3 text-sm font-bold leading-tight drop-shadow-md">{{ message }}</div>
-            <button type="button" aria-label="Yopish" class="ms-auto -mx-1.5 -my-1.5 text-gray-400 hover:text-white rounded-lg p-1.5 inline-flex items-center justify-center h-8 w-8 transition-colors" onclick="this.parentElement.remove();">
+            <button type="button" aria-label="{% trans 'Yopish' %}" class="ms-auto -mx-1.5 -my-1.5 text-gray-400 hover:text-white rounded-lg p-1.5 inline-flex items-center justify-center h-8 w-8 transition-colors" onclick="this.parentElement.remove();">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -228,7 +232,7 @@
     <header class="sticky top-0 z-[100] glass-header" x-data="searchBar">
         <div class="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-8 py-3 md:py-4">
 
-            <a href="/" class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00cc4c] to-[#00ff62] tracking-tighter hover:scale-105 transition-transform" aria-label="Drama.uz Bosh sahifa">
+            <a href="/" class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00cc4c] to-[#00ff62] tracking-tighter hover:scale-105 transition-transform" aria-label="{% trans 'Drama.uz Bosh sahifa' %}">
                 Drama<span class="text-white">.Uz</span>
             </a>
 
@@ -236,20 +240,20 @@
                 <form action="{% url 'drama:search' %}" method="GET" class="hidden md:flex relative group z-50" id="searchForm" role="search">
                     <div class="relative">
                         <input type="text" name="q" id="live-search-input" autocomplete="off"
-                               aria-label="Kino, serial qidirish"
-                               placeholder="Kino, serial qidirish..."
+                               aria-label="{% trans 'Kino, serial qidirish' %}"
+                               placeholder="{% trans 'Kino, serial qidirish...' %}"
                                class="search-input w-64 lg:w-72 pl-10 pr-4 py-2.5 rounded-full text-sm font-medium">
                         <i class="fas fa-search absolute left-4 top-3.5 text-gray-500 group-hover:text-[#00cc4c] transition-colors"></i>
                     </div>
                     <div id="live-search-results" class="search-results-dropdown hidden"></div>
                 </form>
 
-                <button @click="toggle" aria-label="Qidiruvni ochish" class="md:hidden text-gray-300 hover:text-[#00cc4c] p-2 transition-colors">
+                <button @click="toggle" aria-label="{% trans 'Qidiruvni ochish' %}" class="md:hidden text-gray-300 hover:text-[#00cc4c] p-2 transition-colors">
                     <i class="fas fa-search text-xl"></i>
                 </button>
 
                 {% if user.is_authenticated %}
-                <a href="{% url 'users:notifications' %}" class="relative group" aria-label="Bildirishnomalar">
+                <a href="{% url 'users:notifications' %}" class="relative group" aria-label="{% trans 'Bildirishnomalar' %}">
                     <div class="w-10 h-10 rounded-full bg-[#1a1a1a] border border-white/5 flex items-center justify-center text-gray-400 group-hover:text-[#00cc4c] group-hover:border-[#00cc4c]/50 transition-all">
                         <i class="fas fa-bell text-sm"></i>
                     </div>
@@ -259,7 +263,7 @@
                 </a>
                 {% endif %}
 
-                <a href="{% if user.is_authenticated %}{% url 'users:profile' username=user.username %}{% else %}{% url 'users:register' %}{% endif %}" class="relative group" aria-label="Profilga kirish">
+                <a href="{% if user.is_authenticated %}{% url 'users:profile' username=user.username %}{% else %}{% url 'users:register' %}{% endif %}" class="relative group" aria-label="{% trans 'Profilga kirish' %}">
                     <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#00cc4c] to-gray-800 flex items-center justify-center border-2 border-transparent group-hover:border-[#00cc4c] transition-all">
                         <i class="fas {% if user.is_authenticated %}fa-user{% else %}fa-user-plus{% endif %} text-white text-sm"></i>
                     </div>
@@ -274,10 +278,10 @@
         {# Alpine (searchBar komponenti, static/js/app.js) boshqaradi [P5-T1] #}
         <div x-show="open" x-cloak @click.outside="close" class="md:hidden bg-[#0a0a0a] border-t border-white/5 p-4 absolute w-full shadow-2xl">
             <form action="{% url 'drama:search' %}" method="GET" class="relative" role="search">
-                <input type="text" name="q" id="mobile-live-search" x-ref="input" autocomplete="off" placeholder="Nima ko'ramiz?"
-                       aria-label="Kino qidirish"
+                <input type="text" name="q" id="mobile-live-search" x-ref="input" autocomplete="off" placeholder="{% trans "Nima ko'ramiz?" %}"
+                       aria-label="{% trans 'Kino qidirish' %}"
                        class="w-full bg-white/10 text-white px-5 py-3 rounded-xl text-sm outline-none focus:border-[#00cc4c] border border-transparent transition-colors">
-                <button type="submit" aria-label="Qidirish" class="absolute right-4 top-3.5 text-[#00cc4c]">
+                <button type="submit" aria-label="{% trans 'Qidirish' %}" class="absolute right-4 top-3.5 text-[#00cc4c]">
                     <i class="fas fa-search text-lg"></i>
                 </button>
                 <div id="mobile-search-results" class="search-results-dropdown hidden mt-2 relative top-0"></div>
@@ -288,19 +292,19 @@
     {% comment %} Mobil bottom-nav [P5-T6]: faol bo'lim joriy URL'dan aniqlanadi
     (aria-current="page"), dekorativ ikonlar aria-hidden — skrin-reader faqat
     matnni o'qiydi. ({# #} ko'p qatorda MATN bo'lib chiqadi — leak edi!) {% endcomment %}
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 flex justify-around items-center py-3 z-[90] pb-safe" aria-label="Mobil menyu">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-t border-white/5 flex justify-around items-center py-3 z-[90] pb-safe" aria-label="{% trans 'Mobil menyu' %}">
         {% with rm=request.resolver_match %}
         <a href="/" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.url_name == 'movie_list' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.url_name == 'movie_list' %} aria-current="page"{% endif %}>
             <i class="fas fa-home text-xl mb-1" aria-hidden="true"></i>
-            <span class="text-[10px] font-bold">Asosiy</span>
+            <span class="text-[10px] font-bold">{% trans "Asosiy" %}</span>
         </a>
         <a href="{% url 'drama:explore' %}" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.url_name == 'explore' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.url_name == 'explore' %} aria-current="page"{% endif %}>
             <i class="fas fa-compass text-xl mb-1" aria-hidden="true"></i>
-            <span class="text-[10px] font-bold">Katalog</span>
+            <span class="text-[10px] font-bold">{% trans "Katalog" %}</span>
         </a>
         <a href="{% if user.is_authenticated %}{% url 'users:profile' username=user.username %}{% else %}{% url 'users:register' %}{% endif %}" class="flex flex-col items-center transition-all hover:-translate-y-1 {% if rm.namespace == 'users' %}iq-green{% else %}text-gray-400 hover:text-white{% endif %}"{% if rm.namespace == 'users' %} aria-current="page"{% endif %}>
             <i class="fas fa-user text-xl mb-1" aria-hidden="true"></i>
-            <span class="text-[10px] font-bold">Profil</span>
+            <span class="text-[10px] font-bold">{% trans "Profil" %}</span>
         </a>
         {% endwith %}
     </nav>
@@ -314,21 +318,35 @@
     <footer class="border-t border-white/5 py-12 bg-[#050505] mt-10 mb-16 md:mb-0">
         <div class="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
             <div>
-                <h4 class="font-black mb-4 text-white uppercase tracking-widest text-sm">Yordam</h4>
+                <h4 class="font-black mb-4 text-white uppercase tracking-widest text-sm">{% trans "Yordam" %}</h4>
                 <ul class="text-sm text-gray-500 space-y-2">
-                    <li><a href="{% url 'terms' %}" class="hover:text-[#00cc4c] transition-colors">Foydalanish shartlari</a></li>
-                    <li><a href="{% url 'privacy' %}" class="hover:text-[#00cc4c] transition-colors">Maxfiylik siyosati</a></li>
+                    <li><a href="{% url 'terms' %}" class="hover:text-[#00cc4c] transition-colors">{% trans "Foydalanish shartlari" %}</a></li>
+                    <li><a href="{% url 'privacy' %}" class="hover:text-[#00cc4c] transition-colors">{% trans "Maxfiylik siyosati" %}</a></li>
                     <li><a href="https://t.me/suxroboff" class="hover:text-[#00cc4c] transition-colors">Admin: @Suxroboff</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-black mb-4 text-white uppercase tracking-widest text-sm">Ijtimoiy Tarmoqlar</h4>
+                <h4 class="font-black mb-4 text-white uppercase tracking-widest text-sm">{% trans "Ijtimoiy Tarmoqlar" %}</h4>
                 <ul class="text-sm text-gray-500 space-y-2">
-                    <li><a href="https://t.me/drama_fan" class="hover:text-[#00cc4c] transition-colors" target="_blank" rel="noopener noreferrer"><i class="fab fa-telegram mr-2"></i>Telegram Kanal</a></li>
+                    <li><a href="https://t.me/drama_fan" class="hover:text-[#00cc4c] transition-colors" target="_blank" rel="noopener noreferrer"><i class="fab fa-telegram mr-2"></i>{% trans "Telegram Kanal" %}</a></li>
                     <li><a href="https://instagram.com/drama_premium" class="hover:text-[#00cc4c] transition-colors" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram mr-2"></i>Instagram</a></li>
                 </ul>
             </div>
-            <div class="flex items-center justify-center md:justify-end">
+            <div class="flex flex-col items-center md:items-end justify-center gap-4">
+                {% comment %} Til almashtirgich [V2G-T1] — ATAYLAB oddiy <a> havolalar,
+                set_language POST formasi EMAS. Sabab: prefix_default_language=False
+                bo'lganda URL yagona haqiqat manbai (Django prefikssiz yo'lda
+                sessiya/cookie'ni e'tiborsiz qoldiradi), shuning uchun POST bilan
+                yoziladigan holat render'ga umuman ta'sir qilmasdi. Havolalar esa
+                qidiruv tizimi kuzata oladigan — hreflang juftligini mustahkamlaydi. {% endcomment %}
+                <nav class="flex items-center gap-1 bg-white/5 rounded-full p-1" aria-label="{% trans 'Til tanlash' %}">
+                    {% get_available_languages as LANGUAGES %}
+                    {% for code, name in LANGUAGES %}
+                    <a href="{% switch_language_url code %}" hreflang="{{ code }}" lang="{{ code }}"
+                       class="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest transition-colors {% if code == LANGUAGE_CODE %}bg-[#00cc4c] text-black{% else %}text-gray-400 hover:text-white{% endif %}"
+                       {% if code == LANGUAGE_CODE %}aria-current="true"{% endif %}>{{ code }}</a>
+                    {% endfor %}
+                </nav>
                 <p class="text-xs text-gray-600 font-bold tracking-widest">© 2026 DRAMA.UZ</p>
             </div>
         </div>
@@ -417,13 +435,13 @@
         '</div>' +
 
         '<p style="font-size:19px;font-weight:600;color:#f0f0f0;margin:0 0 0.75rem;">' +
-          'Telegram brauzeri aniqlandi' +
+          '{% trans "Telegram brauzeri aniqlandi" as s %}{{ s|escapejs }}' +
         '</p>' +
         '<p style="font-size:15px;color:#888;line-height:1.7;margin:0 0 0.5rem;">' +
-          '<span style="color:#008040;font-weight:500;">Ushbu platforma Telegram ichki brauzerida to\u02BCliq stabil ishlamaydi.</span>' +
+          '<span style="color:#008040;font-weight:500;">{% trans "Ushbu platforma Telegram ichki brauzerida to'liq stabil ishlamaydi." as s %}{{ s|escapejs }}</span>' +
         '</p>' +
         '<p style="font-size:15px;color:#888;line-height:1.7;margin:0 0 2rem;">' +
-          'Davom etish uchun saytni qurilmangizning asosiy brauzerida oching. Masalan Google Chrome orqali Drama.Uz dan foydalaning yoki yuqoridagi 3 nuqtani bosib OCHISH ni tanlang.' +
+          '{% trans "Davom etish uchun saytni qurilmangizning asosiy brauzerida oching. Masalan Google Chrome orqali Drama.Uz dan foydalaning yoki yuqoridagi 3 nuqtani bosib OCHISH ni tanlang." as s %}{{ s|escapejs }}' +
         '</p>' +
 
         '<button id="tg-blocker-btn" style="' +
@@ -432,7 +450,7 @@
           'border:none;border-radius:11px;' +
           'font-size:16px;font-weight:600;cursor:pointer;' +
           'font-family:inherit;' +
-        '">Brauzerda ochish</button>' +
+        '">{% trans "Brauzerda ochish" as s %}{{ s|escapejs }}</button>' +
 
       '</div>';
 
@@ -537,13 +555,13 @@
                     }
 
                     timeout = setTimeout(() => {
-                        fetch(`/live-search/?q=${encodeURIComponent(q)}`)
+                        fetch(`{% url 'drama:live_search' %}?q=${encodeURIComponent(q)}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data.status === 'ok' && data.results && data.results.length > 0) {
                                 results.innerHTML = data.results.map(m => `
                                     <a href="${m.url}" class="search-item text-white text-decoration-none">
-                                        <img src="${m.poster}" alt="${m.title} posteri">
+                                        <img src="${m.poster}" alt="${m.title} {% trans 'posteri' as s %}{{ s|escapejs }}">
                                         <div class="overflow-hidden">
                                             <h4 class="text-sm font-bold truncate">${m.title}</h4>
                                             <p class="text-[10px] text-[#00cc4c] font-black mt-1 uppercase tracking-widest">${m.year}</p>
@@ -552,7 +570,7 @@
                                 `).join('');
                                 results.classList.remove('hidden');
                             } else {
-                                results.innerHTML = `<div class="p-4 text-center text-gray-500 text-xs font-bold">Hech narsa topilmadi :(</div>`;
+                                results.innerHTML = `<div class="p-4 text-center text-gray-500 text-xs font-bold">{% trans "Hech narsa topilmadi :(" as s %}{{ s|escapejs }}</div>`;
                                 results.classList.remove('hidden');
                             }
                         }).catch(() => {

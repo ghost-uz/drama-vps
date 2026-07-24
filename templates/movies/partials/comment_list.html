@@ -1,9 +1,10 @@
 {# Izohlar ro'yxati fragmenti [V2B-T3] — sheet/klassik boshlang'ich render VA HTMX toggle javobi #}
+{% load i18n %}
 {% for review in reviews %}
     {% include 'movies/partials/comment_item.html' with review=review %}
 {% empty %}
 <div style="text-align:center;padding:28px 14px;color:rgba(255,255,255,0.35);">
     <i class="fas fa-comment-slash" style="font-size:28px;margin-bottom:8px;display:block;" aria-hidden="true"></i>
-    <p style="font-size:13px;font-weight:700;">Bu bo'limda hali fikr yo'q — birinchi bo'ling!</p>
+    <p style="font-size:13px;font-weight:700;">{% trans "Bu bo'limda hali fikr yo'q — birinchi bo'ling!" %}</p>
 </div>
 {% endfor %}

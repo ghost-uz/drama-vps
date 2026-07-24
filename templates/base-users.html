@@ -1,13 +1,13 @@
-{% load static %}
-{% load crispy_forms_tags %}
+{% load static i18n %}
+{% load crispy_forms_tags %}{% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="{{ LANGUAGE_CODE }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="google-site-verification" content="o-vZ3kVA-xPK3WB5MKEhLf8naIGlZ7O4WL7uv5gNZFk" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Drama.uz - Profile{% endblock %}</title>
+    <title>{% block title %}{% trans "Drama.uz - Profile" %}{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">

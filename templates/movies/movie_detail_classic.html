@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 {% comment %} Klassik 16:9 kino/serial sahifasi [klassik-pleyer].
 MovieDetailView.get_template_names: Category.player_type == "classic"
 bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
 
-{% block page_title %}{{ movie.title }}{% if active_episode and episodes|length > 1 %} {{ active_episode.episode_number }}-qism{% endif %} - Drama.uz{% endblock %}
-{% block meta_description %}{{ movie.title }} ({{ movie.year }}){% if active_episode and episodes|length > 1 %} {{ active_episode.episode_number }}-qism{% endif %} — onlayn tomosha qiling. {{ movie.description|truncatechars:120 }}{% endblock %}
-{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, onlayn tomosha{% endblock %}
+{% block page_title %}{{ movie.title }}{% if active_episode and episodes|length > 1 %} {% blocktrans with n=active_episode.episode_number %}{{ n }}-qism{% endblocktrans %}{% endif %} - Drama.uz{% endblock %}
+{% block meta_description %}{{ movie.title }} ({{ movie.year }}){% if active_episode and episodes|length > 1 %} {% blocktrans with n=active_episode.episode_number %}{{ n }}-qism{% endblocktrans %}{% endif %} — {% trans "onlayn tomosha qiling" %}. {{ movie.description|truncatechars:120 }}{% endblock %}
+{% block meta_keywords %}{{ movie.title }}, {{ movie.original_title }}, {{ movie.year }}, {{ movie.country }}, {% trans "onlayn tomosha" %}{% endblock %}
 {% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ movie.get_absolute_url }}{% endblock %}
 
 {% block og_title %}{{ movie.title }} - DramaUz{% endblock %}
@@ -34,8 +34,8 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     <div class="cp-lock-icon" style="background:rgba(0,204,76,0.15);color:#00cc4c;">
                         <i class="fas fa-seedling"></i>
                     </div>
-                    <h3>Loyihani qo'llab-quvvatlang</h3>
-                    <p>Ko'rish uchun "O'zbekcha Dublyaj Loyihasi"ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi.</p>
+                    <h3>{% trans "Loyihani qo'llab-quvvatlang" %}</h3>
+                    <p>{% trans "Ko'rish uchun «O'zbekcha Dublyaj Loyihasi»ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi." %}</p>
                     <a href="{{ movie.get_absolute_url }}#crowdfunding-section" class="cp-lock-btn" style="background:#00cc4c;">
                         To'lov qilish
                     </a>
@@ -43,8 +43,8 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     <div class="cp-lock-icon" style="background:linear-gradient(135deg,#ffd700,#f4d6a1);">
                         <i class="fas fa-crown" style="color:#5c3e0d;"></i>
                     </div>
-                    <h3>VIP Bo'lim</h3>
-                    <p>Ushbu qismni ko'rish uchun premium obuna kerak.</p>
+                    <h3>{% trans "VIP Bo'lim" %}</h3>
+                    <p>{% trans "Ushbu qismni ko'rish uchun premium obuna kerak." %}</p>
                     <a href="{% url 'users:subscription' %}" class="cp-lock-btn" style="background:linear-gradient(135deg,#ffd700,#f4a01a);">
                         VIP Olish
                     </a>
@@ -76,45 +76,45 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                 {% endfor %}
             </video>
 
-            <button id="cpBigPlay" class="cp-big-play" aria-label="Ijro etish"><i class="fas fa-play"></i></button>
+            <button id="cpBigPlay" class="cp-big-play" aria-label="{% trans 'Ijro etish' %}"><i class="fas fa-play"></i></button>
             <div id="cpLoader" class="cp-loader"></div>
 
             {% if active_episode and active_episode.intro_end is not None %}
             <button id="cpSkipIntro" class="cp-skip-intro" type="button">
-                <i class="fas fa-forward"></i> Intro'ni o'tkazish
+                <i class="fas fa-forward"></i> {% trans "Intro'ni o'tkazish" %}
             </button>
             {% endif %}
 
             <div id="cpNextOverlay" class="cp-next-overlay">
-                <p>Keyingi qism boshlanmoqda…</p>
+                <p>{% trans "Keyingi qism boshlanmoqda…" %}</p>
                 <div class="cp-next-num"><span id="cpNextCount">5</span></div>
-                <button id="cpNextCancel" class="cp-next-cancel" type="button">Bekor qilish</button>
+                <button id="cpNextCancel" class="cp-next-cancel" type="button">{% trans "Bekor qilish" %}</button>
             </div>
 
             <div id="cpControls" class="cp-controls">
-                <div id="cpSeek" class="cp-seek" aria-label="Vaqt chizig'i">
+                <div id="cpSeek" class="cp-seek" aria-label="{% trans "Vaqt chizig'i" %}">
                     <div class="cp-seek-track">
                         <div id="cpBuffered" class="cp-buffered"></div>
                         <div id="cpPlayed" class="cp-played"></div>
                     </div>
                 </div>
                 <div class="cp-bar">
-                    <button id="cpPlay" class="cp-btn" aria-label="Ijro / pauza"><i class="fas fa-play"></i></button>
+                    <button id="cpPlay" class="cp-btn" aria-label="{% trans 'Ijro / pauza' %}"><i class="fas fa-play"></i></button>
                     {% if next_episode %}
-                    <button id="cpNextBtn" class="cp-btn" aria-label="Keyingi qism"><i class="fas fa-forward-step"></i></button>
+                    <button id="cpNextBtn" class="cp-btn" aria-label="{% trans 'Keyingi qism' %}"><i class="fas fa-forward-step"></i></button>
                     {% endif %}
                     <div class="cp-vol-wrap">
-                        <button id="cpMute" class="cp-btn" aria-label="Ovoz"><i class="fas fa-volume-up"></i></button>
-                        <input id="cpVol" class="cp-vol" type="range" min="0" max="100" value="100" aria-label="Ovoz balandligi">
+                        <button id="cpMute" class="cp-btn" aria-label="{% trans 'Ovoz' %}"><i class="fas fa-volume-up"></i></button>
+                        <input id="cpVol" class="cp-vol" type="range" min="0" max="100" value="100" aria-label="{% trans 'Ovoz balandligi' %}">
                     </div>
                     <span id="cpTime" class="cp-time">0:00 / 0:00</span>
                     <div class="cp-spacer"></div>
                     {% if subtitles %}
                     {# [V2E-T1 UX] Subtitr MENYU — cycle emas (speed/sifat bilan bir naqsh) #}
                     <div class="cp-menu-wrap">
-                        <button id="cpSubBtn" class="cp-btn cp-btn-text" aria-label="Subtitr tili">CC</button>
+                        <button id="cpSubBtn" class="cp-btn cp-btn-text" aria-label="{% trans 'Subtitr tili' %}">CC</button>
                         <div id="cpSubMenu" class="cp-menu">
-                            <button data-sub="" class="active" type="button">O'chiq</button>
+                            <button data-sub="" class="active" type="button">{% trans "O'chiq" %}</button>
                             {% for sub in subtitles %}
                             <button data-sub="{{ sub.lang }}" type="button">{{ sub.display_label }}</button>
                             {% endfor %}
@@ -122,7 +122,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     </div>
                     {% endif %}
                     <div class="cp-menu-wrap">
-                        <button id="cpSpeedBtn" class="cp-btn cp-btn-text" aria-label="Tezlik">1x</button>
+                        <button id="cpSpeedBtn" class="cp-btn cp-btn-text" aria-label="{% trans 'Tezlik' %}">1x</button>
                         <div id="cpSpeedMenu" class="cp-menu">
                             <button data-speed="0.5" type="button">0.5x</button>
                             <button data-speed="0.75" type="button">0.75x</button>
@@ -133,15 +133,15 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                         </div>
                     </div>
                     <div class="cp-menu-wrap">
-                        <button id="cpQualBtn" class="cp-btn cp-btn-text" aria-label="Sifat">Avto</button>
+                        <button id="cpQualBtn" class="cp-btn cp-btn-text" aria-label="{% trans 'Sifat' %}">{% trans "Avto" %}</button>
                         <div id="cpQualMenu" class="cp-menu">
-                            <button data-qual="auto" class="active" type="button">Avto</button>
+                            <button data-qual="auto" class="active" type="button">{% trans "Avto" %}</button>
                             <button data-qual="1080" type="button">1080p</button>
                             <button data-qual="720" type="button">720p</button>
                         </div>
                     </div>
-                    <button id="cpPip" class="cp-btn" aria-label="Kichik oyna"><i class="fas fa-clone"></i></button>
-                    <button id="cpFs" class="cp-btn" aria-label="To'liq ekran"><i class="fas fa-expand"></i></button>
+                    <button id="cpPip" class="cp-btn" aria-label="{% trans 'Kichik oyna' %}"><i class="fas fa-clone"></i></button>
+                    <button id="cpFs" class="cp-btn" aria-label="{% trans "To'liq ekran" %}"><i class="fas fa-expand"></i></button>
                 </div>
             </div>
         {% endif %}
@@ -161,7 +161,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
             <div class="flex flex-wrap items-center gap-2 mt-4 text-xs font-bold">
                 <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.year }}</span>
                 <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.country }}</span>
-                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.duration }} daqiqa</span>
+                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{% blocktrans with d=movie.duration %}{{ d }} daqiqa{% endblocktrans %}</span>
                 <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.age_limit }}+</span>
                 {% if movie.is_vip %}
                 <span class="px-3 py-1.5 rounded-full font-black" style="background:linear-gradient(135deg,#ffd700,#f4a01a);color:#000;">VIP</span>
@@ -173,7 +173,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                 {% if trailer_hls %}
                 <button type="button" id="cpTrailerBtn"
                         class="px-3 py-1.5 rounded-full font-black bg-drama-green/15 text-drama-green border border-drama-green/30 hover:bg-drama-green/25 transition-colors flex items-center gap-1.5">
-                    <i class="fas fa-film"></i> Treyler
+                    <i class="fas fa-film"></i> {% trans "Treyler" %}
                 </button>
                 {% endif %}
             </div>
@@ -193,7 +193,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
 
             {% if movie.main_actors.all %}
             <div class="mt-5">
-                <p class="text-[11px] text-gray-500 uppercase font-black tracking-widest mb-2">Bosh rollarda</p>
+                <p class="text-[11px] text-gray-500 uppercase font-black tracking-widest mb-2">{% trans "Bosh rollarda" %}</p>
                 <div class="flex flex-wrap gap-2">
                     {% for actor in movie.main_actors.all %}
                     <a href="{{ actor.get_absolute_url }}"
@@ -215,7 +215,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     {# ── QISMLAR ────────────────────────────────────────── #}
     {% if episodes|length > 1 %}
     <section class="mt-10">
-        <h2 class="text-lg font-black mb-4"><i class="fas fa-list-ol text-drama-green mr-2"></i>Qismlar</h2>
+        <h2 class="text-lg font-black mb-4"><i class="fas fa-list-ol text-drama-green mr-2"></i>{% trans "Qismlar" %}</h2>
         <div class="cp-eps">
             {% for ep in episodes %}
             <a href="?episode={{ ep.episode_number }}"
@@ -231,9 +231,9 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     {# ── FIKRLAR (to'liq sahifaga havola) ───────────────── #}
     <section class="mt-10">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-black"><i class="fas fa-comments text-drama-green mr-2"></i>Fikrlar ({{ movie.reviews.all|length }})</h2>
+            <h2 class="text-lg font-black"><i class="fas fa-comments text-drama-green mr-2"></i>{% trans "Fikrlar" %} ({{ movie.reviews.all|length }})</h2>
             <a href="{% url 'drama:movie_reviews' movie.slug %}" class="text-xs font-bold text-drama-green hover:underline">
-                Barchasi <i class="fas fa-arrow-right ml-1"></i>
+                {% trans "Barchasi" %} <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
         {# [comment-fix] Klassik sahifada forma YO'Q edi — IDlar comments.js bilan umumiy #}
@@ -241,7 +241,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
         <div id="replyIndicator" style="display:none;" class="items-center gap-2 px-3 py-2 mb-3 bg-[#00cc4c]/10 border border-[#00cc4c]/25 rounded-xl text-[11px] text-drama-green">
             <i class="fas fa-reply"></i>
             <span id="replyIndicatorName" class="font-black"></span>
-            <button type="button" onclick="cancelReply()" aria-label="Javobni bekor qilish" class="ml-auto text-drama-green"><i class="fas fa-times"></i></button>
+            <button type="button" onclick="cancelReply()" aria-label="{% trans 'Javobni bekor qilish' %}" class="ml-auto text-drama-green"><i class="fas fa-times"></i></button>
         </div>
         <form id="rCommentForm"
               hx-post="{% url 'drama:add_review' movie.id %}"
@@ -251,20 +251,20 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
             {% csrf_token %}
             <input type="hidden" name="parent" value="">
             <textarea name="text" rows="2" required maxlength="5000"
-                      placeholder="Fikringizni yozing..."
+                      placeholder="{% trans 'Fikringizni yozing...' %}"
                       class="flex-1 bg-card border border-[#1f1f1f] rounded-2xl p-3 text-sm text-gray-200 outline-none focus:border-drama-green/50 resize-none"></textarea>
-            <button type="submit" aria-label="Yuborish"
+            <button type="submit" aria-label="{% trans 'Yuborish' %}"
                     class="px-4 py-3 bg-drama-green text-black font-black rounded-2xl text-sm hover:opacity-90 transition-opacity">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </form>
         {# [V2B-T3] Spoyler belgisi #}
         <label style="display:flex;align-items:center;gap:6px;margin:-12px 0 16px;font-size:12px;color:rgba(255,255,255,0.55);cursor:pointer;width:fit-content;">
-            <input type="checkbox" name="is_spoiler" value="1" form="rCommentForm" style="accent-color:#00cc4c;"> Spoyler bor
+            <input type="checkbox" name="is_spoiler" value="1" form="rCommentForm" style="accent-color:#00cc4c;"> {% trans "Spoyler bor" %}
         </label>
         {% else %}
         <a href="{% url 'users:login' %}" class="block text-center p-3 mb-5 border border-drama-green/35 rounded-2xl text-drama-green text-sm font-black hover:bg-drama-green/5 transition-colors">
-            <i class="fas fa-sign-in-alt mr-2"></i>Fikr qoldirish uchun kiring
+            <i class="fas fa-sign-in-alt mr-2"></i>{% trans "Fikr qoldirish uchun kiring" %}
         </a>
         {% endif %}
 
@@ -276,7 +276,7 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     {# ── O'XSHASH ───────────────────────────────────────── #}
     {% if similar_movies %}
     <section class="mt-10">
-        <h2 class="text-lg font-black mb-4"><i class="fas fa-film text-drama-green mr-2"></i>O'xshash dramalar</h2>
+        <h2 class="text-lg font-black mb-4"><i class="fas fa-film text-drama-green mr-2"></i>{% trans "O'xshash dramalar" %}</h2>
         <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {% for sim in similar_movies %}
             {% include "movies/movies_card.html" with movie=sim %}
@@ -291,8 +291,8 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
 {% if trailer_hls %}
 <div id="cpTrailerModal" class="cp-trailer-modal" aria-hidden="true">
     <div class="cp-trailer-backdrop" data-trailer-close></div>
-    <div class="cp-trailer-box" role="dialog" aria-modal="true" aria-label="Treyler">
-        <button type="button" class="cp-trailer-close" data-trailer-close aria-label="Yopish">
+    <div class="cp-trailer-box" role="dialog" aria-modal="true" aria-label="{% trans 'Treyler' %}">
+        <button type="button" class="cp-trailer-close" data-trailer-close aria-label="{% trans 'Yopish' %}">
             <i class="fas fa-times"></i>
         </button>
         <video id="cpTrailerVideo" class="cp-trailer-video" controls playsinline

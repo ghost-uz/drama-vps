@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block page_title %}Hisobni to'ldirish - Drama.uz{% endblock %}
+{% block page_title %}{% trans "Hisobni to'ldirish" %} - Drama.uz{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -31,8 +31,8 @@
             <div class="w-16 h-16 mx-auto bg-[#00cc4c]/10 rounded-full flex items-center justify-center mb-4 border border-[#00cc4c]/30 shadow-[0_0_30px_rgba(0,204,76,0.15)]">
                 <i class="fas fa-wallet text-3xl text-[#00cc4c]"></i>
             </div>
-            <h1 class="text-3xl md:text-4xl font-black uppercase tracking-widest mb-2">Hisobni to'ldirish</h1>
-            <p class="text-gray-400 text-sm">Aktyorlarga sovg'a yuborish uchun hisobingizni Coinlar bilan to'ldiring</p>
+            <h1 class="text-3xl md:text-4xl font-black uppercase tracking-widest mb-2">{% trans "Hisobni to'ldirish" %}</h1>
+            <p class="text-gray-400 text-sm">{% trans "Aktyorlarga sovg'a yuborish uchun hisobingizni Coinlar bilan to'ldiring" %}</p>
         </div>
 
         <div class="flex items-center justify-center gap-3 mb-10 max-w-xs mx-auto">
@@ -53,13 +53,13 @@
                 <span class="flex items-center gap-3">
                     <i class="fas fa-bolt text-2xl text-[#00cc4c]"></i>
                     <span>
-                        <span class="block text-white font-black">Payme orqali avtomatik</span>
-                        <span class="block text-[11px] text-gray-400">Darhol — chek yuklash va admin tasdig'i kerak emas</span>
+                        <span class="block text-white font-black">{% trans "Payme orqali avtomatik" %}</span>
+                        <span class="block text-[11px] text-gray-400">{% trans "Darhol — chek yuklash va admin tasdig'i kerak emas" %}</span>
                     </span>
                 </span>
                 <i class="fas fa-arrow-right text-[#00cc4c] group-hover:translate-x-1 transition-transform"></i>
             </a>
-            <p class="text-center text-[11px] text-gray-500 mt-4 uppercase tracking-widest">— yoki qo'lda chek yuklang —</p>
+            <p class="text-center text-[11px] text-gray-500 mt-4 uppercase tracking-widest">{% trans "— yoki qo'lda chek yuklang —" %}</p>
         </div>
 
         {% if messages %}
@@ -95,11 +95,11 @@
                         <i class="fas fa-hourglass-half text-3xl text-yellow-500"></i>
                     </div>
 
-                    <h2 class="text-2xl md:text-3xl font-black text-white mb-3 tracking-tighter uppercase">So'rovingiz ko'rib chiqilmoqda</h2>
+                    <h2 class="text-2xl md:text-3xl font-black text-white mb-3 tracking-tighter uppercase">{% trans "So'rovingiz ko'rib chiqilmoqda" %}</h2>
                     <p class="text-gray-400 text-sm md:text-base mb-8 leading-relaxed">Sizning <span class="text-white font-black bg-white/10 px-2 py-0.5 rounded">{{ pending_request.amount_uzs }} UZS</span> miqdoridagi to'lovingiz admin tomonidan tekshirilmoqda. Chek tasdiqlangach, hisobingizga <span class="text-[#ffd700] font-black bg-[#ffd700]/10 border border-[#ffd700]/20 px-2 py-0.5 rounded">{{ pending_request.points }} Coin</span> tushirib beriladi.</p>
 
                     <div class="inline-flex items-center gap-3 px-5 py-3 bg-black/50 border border-white/5 rounded-xl text-xs font-bold text-gray-400 shadow-inner">
-                        <i class="fas fa-clock text-yellow-500"></i> Yuborilgan vaqt: <span class="text-white">{{ pending_request.created_at|date:"d M Y, H:i" }}</span>
+                        <i class="fas fa-clock text-yellow-500"></i> {% trans "Yuborilgan vaqt:" %} <span class="text-white">{{ pending_request.created_at|date:"d M Y, H:i" }}</span>
                     </div>
                 </div>
             </div>
@@ -123,24 +123,24 @@
                         </div>
 
                         <div class="relative z-10 mb-8">
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 ml-1">Karta raqami</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2 ml-1">{% trans "Karta raqami" %}</p>
                             <div class="flex items-center justify-between bg-black/50 p-3 md:p-4 rounded-2xl border border-white/5 backdrop-blur-sm group">
                                 <span class="font-mono text-xl md:text-2xl font-black tracking-[0.15em] text-white" id="cardNumberDisplay">9860 3501 0478 8764</span>
-                                <button onclick="copyCard()" class="text-gray-400 hover:text-[#00cc4c] bg-white/5 hover:bg-white/10 w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110" title="Nusxa olish">
+                                <button onclick="copyCard()" class="text-gray-400 hover:text-[#00cc4c] bg-white/5 hover:bg-white/10 w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110" title="{% trans 'Nusxa olish' %}">
                                     <i class="fas fa-copy"></i>
                                 </button>
                             </div>
                         </div>
 
                         <div class="relative z-10">
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Karta Egasi</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">{% trans "Karta Egasi" %}</p>
                             <p class="font-black text-lg md:text-xl uppercase tracking-widest text-gray-200">Matyoqubov Suhrob</p>
                         </div>
                     </div>
 
                     <div class="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 flex gap-4 text-sm text-blue-300 shadow-inner">
                         <i class="fas fa-info-circle text-xl mt-0.5 shrink-0"></i>
-                        <p class="leading-relaxed">Istalgan bank ilovasi (Click, Payme, Uzum) orqali yuqoridagi kartaga kerakli summani o'tkazing va to'lov muvaffaqiyatli bo'lganligi haqidagi chekni saqlab oling.</p>
+                        <p class="leading-relaxed">{% trans "Istalgan bank ilovasi (Click, Payme, Uzum) orqali yuqoridagi kartaga kerakli summani o'tkazing va to'lov muvaffaqiyatli bo'lganligi haqidagi chekni saqlab oling." %}</p>
                     </div>
                 </div>
 
@@ -180,7 +180,7 @@
                         </div>
 
                         <button type="submit" class="w-full bg-gradient-to-r from-[#00cc4c] to-[#00ff62] text-black font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_5px_20px_rgba(0,204,76,0.3)] hover:scale-[1.02] transition-transform text-sm md:text-base flex items-center justify-center gap-2 mt-4">
-                            <i class="fas fa-paper-plane"></i> So'rovni yuborish
+                            <i class="fas fa-paper-plane"></i> {% trans "So'rovni yuborish" %}
                         </button>
                     </form>
                 </div>

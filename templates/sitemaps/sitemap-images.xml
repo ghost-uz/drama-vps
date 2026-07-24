@@ -6,13 +6,17 @@ chiqadi; boshqa modellar (Genre/Category) — atribut yo'q -> Django shablon
 bo'sh string qaytaradi, blok chiqmaydi (xavfsiz).
 {% endcomment %}
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 {% for url in urlset %}  <url>
     <loc>{{ url.location }}</loc>
     {% if url.lastmod %}<lastmod>{{ url.lastmod|date:"Y-m-d" }}</lastmod>{% endif %}
     {% if url.changefreq %}<changefreq>{{ url.changefreq }}</changefreq>{% endif %}
     {% if url.priority %}<priority>{{ url.priority }}</priority>{% endif %}
+    {% for alt in url.alternates %}<xhtml:link rel="alternate" hreflang="{{ alt.lang_code }}" href="{{ alt.location }}"/>{% endfor %}
     {% if url.item.poster %}<image:image><image:loc>{{ url.item.poster.url }}</image:loc><image:title>{{ url.item.title }}</image:title></image:image>
-    {% elif url.item.image %}<image:image><image:loc>{{ url.item.image.url }}</image:loc></image:image>{% endif %}
+    {% elif url.item.0.poster %}<image:image><image:loc>{{ url.item.0.poster.url }}</image:loc><image:title>{{ url.item.0.title }}</image:title></image:image>
+    {% elif url.item.image %}<image:image><image:loc>{{ url.item.image.url }}</image:loc></image:image>
+    {% elif url.item.0.image %}<image:image><image:loc>{{ url.item.0.image.url }}</image:loc></image:image>{% endif %}
   </url>
 {% endfor %}</urlset>

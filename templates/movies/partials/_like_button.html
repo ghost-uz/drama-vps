@@ -1,18 +1,19 @@
 {# Izoh like-toggle [V2B-T2] — HTMX fragment (outerHTML almashadi); JS'siz fallback: POST -> redirect; anonim: login havola #}
+{% load i18n %}
 {% if user.is_authenticated %}
 <form method="post" action="{% url 'drama:toggle_review_like' review.id %}"
       hx-post="{% url 'drama:toggle_review_like' review.id %}"
       hx-target="this" hx-swap="outerHTML" class="inline-block">
     {% csrf_token %}
     <button type="submit" aria-pressed="{% if review.user_liked %}true{% else %}false{% endif %}"
-            aria-label="Yoqtirish"
+            aria-label="{% trans 'Yoqtirish' %}"
             class="text-[10px] font-black uppercase flex items-center gap-1 px-2 py-1 rounded-lg transition-colors {% if review.user_liked %}text-[#00cc4c] bg-[#00cc4c]/10{% else %}text-gray-500 hover:text-[#00cc4c]{% endif %}">
         <i class="{% if review.user_liked %}fas{% else %}far{% endif %} fa-heart" aria-hidden="true"></i>
         <span>{{ review.like_count }}</span>
     </button>
 </form>
 {% else %}
-<a href="{% url 'users:login' %}" aria-label="Yoqtirish uchun kiring"
+<a href="{% url 'users:login' %}" aria-label="{% trans 'Yoqtirish uchun kiring' %}"
    class="text-[10px] font-black uppercase flex items-center gap-1 px-2 py-1 rounded-lg text-gray-500 hover:text-[#00cc4c] transition-colors">
     <i class="far fa-heart" aria-hidden="true"></i> <span>{{ review.like_count }}</span>
 </a>

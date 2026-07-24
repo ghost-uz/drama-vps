@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block page_title %}{{ actor.name }} - Filmografiya va Biografiya - Drama.uz{% endblock %}
+{% block page_title %}{{ actor.name }} - {% trans "Filmografiya va Biografiya" %} - Drama.uz{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -149,7 +149,7 @@
                 <div class="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm font-medium text-gray-400 mb-6 bg-white/5 inline-flex px-4 py-2 rounded-xl">
                     <span class="text-[#00cc4c]"><i class="fas fa-user mr-1"></i>{{ actor.get_gender_display|default:"Female" }}</span>
                     <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                    <span class="text-white">Cast</span>
+                    <span class="text-white">{% trans "Cast" %}</span>
                     <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
                     <span class="text-white">{{ actor.age }} yosh</span>
                     <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
@@ -169,7 +169,7 @@
                         {% endif %}
                     </p>
                     <button onclick="toggleBio()" id="bioBtn" class="text-[#00cc4c] hover:text-white font-bold mt-2 inline-flex items-center gap-1 uppercase tracking-widest text-[11px]">
-                        Ko'proq o'qish <i class="fas fa-chevron-down text-[10px]" id="bioIcon"></i>
+                        {% trans "Ko'proq o'qish" %} <i class="fas fa-chevron-down text-[10px]" id="bioIcon"></i>
                     </button>
                 </div>
 
@@ -182,27 +182,27 @@
                     <i class="fas fa-gem text-yellow-500 text-lg"></i>
                 </div>
                 <div class="text-center sm:text-left">
-                    <p class="text-sm text-gray-300">Muxlislar qo'llab-quvvatlashi:</p>
+                    <p class="text-sm text-gray-300">{% trans "Muxlislar qo'llab-quvvatlashi:" %}</p>
                     <div class="flex items-baseline justify-center sm:justify-start gap-1.5">
                         <span class="text-xl md:text-2xl font-black text-[#ffd700]">{{ actor.total_gifts }}</span>
-                        <span class="text-xs text-yellow-500/70 font-medium">Coin to'plandi</span>
+                        <span class="text-xs text-yellow-500/70 font-medium">{% trans "Coin to'plandi" %}</span>
                     </div>
                 </div>
             </div>
 
             {% if user.is_authenticated %}
                 <button onclick="toggleGiftModal()" class="w-full sm:w-auto gift-btn-premium">
-                    <i class="fas fa-gift"></i> Sovg'a yuborish
+                    <i class="fas fa-gift"></i> {% trans "Sovg'a yuborish" %}
                 </button>
             {% else %}
                 <a href="{% url 'users:login' %}" class="w-full sm:w-auto gift-btn-outline">
-                    Kirish (Sovg'a yuborish)
+                    {% trans "Kirish (Sovg'a yuborish)" %}
                 </a>
             {% endif %}
         </div>
 
         <div class="mb-12">
-    <h2 class="text-xl font-bold text-white mb-5">Filmography</h2>
+    <h2 class="text-xl font-bold text-white mb-5">{% trans "Filmography" %}</h2>
 
     <div class="flex gap-2 overflow-x-auto no-scrollbar mb-8">
         <button class="iq-tab active">All ({{ all_movies_count|default:"0" }})</button>
@@ -241,7 +241,7 @@
             </div>
         </div>
         {% empty %}
-        <p class="text-gray-600 text-sm italic col-span-full">Ushbu aktyor ishtirokidagi doramalar tez orada yuklanadi.</p>
+        <p class="text-gray-600 text-sm italic col-span-full">{% trans "Ushbu aktyor ishtirokidagi doramalar tez orada yuklanadi." %}</p>
         {% endfor %}
 
     </div>
@@ -258,7 +258,7 @@
 
         <div class="shrink-0 flex items-center justify-between p-4 border-b border-white/5 bg-[#1a1a1a]">
             <h3 class="text-base font-bold text-[#ffd700] flex items-center gap-2">
-                <i class="fas fa-gift"></i> Sovg'a yuborish
+                <i class="fas fa-gift"></i> {% trans "Sovg'a yuborish" %}
             </h3>
             <button onclick="toggleGiftModal()" class="text-gray-500 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5">
                 <i class="fas fa-times"></i>
@@ -272,7 +272,7 @@
                     <p class="text-sm font-medium text-white">{{ actor.name }}</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">Balans</p>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">{% trans "Balans" %}</p>
                     <p class="text-sm font-bold text-[#00cc4c]">{{ user.profile.balance|default:"0" }} <i class="fas fa-coins text-[10px]"></i></p>
                 </div>
             </div>
@@ -319,7 +319,7 @@
                 </div>
 
                 <button type="submit" class="w-full gift-btn-premium py-3.5 mt-2 cursor-pointer relative z-30 text-sm tracking-widest uppercase shadow-2xl">
-                    <i class="fas fa-paper-plane mr-2"></i> Yuborish
+                    <i class="fas fa-paper-plane mr-2"></i> {% trans "Yuborish" %}
                 </button>
             </form>
         </div>

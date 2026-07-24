@@ -773,7 +773,9 @@ def test_head_canonical_and_hreflang(client):
     assert f'rel="canonical" href="http://testserver{movie.get_absolute_url()}"' in html
     assert 'hreflang="uz"' in html
     assert 'hreflang="x-default"' in html
-    assert 'hreflang="en"' not in html  # en URL'lar yo'q — chiqmasligi SHART
+    # [V2G-T1] endi HAQIQIY en varianti bor (i18n_patterns) va u /en/ yo'lini ko'rsatadi
+    assert 'hreflang="en"' in html
+    assert f'hreflang="en" href="http://testserver/en{movie.get_absolute_url()}"' in html
 
 
 @pytest.mark.django_db

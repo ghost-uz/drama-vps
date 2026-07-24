@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% load static %}
 
 {% block title %}Mening Ro'yxatim | Drama.uz{% endblock %}
@@ -96,7 +97,7 @@
         <section id="watching" class="scroll-mt-32 space-y-8">
             <div class="flex items-center gap-3">
                 <div class="w-1.5 h-8 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
-                <h2 class="text-2xl font-black italic uppercase tracking-tight">Hozirda ko'rilmoqda</h2>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">{% trans "Hozirda ko'rilmoqda" %}</h2>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -111,7 +112,7 @@
         <section id="completed" class="scroll-mt-32 space-y-8">
             <div class="flex items-center gap-3">
                 <div class="w-1.5 h-8 bg-[#00cc4c] rounded-full shadow-[0_0_10px_#00cc4c]"></div>
-                <h2 class="text-2xl font-black italic uppercase tracking-tight">Ko'rib tugallangan</h2>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">{% trans "Ko'rib tugallangan" %}</h2>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -126,7 +127,7 @@
         <section id="planned" class="scroll-mt-32 space-y-8">
             <div class="flex items-center gap-3">
                 <div class="w-1.5 h-8 bg-purple-500 rounded-full shadow-[0_0_10px_#a855f7]"></div>
-                <h2 class="text-2xl font-black italic uppercase tracking-tight">Ko'rish rejamda bor</h2>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">{% trans "Ko'rish rejamda bor" %}</h2>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -141,13 +142,13 @@
         <section id="onhold" class="scroll-mt-32 space-y-8">
             <div class="flex items-center gap-3">
                 <div class="w-1.5 h-8 bg-yellow-500 rounded-full"></div>
-                <h2 class="text-2xl font-black italic uppercase tracking-tight">Vaqtincha to'xtatilgan</h2>
+                <h2 class="text-2xl font-black italic uppercase tracking-tight">{% trans "Vaqtincha to'xtatilgan" %}</h2>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 {% for item in on_hold %}
                     {% include 'users/includes/movie_list_card.html' with item=item glow_class="border-onhold" %}
                 {% empty %}
-                    <p class="col-span-full text-gray-600 italic py-10 text-sm">Hech narsa topilmadi.</p>
+                    <p class="col-span-full text-gray-600 italic py-10 text-sm">{% trans "Hech narsa topilmadi." %}</p>
                 {% endfor %}
             </div>
         </section>

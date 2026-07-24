@@ -1,8 +1,8 @@
 {% extends 'base-users.html' %}
-{% load static %}
+{% load static i18n %}
 {% load crispy_forms_tags %}
 
-{% block title %}{{ comic.title }} - Saytda ro`yxatdan o`tish{% endblock %}
+{% block title %}{{ comic.title }} - {% trans "Saytda ro`yxatdan o`tish" %}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -10,22 +10,21 @@
         <div class="col-md-6 col-lg-5">
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-5">
-                    <h2 class="text-center fw-bold mb-4">Ro'yxatdan o'tish</h2>
+                    <h2 class="text-center fw-bold mb-4">{% trans "Ro'yxatdan o'tish" %}</h2>
                     <form method="POST">
                         {% csrf_token %}
                         {{ form|crispy }}
                         <div class="d-grid mt-4">
-                            <button class="btn btn-primary btn-lg rounded-pill" type="submit">Hozir qo'shilish</button>
+                            <button class="btn btn-primary btn-lg rounded-pill" type="submit">{% trans "Hozir qo'shilish" %}</button>
                         </div>
                         <p class="text-center text-muted mt-3 mb-0" style="font-size: 0.78rem;">
-                            Ro'yxatdan o'tish orqali <a href="{% url 'terms' %}" class="text-decoration-none">Foydalanish shartlari</a>
-                            va <a href="{% url 'privacy' %}" class="text-decoration-none">Maxfiylik siyosati</a>ga rozilik bildirasiz.
+                            {% url 'terms' as terms_url %}{% url 'privacy' as privacy_url %}{% blocktrans %}Ro'yxatdan o'tish orqali <a href="{{ terms_url }}" class="text-decoration-none">Foydalanish shartlari</a> va <a href="{{ privacy_url }}" class="text-decoration-none">Maxfiylik siyosati</a>ga rozilik bildirasiz.{% endblocktrans %}
                         </p>
                     </form>
                     {% include 'users/_social_login.html' %}
                     <hr class="my-4">
                     <div class="text-center">
-                        <small class="text-muted">Profilingiz bormi? <a href="{% url 'users:login' %}" class="text-decoration-none">Kirish</a></small>
+                        <small class="text-muted">{% trans "Profilingiz bormi?" %} <a href="{% url 'users:login' %}" class="text-decoration-none">{% trans "Kirish" %}</a></small>
                     </div>
                 </div>
             </div>

@@ -482,7 +482,7 @@
           "title_en": "Full EN locale with /en/ URLs (i18n_patterns)",
           "title_uz": "To'liq EN locale (/en/ URL'lar, i18n_patterns)",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "P5-T4 hreflang'ni ataylab faqat uz+x-default qoldirgan ('en URL yo'q — i18n_patterns kelganda' — base.html izohi). Joriy etish: config/urls i18n_patterns (uz prefiksiz default, /en/ prefiks), UI stringlar {% trans %} + .po/.mo, hreflang uz/en juftlik to'ldiriladi, til almashtirgich (footer), sitemap alternates. Kontent maydonlari modeltranslation'da ALLAQACHON en'ga ega (bo'sh bo'lsa uz fallback).",
           "acceptance_criteria": [
