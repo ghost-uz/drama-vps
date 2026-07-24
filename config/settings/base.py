@@ -322,6 +322,14 @@ PAYME_KEY = config("PAYME_KEY", default="")
 # Checkout (to'lov sahifasi) bazasi — sandbox: https://checkout.test.paycom.uz
 PAYME_CHECKOUT_URL = config("PAYME_CHECKOUT_URL", default="https://checkout.paycom.uz")
 
+# -- TO'LOV: CLICK [V2F-T1] --
+# CLICK_SECRET_KEY = merchant SECRET KEY (sign_string md5 uchun). Sozlanmagan
+# (dev/test) bo'lsa imzo tekshiruvi hamma narsani rad etadi (xavfsiz default).
+CLICK_SERVICE_ID = config("CLICK_SERVICE_ID", default="")
+CLICK_MERCHANT_ID = config("CLICK_MERCHANT_ID", default="")
+CLICK_SECRET_KEY = config("CLICK_SECRET_KEY", default="")
+CLICK_CHECKOUT_URL = config("CLICK_CHECKOUT_URL", default="https://my.click.uz/services/pay")
+
 # -- CORS / CSRF (umumiy) --
 # Aniq origin ro'yxatlari muhitga xos (dev.py / prod.py).
 CORS_ALLOW_CREDENTIALS = True

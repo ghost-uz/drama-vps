@@ -58,7 +58,7 @@ django_settings_module = "config.settings.dev"
 # Eski app'lar bosqichma-bosqich type-check qilinadi (P0-T8: faqat core/ qat'iy).
 # django-stubs plugin ularni model-registry uchun yuklaydi, lekin xatolarini jim qiladi.
 # P1 (data model qatlami)da modellarga manager/M2M annotatsiyalari qo'shilib yoqiladi.
-module = ["drama.*", "users.*", "funding.*"]
+module = ["drama.*", "users.*", "funding.*", "billing.*", "blog.*"]
 ignore_errors = true
 
 

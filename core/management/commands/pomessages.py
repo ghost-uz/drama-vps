@@ -95,17 +95,24 @@ class Command(BaseCommand):
             entries, obsolete = apply_existing(fresh, [e for e in existing if e.msgid])
 
             if options["check"]:
+                # FAQAT tarjimasiz (yangi) string CI'ni yiqitadi — bu "shablonga
+                # {% trans %} qo'shildi, lekin pomessages ishlamadi" holatini ushlaydi.
+                # Eskirgan (source'dan olib tashlangan) string ZARARSIZ — u faqat
+                # translation-memory; INFO sifatida ko'rsatiladi, CI'ni yiqitmaydi.
                 added = [e for e in entries if not e.translated]
-                if added or obsolete:
+                if added:
                     stale = True
                     self.stderr.write(
-                        self.style.ERROR(
-                            f"{locale}: {len(added)} ta tarjimasiz, "
-                            f"{len(obsolete)} ta eskirgan string"
-                        )
+                        self.style.ERROR(f"{locale}: {len(added)} ta tarjimasiz string")
                     )
                     for e in added[:20]:
                         self.stderr.write(f"    + {e.msgid[:70]!r}")
+                elif obsolete:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"{locale}: to'liq ({len(obsolete)} ta eskirgan — zararsiz)"
+                        )
+                    )
                 else:
                     self.stdout.write(self.style.SUCCESS(f"{locale}: katalog to'liq"))
                 continue
@@ -114,13 +121,17 @@ class Command(BaseCommand):
                 locale=locale,
                 created=dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M+0000"),
             )
+            # Eskirgan (source'dan olib tashlangan) yozuvlar .po'ga YOZILMAYDI —
+            # .po doim manba bilan aynan mos (aks holda stray yozuv --check'da
+            # abadiy "eskirgan" bo'lib qolardi). Translation-memory yo'qolishi
+            # maqbul: string manbada yo'q.
             po_path.parent.mkdir(parents=True, exist_ok=True)
-            po_path.write_text(format_po(entries + obsolete, header), encoding="utf-8")
+            po_path.write_text(format_po(entries, header), encoding="utf-8")
             done = sum(1 for e in entries if e.translated)
             self.stdout.write(
                 self.style.SUCCESS(
                     f"{po_path.relative_to(base)}: {done}/{len(entries)} tarjima qilingan"
-                    + (f", {len(obsolete)} eskirgan" if obsolete else "")
+                    + (f", {len(obsolete)} eskirgan tashlandi" if obsolete else "")
                 )
             )
 

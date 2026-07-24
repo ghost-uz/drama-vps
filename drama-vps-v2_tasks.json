@@ -394,7 +394,7 @@
           "title_en": "Click merchant integration",
           "title_uz": "Click to'lov provideri integratsiyasi",
           "priority": "P1",
-          "status": "todo",
+          "status": "done",
           "depends_on": ["v1:P7-T2"],
           "description_uz": "billing app provider-agnostik qurilgan (Order UUID holat-mashina, mark_paid/mark_canceled idempotent, select_for_update) — Payme ishlaydi, Click yo'q. Click Merchant API: prepare/complete callback'lar, imzo (md5/sign_string) tekshiruv, error-kod jadvali. Xuddi Payme kabi: muvaffaqiyat -> wallet ledger orqali Coin/obuna.",
           "acceptance_criteria": [

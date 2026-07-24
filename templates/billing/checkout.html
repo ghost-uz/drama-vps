@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Payme orqali to'ldirish" %} | Drama.uz{% endblock %}
+{% block title %}{% trans "To'lov usulini tanlang" %} | Drama.uz{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-[#050505] text-white py-16 px-4">
@@ -10,7 +10,7 @@
             <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#00cc4c]/10 border border-[#00cc4c]/30 mb-4">
                 <i class="fas fa-wallet text-3xl text-[#00cc4c]"></i>
             </div>
-            <h1 class="text-3xl font-black">{% trans "Payme orqali to'ldirish" %}</h1>
+            <h1 class="text-3xl font-black">{% trans "Hisobni to'ldirish" %}</h1>
             <p class="text-gray-400 text-sm mt-2">{% trans "1 000 UZS = 1 Coin. To'lov tasdiqlangach Coin avtomatik qo'shiladi." %}</p>
         </div>
 
@@ -19,17 +19,25 @@
             <label class="block text-xs text-gray-500 uppercase font-bold mb-2">{% trans "Summa (UZS)" %}</label>
             <input type="number" name="amount_uzs" min="{{ min_amount }}" step="1000" value="10000" required
                    class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-lg outline-none focus:border-[#00cc4c] transition-colors">
-            <p class="text-[11px] text-gray-500 mt-2">Eng kam: {{ min_amount }} UZS</p>
+            <p class="text-[11px] text-gray-500 mt-2">{% blocktrans with m=min_amount %}Eng kam: {{ m }} UZS{% endblocktrans %}</p>
 
-            <button type="submit"
-                    class="w-full mt-6 py-4 bg-[#00cc4c] text-black font-black text-lg uppercase tracking-widest rounded-2xl hover:bg-[#00ff62] transition-all">
-                Payme'ga o'tish
-            </button>
+            <p class="text-xs text-gray-500 uppercase font-bold mt-6 mb-3">{% trans "To'lov usuli" %}</p>
+            <div class="grid grid-cols-2 gap-3">
+                {# Provider tanlovi — bitta forma, ikkita submit (name=provider) [V2F-T1] #}
+                <button type="submit" name="provider" value="payme"
+                        class="py-4 bg-[#00cc4c] text-black font-black uppercase tracking-widest rounded-2xl hover:bg-[#00ff62] transition-all">
+                    Payme
+                </button>
+                <button type="submit" name="provider" value="click"
+                        class="py-4 bg-[#0098EA] text-white font-black uppercase tracking-widest rounded-2xl hover:bg-[#00aaff] transition-all">
+                    Click
+                </button>
+            </div>
         </form>
 
         <div class="text-center mt-6">
             <a href="{% url 'users:topup' %}" class="text-sm text-gray-400 hover:text-[#00cc4c] transition">
-                Yoki qo'lda chek yuklash
+                {% trans "Yoki qo'lda chek yuklash" %}
             </a>
         </div>
     </div>

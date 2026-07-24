@@ -65,3 +65,47 @@ def payme_webhook(request):
         )
 
     return JsonResponse({"jsonrpc": "2.0", "id": req_id, "result": result})
+
+
+# ── Click Merchant API (form-encoded Prepare/Complete) [V2F-T1] ───────────
+# Payme'dan farqli: JSON-RPC emas, ikkita alohida endpoint. Har biri form-POST
+# oladi, javob JSON. Imzo (sign_string) tekshiruvi provider ichida — noto'g'ri
+# imzo error=-1 bo'lib qaytadi (HTTP 200; Click javob tanasidagi `error`ni o'qiydi).
+
+
+def _click_params(request) -> dict:
+    """Click POST maydonlarini dict'ga (form-encoded yoki JSON — ikkalasiga toqat)."""
+    if request.POST:
+        return request.POST.dict()
+    try:
+        return json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+
+
+@csrf_exempt
+@require_POST
+def click_prepare(request):
+    from billing.providers import click
+
+    params = _click_params(request)
+    try:
+        result = click.prepare(params)
+    except Exception:  # noqa: BLE001 — kutilmagan xato ham Click formatida qaytsin
+        logger.exception("Click prepare ichki xatosi")
+        result = click._resp(params, click.ERR_BAD_REQUEST, "Internal error")
+    return JsonResponse(result)
+
+
+@csrf_exempt
+@require_POST
+def click_complete(request):
+    from billing.providers import click
+
+    params = _click_params(request)
+    try:
+        result = click.complete(params)
+    except Exception:  # noqa: BLE001
+        logger.exception("Click complete ichki xatosi")
+        result = click._resp(params, click.ERR_BAD_REQUEST, "Internal error")
+    return JsonResponse(result)

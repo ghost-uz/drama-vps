@@ -8,6 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: drama.uz\n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-24 19:00+0000\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -72,7 +73,7 @@ msgstr ""
 "Import creates a <strong>draft</strong> — review it, translate it, then publish.\n"
 "    On poster and image rights: <code>docs/ops/tmdb-import.md</code>."
 
-#: templates/admin/drama/searchquerylog/report.html:4 drama/admin.py:728
+#: templates/admin/drama/searchquerylog/report.html:4 drama/admin.py:724
 msgid "Qidiruv hisoboti"
 msgstr "Search report"
 
@@ -278,9 +279,14 @@ msgstr "poster"
 msgid "Hech narsa topilmadi :("
 msgstr "Nothing found :("
 
-#: templates/billing/checkout.html:4 templates/billing/checkout.html:13
-msgid "Payme orqali to'ldirish"
-msgstr "Top up via Payme"
+#: templates/billing/checkout.html:4
+msgid "To'lov usulini tanlang"
+msgstr "Choose payment method"
+
+#: templates/billing/checkout.html:13 templates/users/topup.html:4
+#: templates/users/topup.html:34 templates/users/topup_crypto.html:39
+msgid "Hisobni to'ldirish"
+msgstr "Top up balance"
 
 #: templates/billing/checkout.html:14
 msgid "1 000 UZS = 1 Coin. To'lov tasdiqlangach Coin avtomatik qo'shiladi."
@@ -289,6 +295,18 @@ msgstr "1,000 UZS = 1 Coin. Coins are added automatically once the payment is co
 #: templates/billing/checkout.html:19
 msgid "Summa (UZS)"
 msgstr "Amount (UZS)"
+
+#: templates/billing/checkout.html:22
+msgid "Eng kam: %(m)s UZS"
+msgstr "Minimum: %(m)s UZS"
+
+#: templates/billing/checkout.html:24
+msgid "To'lov usuli"
+msgstr "Payment method"
+
+#: templates/billing/checkout.html:40
+msgid "Yoki qo'lda chek yuklash"
+msgstr "Or upload a receipt manually"
 
 #: templates/blog/post_detail.html:23 templates/blog/post_list.html:13
 #: templates/index.html:174
@@ -1329,11 +1347,6 @@ msgstr "Main account"
 msgid "Profil Tafsilotlari"
 msgstr "Profile details"
 
-#: templates/users/topup.html:4 templates/users/topup.html:34
-#: templates/users/topup_crypto.html:39
-msgid "Hisobni to'ldirish"
-msgstr "Top up balance"
-
 #: templates/users/topup.html:35 templates/users/topup_crypto.html:40
 msgid "Aktyorlarga sovg'a yuborish uchun hisobingizni Coinlar bilan to'ldiring"
 msgstr "Top up your balance with Coins to send gifts to actors"
@@ -1766,11 +1779,11 @@ msgstr "%(username)s is already blocked."
 msgid "Xatolik yuz berdi: %(err)s"
 msgstr "An error occurred: %(err)s"
 
-#: billing/views.py:45
+#: billing/views.py:57
 msgid "To'lov tizimi hozircha sozlanmagan. Iltimos, qo'lda to'ldirishdan foydalaning."
 msgstr "The payment system is not set up yet. Please use manual top-up."
 
-#: billing/views.py:36
+#: billing/views.py:42
 msgid "Eng kam summa %(amount)s UZS."
 msgstr "The minimum amount is %(amount)s UZS."
 
