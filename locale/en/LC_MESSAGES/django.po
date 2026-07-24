@@ -34,8 +34,8 @@ msgstr "Home"
 msgid "Ortga qaytish"
 msgstr "Go back"
 
-#: templates/admin/drama/movie/tmdb_import.html:4 drama/admin.py:362
-#: drama/admin.py:347
+#: templates/admin/drama/movie/tmdb_import.html:4 drama/admin.py:363
+#: drama/admin.py:348
 msgid "TMDB'dan import"
 msgstr "Import from TMDB"
 
@@ -47,8 +47,8 @@ msgstr "Title, TMDB ID or link (e.g. Vincenzo, 71712, themoviedb.org/tv/71712)"
 msgid "Serial (TV)"
 msgstr "Series (TV)"
 
-#: templates/admin/drama/movie/tmdb_import.html:14 drama/admin.py:300
-#: drama/admin.py:515
+#: templates/admin/drama/movie/tmdb_import.html:14 drama/admin.py:301
+#: drama/admin.py:516
 msgid "Film"
 msgstr "Movie"
 
@@ -71,6 +71,56 @@ msgid ""
 msgstr ""
 "Import creates a <strong>draft</strong> — review it, translate it, then publish.\n"
 "    On poster and image rights: <code>docs/ops/tmdb-import.md</code>."
+
+#: templates/admin/drama/searchquerylog/report.html:4 drama/admin.py:728
+msgid "Qidiruv hisoboti"
+msgstr "Search report"
+
+#: templates/admin/drama/searchquerylog/report.html:12
+msgid "Davr:"
+msgstr "Period:"
+
+#: templates/admin/drama/searchquerylog/report.html:16
+msgid "%(opt)s kun"
+msgstr "%(opt)s days"
+
+#: templates/admin/drama/searchquerylog/report.html:19
+msgid "%(n)s so'rov"
+msgstr "%(n)s queries"
+
+#: templates/admin/drama/searchquerylog/report.html:20
+msgid "%(z)s natijasiz"
+msgstr "%(z)s with no results"
+
+#: templates/admin/drama/searchquerylog/report.html:29
+msgid "Eng ko'p qidirilganlar"
+msgstr "Most searched"
+
+#: templates/admin/drama/searchquerylog/report.html:35
+#: templates/admin/drama/searchquerylog/report.html:65
+msgid "So'rov"
+msgstr "Query"
+
+#: templates/admin/drama/searchquerylog/report.html:36
+#: templates/admin/drama/searchquerylog/report.html:66
+msgid "Soni"
+msgstr "Count"
+
+#: templates/admin/drama/searchquerylog/report.html:49
+msgid "Ma'lumot yo'q."
+msgstr "No data."
+
+#: templates/admin/drama/searchquerylog/report.html:56
+msgid "Natijasiz so'rovlar"
+msgstr "Queries with no results"
+
+#: templates/admin/drama/searchquerylog/report.html:59
+msgid "Qaysi drama talab qilinyapti-yu topilmayapti — kontent xaridi/tarjima signali."
+msgstr "Which dramas are in demand but not found — a signal for content acquisition/translation."
+
+#: templates/admin/drama/searchquerylog/report.html:79
+msgid "Natijasiz so'rov yo'q — 🎉"
+msgstr "No zero-result queries — 🎉"
 
 #: templates/admin_2fa_verify.html:8
 msgid "Ikki bosqichli tasdiqlash"
@@ -166,7 +216,7 @@ msgstr "Search movies"
 msgid "Mobil menyu"
 msgstr "Mobile menu"
 
-#: templates/base.html:301 drama/admin.py:433
+#: templates/base.html:301 drama/admin.py:434
 msgid "Asosiy"
 msgstr "Home"
 
@@ -475,7 +525,7 @@ msgstr "Save"
 #: templates/movies/movie_detail.html:1131
 #: templates/movies/movie_detail.html:1135
 #: templates/movies/movie_detail.html:1240
-#: templates/movies/movie_detail_classic.html:219 drama/admin.py:478
+#: templates/movies/movie_detail_classic.html:219 drama/admin.py:479
 msgid "Qismlar"
 msgstr "Episodes"
 
@@ -1356,199 +1406,223 @@ msgstr "Current balance"
 msgid "Hozircha tranzaksiyalar yo'q."
 msgstr "No transactions yet."
 
-#: drama/admin.py:43
+#: drama/admin.py:656 drama/admin.py:688
+msgid "Natija"
+msgstr "Result"
+
+#: drama/admin.py:44
 msgid "Bunny holati"
 msgstr "Bunny status"
 
-#: drama/admin.py:54
+#: drama/admin.py:55
 msgid "Bunny'ga qayta yuklash (lokal fayli borlar)"
 msgstr "Re-upload to Bunny (those with a local file)"
 
-#: drama/admin.py:87
+#: drama/admin.py:88
 msgid "Encoding holatini Bunny'dan yangilash"
 msgstr "Refresh encoding status from Bunny"
 
-#: drama/admin.py:128
+#: drama/admin.py:129
 msgid "Kadr"
 msgstr "Frame"
 
-#: drama/admin.py:174
+#: drama/admin.py:175
 msgid "Filmlar soni"
 msgstr "Number of movies"
 
-#: drama/admin.py:200
+#: drama/admin.py:201
 msgid "Aktyor"
 msgstr "Actor"
 
-#: drama/admin.py:236
+#: drama/admin.py:237
 msgid "Asosiy Ma'lumotlar"
 msgstr "Main information"
 
-#: drama/admin.py:248
+#: drama/admin.py:249
 msgid "Teglar va SEO"
 msgstr "Tags and SEO"
 
-#: drama/admin.py:255
+#: drama/admin.py:256
 msgid "Media & Vizual"
 msgstr "Media & Visuals"
 
-#: drama/admin.py:271
+#: drama/admin.py:272
 msgid "Metrikalar"
 msgstr "Metrics"
 
-#: drama/admin.py:278
+#: drama/admin.py:279
 msgid "Texnik Tafsilotlar"
 msgstr "Technical details"
 
-#: drama/admin.py:288
+#: drama/admin.py:289
 msgid "Jamoa"
 msgstr "Cast & crew"
 
-#: drama/admin.py:304
+#: drama/admin.py:305
 msgid "Statistika"
 msgstr "Statistics"
 
-#: drama/admin.py:308
+#: drama/admin.py:309
 msgid "Poster"
 msgstr "Poster"
 
-#: drama/admin.py:317
+#: drama/admin.py:318
 msgid "Holat"
 msgstr "Status"
 
-#: drama/admin.py:331
+#: drama/admin.py:332
 msgid "Qoralamaga olish"
 msgstr "Move to draft"
 
-#: drama/admin.py:339
+#: drama/admin.py:340
 msgid "Nashr etish"
 msgstr "Publish"
 
-#: drama/admin.py:437
+#: drama/admin.py:438
 msgid "Pleyer markerlari [V2E-T2]"
 msgstr "Player markers [V2E-T2]"
 
-#: drama/admin.py:446
+#: drama/admin.py:447
 msgid "Video (Bunny — avtomatik)"
 msgstr "Video (Bunny — automatic)"
 
-#: drama/admin.py:457
+#: drama/admin.py:458
 msgid "Legacy (qo'lda embed)"
 msgstr "Legacy (manual embed)"
 
-#: drama/admin.py:462
+#: drama/admin.py:463
 msgid "Qism"
 msgstr "Episode"
 
-#: drama/admin.py:466
+#: drama/admin.py:467
 msgid "Bunny video"
 msgstr "Bunny video"
 
-#: drama/admin.py:499
+#: drama/admin.py:500
 msgid "Yashirish (moderatsiya)"
 msgstr "Hide (moderation)"
 
-#: drama/admin.py:505
+#: drama/admin.py:506
 msgid "Qayta ochish"
 msgstr "Unhide"
 
-#: drama/admin.py:511
+#: drama/admin.py:512
 msgid "Foydalanuvchi"
 msgstr "User"
 
-#: drama/admin.py:522
+#: drama/admin.py:523
 msgid "Tur"
 msgstr "Type"
 
-#: drama/admin.py:526
+#: drama/admin.py:527
 msgid "Vaqt"
 msgstr "Time"
 
-#: drama/admin.py:530
+#: drama/admin.py:531
 msgid "Matn"
 msgstr "Text"
 
-#: drama/admin.py:539
+#: drama/admin.py:540
 msgid "Slayd Rasmi"
 msgstr "Slide image"
 
-#: drama/admin.py:600
+#: drama/admin.py:601
 msgid "Izoh"
 msgstr "Comment"
 
-#: drama/admin.py:605
+#: drama/admin.py:606
 msgid "Kino"
 msgstr "Movie"
 
-#: drama/admin.py:609
+#: drama/admin.py:610
 msgid "Qabul qilish — izohni yashirish"
 msgstr "Accept — hide the comment"
 
-#: drama/admin.py:626
+#: drama/admin.py:627
 msgid "Rad etish — asossiz shikoyat"
 msgstr "Reject — unfounded report"
 
-#: drama/admin.py:258
+#: drama/admin.py:690 drama/admin.py:688
+msgid "natijasiz"
+msgstr "no results"
+
+#: drama/admin.py:690 drama/admin.py:688
+msgid "bor"
+msgstr "found"
+
+#: drama/admin.py:692
+msgid "Hisobot (top / natijasiz)"
+msgstr "Report (top / zero-result)"
+
+#: drama/admin.py:259
 msgid "Yakka film videosi: faylni yuklang — Bunny'ga yuborish va GUID bog'lash avtomatik (qismlar uchun Qismlar tabidan yuklanadi)."
 msgstr "Single-movie video: upload the file — sending to Bunny and GUID linking are automatic (for episodes, upload from the Episodes tab)."
 
-#: drama/admin.py:440
+#: drama/admin.py:441
 msgid "Sekundlarda. Ikkalasi to'ldirilsa pleyerda “Intro'ni o'tkazish” chiqadi."
 msgstr "In seconds. If both are filled, a “Skip intro” button appears in the player."
 
-#: drama/admin.py:448
+#: drama/admin.py:449
 msgid "Video faylni shu yerga yuklang — Bunny'ga yuborish, encoding va GUID bog'lash avtomatik. GUID'ni qo'lda kiritish odatda shart emas (faqat favqulodda/legacy holat)."
 msgstr "Upload the video file here — sending to Bunny, encoding and GUID linking are automatic. Entering the GUID manually is usually not needed (only for emergency/legacy cases)."
 
-#: drama/views.py:198
+#: drama/admin.py:660
+msgid "Natijasiz (0)"
+msgstr "No results (0)"
+
+#: drama/admin.py:660
+msgid "Natijali (1+)"
+msgstr "With results (1+)"
+
+#: drama/views.py:214
 msgid "Shikoyat yuborildi — moderatorlar ko'rib chiqadi."
 msgstr "Report submitted — moderators will review it."
 
-#: drama/views.py:200
+#: drama/views.py:216
 msgid "Siz bu izohga allaqachon shikoyat yuborgansiz."
 msgstr "You have already reported this comment."
 
-#: drama/views.py:545
+#: drama/views.py:561
 msgid "'%(title)s' ro'yxatingizga saqlandi!"
 msgstr "'%(title)s' was saved to your list!"
 
-#: drama/views.py:492
+#: drama/views.py:508
 msgid "Noto'g'ri status tanlandi."
 msgstr "Invalid status selected."
 
-#: drama/views.py:853
+#: drama/views.py:869
 msgid "Gul 🌹"
 msgstr "Rose 🌹"
 
-#: drama/views.py:853
+#: drama/views.py:869
 msgid "Qahva ☕"
 msgstr "Coffee ☕"
 
-#: drama/views.py:853
+#: drama/views.py:869
 msgid "Toj 👑"
 msgstr "Crown 👑"
 
-#: drama/views.py:861
+#: drama/views.py:877
 msgid "Aktyor topilmadi."
 msgstr "Actor not found."
 
-#: drama/views.py:521
+#: drama/views.py:537
 msgid "Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi."
 msgstr "The rating must be between 1 and 10. The movie was saved without a rating."
 
-#: drama/views.py:525
+#: drama/views.py:541
 msgid "Noto'g'ri baho kiritildi. Kino bahosiz saqlandi."
 msgstr "Invalid rating entered. The movie was saved without a rating."
 
-#: drama/views.py:821
+#: drama/views.py:837
 msgid "Noto'g'ri sovg'a tanlandi."
 msgstr "Invalid gift selected."
 
-#: drama/views.py:856
+#: drama/views.py:872
 msgid "%(actor)s ga %(gift)s yubordingiz! U bundan juda xursand bo'ladi 🎉"
 msgstr "You sent %(gift)s to %(actor)s! They will be very happy 🎉"
 
-#: drama/views.py:836
+#: drama/views.py:852
 msgid "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
 msgstr "Not enough Coins to send a gift. Please top up your balance."
 

@@ -112,6 +112,21 @@ def robots_txt(request):
 
 
 @ratelimit(key=ip_key, rate=rate, group="live_search", method="GET", block=True)
+def _log_search(request, raw_query, results_count):
+    """Qidiruv so'rovini asinxron loglaydi [V2G-T3].
+
+    Analitika HECH QACHON qidiruvni buzmasin — barcha xato yutiladi (broker
+    o'chiq/sekin bo'lsa ham foydalanuvchi natijani darrov oladi).
+    """
+    try:
+        from drama.tasks import log_search_query
+
+        uid = request.user.id if request.user.is_authenticated else None
+        log_search_query.delay(raw_query, results_count, uid)
+    except Exception:  # noqa: BLE001 — logging best-effort
+        pass
+
+
 def live_search(request):
     query = request.GET.get("q", "").strip()
     if len(query) > 1:
@@ -129,6 +144,7 @@ def live_search(request):
             }
             for m in movies
         ]
+        _log_search(request, query, len(results))
         return JsonResponse({"status": "ok", "results": results})
     return JsonResponse({"status": "empty", "results": []})
 
@@ -881,6 +897,9 @@ class Search(HxPartialListMixin, GenreYearMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["q"] = self.request.GET.get("q")
         context["title"] = f"'{context['q']}' bo'yicha qidiruv natijalari"
+        # Analitika [V2G-T3] — faqat 1-sahifada (cheksiz-skroll ?page=N re-log qilmasin)
+        if context["q"] and self.request.GET.get("page") in (None, "", "1"):
+            _log_search(self.request, context["q"], context["paginator"].count)
         return context
 
 

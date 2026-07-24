@@ -403,3 +403,38 @@ def tmdb_download_images(self, movie_id: int, poster_path: str, actor_paths: dic
         logger.warning("tmdb_download_images xato (movie=%s): %s", movie_id, exc)
         raise self.retry(exc=exc) from exc
     return "ok"
+
+
+@shared_task
+def log_search_query(raw_query: str, results_count: int, user_id: int | None = None) -> None:
+    """Qidiruv so'rovini asinxron yozadi [V2G-T3].
+
+    View'dan `.delay()` bilan chaqiriladi -> qidiruv latency'siga ta'sir yo'q.
+    Normalizatsiya SHU YERDA (case/trim) — saqlangan qiymat doim toza. Bo'sh
+    normalized so'rov yozilmaydi (shovqin).
+    """
+    from drama.models import SearchQueryLog
+
+    query = SearchQueryLog.normalize(raw_query)
+    if not query:
+        return
+    SearchQueryLog.objects.create(
+        query=query, results_count=max(0, int(results_count)), user_id=user_id
+    )
+
+
+@shared_task
+def cleanup_old_search_logs(days: int = 90) -> int:
+    """N kundan eski qidiruv loglarini o'chiradi [V2G-T3] (retention/PII gigiyena).
+
+    Beat'da har kuni ishlaydi. Bulk `.delete()` -> signal yo'q, tez.
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from drama.models import SearchQueryLog
+
+    cutoff = timezone.now() - timedelta(days=days)
+    deleted, _detail = SearchQueryLog.objects.filter(created_at__lt=cutoff).delete()
+    return deleted

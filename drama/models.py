@@ -662,3 +662,48 @@ class ActorGift(models.Model):
 
     def __str__(self):
         return f"{self.user.username} -> {self.actor.name} ({self.get_gift_type_display()})"
+
+
+class SearchQueryLog(models.Model):
+    """Qidiruv analitikasi [V2G-T3] — natijasiz so'rovlar konchiligi.
+
+    Nima uchun: qaysi drama qidirilyapti-yu topilmayapti? Bu to'g'ridan-to'g'ri
+    kontent-talab signali (V2F-T5 tarjima so'rovi va kontent xaridi uchun).
+
+    PII minimal: faqat normalized `query` + ixtiyoriy user (SET_NULL). 90 kunlik
+    retention (drama.tasks.cleanup_old_search_logs beat'da). Yozish ASINXRON
+    (drama.tasks.log_search_query) — qidiruv latency'siga ta'sir qilmaydi.
+    """
+
+    query = models.CharField("So'rov", max_length=200, db_index=True)
+    results_count = models.PositiveIntegerField("Natijalar soni", default=0)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="search_logs",
+        verbose_name="Foydalanuvchi",
+    )
+    created_at = models.DateTimeField("Vaqt", auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Qidiruv logi"
+        verbose_name_plural = "Qidiruv analitikasi"
+        ordering = ["-created_at"]
+        indexes = [
+            # Zero-result hisobot: results_count=0 + vaqt oralig'i
+            models.Index(fields=["results_count", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.query} ({self.results_count})"
+
+    @staticmethod
+    def normalize(raw: str) -> str:
+        """Case-fold + bo'shliqlarni siqish + trim + 200 belgiga qisqartirish.
+
+        Shu bilan "Vincenzo", " vincenzo  ", "VINCENZO" bitta so'rovga birlashadi
+        (top/zero-result aggregatsiyasi to'g'ri sanaydi).
+        """
+        return " ".join((raw or "").split()).casefold()[:200]

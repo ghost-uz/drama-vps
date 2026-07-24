@@ -1,0 +1,85 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Qidiruv hisoboti" %}{% endblock %}
+
+{% block content %}
+{# Qidiruv analitikasi hisoboti [V2G-T3] — top + natijasiz so'rovlar #}
+<div style="max-width: 900px">
+
+  {# Davr filtri #}
+  <form method="get" style="display:flex; gap:8px; align-items:center; margin-bottom:20px">
+    <span style="font-weight:600">{% trans "Davr:" %}</span>
+    {% for opt in day_options %}
+      <a href="?days={{ opt }}"
+         class="button{% if opt == days %} default{% endif %}"
+         style="padding:6px 14px">{% blocktrans %}{{ opt }} kun{% endblocktrans %}</a>
+    {% endfor %}
+    <span style="margin-left:auto; opacity:.7; font-size:13px">
+      {% blocktrans with n=total %}{{ n }} so'rov{% endblocktrans %}
+      · {% blocktrans with z=zero_total %}{{ z }} natijasiz{% endblocktrans %}
+    </span>
+  </form>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px">
+
+    {# TOP so'rovlar #}
+    <section>
+      <h2 style="font-size:15px; margin-bottom:10px">
+        <span style="color:#00cc4c">▲</span> {% trans "Eng ko'p qidirilganlar" %}
+      </h2>
+      {% if top %}
+      <table style="width:100%; border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left; border-bottom:1px solid #8883">
+            <th style="padding:6px">{% trans "So'rov" %}</th>
+            <th style="padding:6px; text-align:right">{% trans "Soni" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in top %}
+          <tr style="border-bottom:1px solid #8882">
+            <td style="padding:6px">{{ row.query }}</td>
+            <td style="padding:6px; text-align:right; font-weight:600">{{ row.n }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="opacity:.6">{% trans "Ma'lumot yo'q." %}</p>
+      {% endif %}
+    </section>
+
+    {# NATIJASIZ so'rovlar — kontent-talab signali #}
+    <section>
+      <h2 style="font-size:15px; margin-bottom:10px">
+        <span style="color:#ef4444">✕</span> {% trans "Natijasiz so'rovlar" %}
+      </h2>
+      <p style="font-size:12px; opacity:.7; margin-bottom:10px">
+        {% trans "Qaysi drama talab qilinyapti-yu topilmayapti — kontent xaridi/tarjima signali." %}
+      </p>
+      {% if zero %}
+      <table style="width:100%; border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left; border-bottom:1px solid #8883">
+            <th style="padding:6px">{% trans "So'rov" %}</th>
+            <th style="padding:6px; text-align:right">{% trans "Soni" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in zero %}
+          <tr style="border-bottom:1px solid #8882">
+            <td style="padding:6px">{{ row.query }}</td>
+            <td style="padding:6px; text-align:right; font-weight:600">{{ row.n }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="opacity:.6">{% trans "Natijasiz so'rov yo'q — 🎉" %}</p>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

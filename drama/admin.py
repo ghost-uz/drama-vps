@@ -23,6 +23,7 @@ from .models import (
     RatingStar,
     Review,
     ReviewReport,
+    SearchQueryLog,
     Season,
     Tag,
     TopSlider,
@@ -647,3 +648,85 @@ class ReviewReportAdmin(ModelAdmin):
         if reopened:
             msg += f" {reopened} izoh qayta ochildi."
         self.message_user(request, msg)
+
+
+class ZeroResultFilter(admin.SimpleListFilter):
+    """Natijasiz so'rovlar filtri [V2G-T3] — kontent-talab signali."""
+
+    title = _("Natija")
+    parameter_name = "zero"
+
+    def lookups(self, request, model_admin):
+        return (("1", _("Natijasiz (0)")), ("0", _("Natijali (1+)")))
+
+    def queryset(self, request, queryset):
+        if self.value() == "1":
+            return queryset.filter(results_count=0)
+        if self.value() == "0":
+            return queryset.filter(results_count__gt=0)
+        return queryset
+
+
+@admin.register(SearchQueryLog)
+class SearchQueryLogAdmin(ModelAdmin):
+    """Qidiruv analitikasi [V2G-T3] — faqat o'qish; hisobot alohida view'da."""
+
+    list_display = ("query", "results_count", "zero_badge", "user", "created_at")
+    list_filter = (ZeroResultFilter, "created_at")
+    search_fields = ("query",)
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+    actions_list = ["report_view"]
+
+    # Analitika — qo'lda qo'shilmaydi/tahrirlanmaydi (faqat view/o'chirish)
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    @display(description=_("Natija"), label={_("natijasiz"): "danger", _("bor"): "success"})
+    def zero_badge(self, obj):
+        return _("natijasiz") if obj.results_count == 0 else _("bor")
+
+    @action(description=_("Hisobot (top / natijasiz)"), url_path="report", icon="query_stats")
+    def report_view(self, request):
+        """Top-20 va natijasiz-20 so'rovlar, davr filtri bilan [V2G-T3]."""
+        from datetime import timedelta
+
+        from django.db.models import Count
+        from django.utils import timezone
+
+        if not request.user.has_perm("drama.view_searchquerylog"):
+            raise PermissionDenied
+
+        try:
+            days = int(request.GET.get("days", 30))
+        except (TypeError, ValueError):
+            days = 30
+        if days not in (7, 30, 90):
+            days = 30
+
+        since = timezone.now() - timedelta(days=days)
+        base = SearchQueryLog.objects.filter(created_at__gte=since)
+
+        top = list(base.values("query").annotate(n=Count("id")).order_by("-n", "query")[:20])
+        zero = list(
+            base.filter(results_count=0)
+            .values("query")
+            .annotate(n=Count("id"))
+            .order_by("-n", "query")[:20]
+        )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": _("Qidiruv hisoboti"),
+            "days": days,
+            "day_options": (7, 30, 90),
+            "top": top,
+            "zero": zero,
+            "total": base.count(),
+            "zero_total": base.filter(results_count=0).count(),
+        }
+        return render(request, "admin/drama/searchquerylog/report.html", context)

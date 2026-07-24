@@ -514,7 +514,7 @@
           "title_en": "Search analytics (zero-result mining)",
           "title_uz": "Qidiruv analitikasi (natijasiz so'rovlar konchiligi)",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "SearchQueryLog(query normalized, results_count, created_at, user null) — live_search va Search view'larida async yozish (so'rovni sekinlashtirmaydi: on_commit yoki Celery). Admin hisobot: top so'rovlar + NATIJASIZ so'rovlar (qaysi drama talab qilinyapti -> V2F-T5 so'rov tizimi va kontent xaridi uchun signal). PII minimal (faqat query), 90-kun retention (beat tozalash).",
           "acceptance_criteria": [

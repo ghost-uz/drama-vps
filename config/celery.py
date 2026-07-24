@@ -37,6 +37,11 @@ app.conf.beat_schedule = {
         "task": "users.tasks.cleanup_stale_topups",
         "schedule": crontab(hour=3, minute=0),
     },
+    # 90 kundan eski qidiruv loglarini har kuni 03:30 da o'chiradi [V2G-T3]
+    "cleanup-old-search-logs": {
+        "task": "drama.tasks.cleanup_old_search_logs",
+        "schedule": crontab(hour=3, minute=30),
+    },
     # Trending teglar keshini har 6 soatda yangilaydi [P3-T4]
     "recompute-trending-tags": {
         "task": "drama.tasks.recompute_trending_tags",
