@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "django.contrib.sitemaps",
+    "django.contrib.syndication",  # RSS feed [V2G-T2]
     "django.contrib.postgres",  # FTS SearchVectorField/GIN [P8-T1]
     # Authentication
     "allauth",
@@ -74,6 +75,7 @@ INSTALLED_APPS = [
     "funding.apps.FundingConfig",
     "users.apps.UsersConfig",
     "billing.apps.BillingConfig",
+    "blog.apps.BlogConfig",  # Yangiliklar/blog [V2G-T2]
 ]
 
 # -- MIDDLEWARE --

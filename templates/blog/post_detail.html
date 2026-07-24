@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block page_title %}{{ post.title }} - Drama.uz{% endblock %}
+{% block meta_description %}{{ post.summary }}{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_absolute_url }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block og_description %}{{ post.summary }}{% endblock %}
+{% block og_image %}{% if post.cover %}{{ request.scheme }}://{{ request.get_host }}{{ post.cover.url }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block schema_markup %}
+<script type="application/ld+json">{{ article_jsonld }}</script>
+{% endblock %}
+
+{% block content %}
+<article class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
+
+    {# Breadcrumb #}
+    <nav class="text-[11px] text-gray-600 font-bold uppercase tracking-widest mb-6 flex items-center gap-2" aria-label="breadcrumb">
+        <a href="/" class="hover:text-[#00cc4c] transition-colors">{% trans "Bosh sahifa" %}</a>
+        <span>/</span>
+        <a href="{% url 'blog:post_list' %}" class="hover:text-[#00cc4c] transition-colors">{% trans "Yangiliklar" %}</a>
+    </nav>
+
+    <h1 class="text-2xl md:text-4xl font-black leading-tight text-white mb-4">{{ post.title }}</h1>
+
+    <div class="flex items-center gap-3 text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-6">
+        {% if post.author %}<span>{{ post.author.username }}</span><span>·</span>{% endif %}
+        <time datetime="{{ post.publish_at|date:'c' }}">{{ post.publish_at|date:"d M Y" }}</time>
+    </div>
+
+    {% if post.cover %}
+    <img src="{{ post.cover.url }}" alt="{{ post.title }}" class="w-full rounded-2xl border border-white/10 mb-8" loading="lazy">
+    {% endif %}
+
+    {# Rich-text tanasi — admin (staff) tomonidan kiritilgan ishonchli HTML #}
+    <div class="prose-blog text-gray-300 leading-relaxed space-y-4">
+        {{ post.body|safe }}
+    </div>
+
+    {% if post.tags.all %}
+    <div class="flex flex-wrap gap-2 mt-8">
+        {% for tag in post.tags.all %}
+        <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[11px] text-gray-400">#{{ tag.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Bog'liq kinolar — SEO ichki havola #}
+    {% if related_movies %}
+    <section class="mt-12">
+        <h2 class="text-lg font-black mb-4 flex items-center gap-2">
+            <i class="fas fa-film text-[#00cc4c]"></i> {% trans "Bog'liq dramalar" %}
+        </h2>
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {% for movie in related_movies %}
+            {% include "movies/movies_card.html" with movie=movie %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="mt-12 pt-6 border-t border-white/5">
+        <a href="{% url 'blog:post_list' %}" class="text-xs font-bold uppercase tracking-widest text-[#00cc4c] hover:underline">
+            <i class="fas fa-arrow-left mr-1"></i> {% trans "Barcha yangiliklar" %}
+        </a>
+    </div>
+
+</article>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Yangiliklar va sharhlar" %} - Drama.uz{% endblock %}
+{% block meta_description %}{% trans "K-drama yangiliklari, sharhlar va tavsiyalar — Drama.uz blogi." %}{% endblock %}
+
+{% block content %}
+<div class="max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12">
+
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-2xl md:text-3xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+            <span class="w-1.5 h-7 bg-[#00cc4c] rounded-full"></span>
+            {% trans "Yangiliklar" %}
+        </h1>
+        <a href="{% url 'blog:rss' %}" class="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-[#00cc4c] transition-colors flex items-center gap-2">
+            <i class="fas fa-rss"></i> RSS
+        </a>
+    </div>
+
+    {% if posts %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for post in posts %}
+        <article class="group bg-white/3 border border-white/5 rounded-3xl overflow-hidden hover:border-[#00cc4c]/40 transition-colors">
+            <a href="{{ post.get_absolute_url }}" class="block">
+                <div class="relative aspect-video bg-gray-800 overflow-hidden">
+                    {% if post.cover %}
+                    <img src="{{ post.cover.url }}" alt="{{ post.title }}" loading="lazy" decoding="async"
+                         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-gray-700">
+                        <i class="fas fa-newspaper text-4xl"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-5">
+                    <h2 class="text-base md:text-lg font-black leading-tight text-gray-100 group-hover:text-[#00cc4c] transition-colors line-clamp-2">{{ post.title }}</h2>
+                    <p class="text-xs text-gray-500 mt-2 line-clamp-2">{{ post.summary }}</p>
+                    <p class="text-[10px] text-gray-600 mt-3 uppercase tracking-widest font-bold">
+                        {{ post.publish_at|date:"d M Y" }}
+                    </p>
+                </div>
+            </a>
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center items-center gap-2 pt-10">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">{% trans "Oldingi" %}</a>
+        {% endif %}
+        <span class="px-4 py-2 text-sm text-gray-500">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm">{% trans "Keyingi" %}</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="py-20 text-center rounded-3xl border border-dashed border-white/10">
+        <i class="fas fa-newspaper text-gray-600 text-4xl mb-4"></i>
+        <p class="text-gray-500 text-sm italic">{% trans "Hozircha yangilik yo'q." %}</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

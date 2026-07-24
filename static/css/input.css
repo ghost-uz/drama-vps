@@ -6,3 +6,18 @@
 [x-cloak] {
   display: none !important;
 }
+
+/* Blog rich-text tanasi [V2G-T2] — typography plugin'siz yengil prose.
+   Trix muharriridan kelgan HTML (h2/h3, p, ul/ol, a, blockquote, img). */
+.prose-blog h2 { font-size: 1.5rem; font-weight: 800; color: #fff; margin: 1.75rem 0 0.75rem; }
+.prose-blog h3 { font-size: 1.25rem; font-weight: 700; color: #fff; margin: 1.5rem 0 0.5rem; }
+.prose-blog p { margin: 0.75rem 0; }
+.prose-blog a { color: #00cc4c; text-decoration: underline; text-underline-offset: 2px; }
+.prose-blog a:hover { color: #00ff62; }
+.prose-blog ul, .prose-blog ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+.prose-blog ul { list-style: disc; }
+.prose-blog ol { list-style: decimal; }
+.prose-blog li { margin: 0.35rem 0; }
+.prose-blog blockquote { border-left: 3px solid #00cc4c; padding-left: 1rem; margin: 1rem 0; color: #9ca3af; font-style: italic; }
+.prose-blog img { max-width: 100%; height: auto; border-radius: 0.75rem; margin: 1rem 0; }
+.prose-blog strong { color: #f3f4f6; font-weight: 700; }

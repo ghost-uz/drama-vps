@@ -7,6 +7,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from django.views.generic import TemplateView
 
+from blog.sitemaps import PostSitemap
 from core.agent_discovery import agent_index
 from core.health import healthz, readyz
 from core.monitoring import metrics_view
@@ -31,6 +32,7 @@ sitemaps = {
     "categories": CategorySitemap,
     "genres": GenreSitemap,
     "pages": StaticPagesSitemap,
+    "blog": PostSitemap,  # [V2G-T2]
 }
 
 # ---------------------------------------------------------------------------
@@ -114,6 +116,7 @@ urlpatterns += i18n_patterns(
     path("users/", include("users.urls", namespace="users")),
     path("billing/", include("billing.urls")),  # checkout + Payme webhook [P7-T2]
     # Huquqiy sahifalar [P10-T5 qisman] — drama catch-all'dan OLDIN turishi shart
+    path("yangiliklar/", include("blog.urls", namespace="blog")),  # [V2G-T2]
     path("shartlar/", TemplateView.as_view(template_name="pages/terms.html"), name="terms"),
     path(
         "maxfiylik/",

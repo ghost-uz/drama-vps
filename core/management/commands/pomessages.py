@@ -36,7 +36,7 @@ from core.i18n_catalog import (
 
 # Ekstrakt qamrovi. `env/`, `node_modules/`, `staticfiles/` ATAYLAB yo'q.
 TEMPLATE_DIRS = ["templates"]
-PYTHON_DIRS = ["core", "drama", "users", "billing", "funding", "config"]
+PYTHON_DIRS = ["core", "drama", "users", "billing", "funding", "config", "blog"]
 
 _HEADER = """# drama.uz tarjima katalogi — {locale}
 #

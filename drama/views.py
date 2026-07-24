@@ -151,6 +151,10 @@ class MoviesView(HxPartialListMixin, GenreYearMixin, ListView):
         context["top_sliders"] = TopSlider.objects.all()
         # Trenddagi karusel — keshdan (recompute_trending_movies to'ldiradi) [P8-T2]
         context["trending_movies"] = recommendations.trending_movies()
+        # Yangiliklar bloki — eng so'nggi ommaviy maqolalar (keshlangan) [V2G-T2]
+        from blog.views import blog_widget_posts
+
+        context["latest_posts"] = blog_widget_posts(4)
         # 'Davom ettirish' + 'siz ko'rganingiz asosida' — faqat kirgan foydalanuvchi
         if self.request.user.is_authenticated:
             from users.selectors import continue_watching

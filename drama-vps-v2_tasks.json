@@ -498,7 +498,7 @@
           "title_en": "News/blog app (SEO content marketing)",
           "title_uz": "Yangiliklar/blog app (SEO kontent-marketing)",
           "priority": "P3",
-          "status": "todo",
+          "status": "done",
           "depends_on": [],
           "description_uz": "K-drama yangiliklari/sharhlari uchun yengil blog: Post(title, slug, cover, body, tags M2M, status draft/published, publish_at — P1-T6 workflow naqshi). Bosh sahifada 'Yangiliklar' blok, sitemap + RSS feed, JSON-LD Article. Kinolarga ichki havolalar (SEO link-building). Admin'da rich-text (mavjud unfold widget'lari).",
           "acceptance_criteria": [

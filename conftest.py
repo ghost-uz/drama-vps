@@ -19,6 +19,22 @@ from rest_framework.test import APIClient
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "1")
 
 
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    """Har test oldidan LOCMEM keshni tozalaydi [V2G-T2].
+
+    Test DB har testda rollback bo'ladi -> PK'lar 1'dan qayta boshlanadi, lekin
+    LOCMEM kesh testlar ORASIDA saqlanadi. {% cache %} kaliti pk+updated_at'ga
+    tayangan fragmentlar (collection detail) Windows'ning past vaqt-granulasida
+    qo'shni testlar bilan TO'QNASHIB stale HTML berardi (ordering-bog'liq flake).
+    Keshni tozalash barcha kesh-bog'liq testlarni deterministik qiladi.
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+
+
 @pytest.fixture
 def api():
     """DRF APIClient — drama/api va users/api testlari uchun umumiy."""

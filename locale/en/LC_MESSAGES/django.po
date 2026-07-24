@@ -26,7 +26,7 @@ msgstr "Oops! Page not found"
 msgid "Siz qidirayotgan sahifa o'chirilgan, nomi o'zgartirilgan yoki vaqtincha mavjud emas."
 msgstr "The page you are looking for was removed, renamed, or is temporarily unavailable."
 
-#: templates/404.html:21
+#: templates/404.html:21 templates/blog/post_detail.html:21
 msgid "Bosh sahifa"
 msgstr "Home"
 
@@ -240,6 +240,39 @@ msgstr "1,000 UZS = 1 Coin. Coins are added automatically once the payment is co
 msgid "Summa (UZS)"
 msgstr "Amount (UZS)"
 
+#: templates/blog/post_detail.html:23 templates/blog/post_list.html:13
+#: templates/index.html:174
+msgid "Yangiliklar"
+msgstr "News"
+
+#: templates/blog/post_detail.html:54
+msgid "Bog'liq dramalar"
+msgstr "Related dramas"
+
+#: templates/blog/post_detail.html:66
+msgid "Barcha yangiliklar"
+msgstr "All news"
+
+#: templates/blog/post_list.html:4
+msgid "Yangiliklar va sharhlar"
+msgstr "News and reviews"
+
+#: templates/blog/post_list.html:5
+msgid "K-drama yangiliklari, sharhlar va tavsiyalar — Drama.uz blogi."
+msgstr "K-drama news, reviews and recommendations — the Drama.uz blog."
+
+#: templates/blog/post_list.html:50 templates/users/notifications.html:60
+msgid "Oldingi"
+msgstr "Previous"
+
+#: templates/blog/post_list.html:54 templates/users/notifications.html:65
+msgid "Keyingi"
+msgstr "Next"
+
+#: templates/blog/post_list.html:62
+msgid "Hozircha yangilik yo'q."
+msgstr "No news yet."
+
 #: templates/index.html:57
 msgid "Eng yaxshi dramalar"
 msgstr "The best dramas"
@@ -273,18 +306,19 @@ msgstr "Trending"
 msgid "Siz ko'rganingiz asosida"
 msgstr "Based on what you watched"
 
-#: templates/index.html:172
+#: templates/index.html:177 templates/movies/_carousel.html:20
+#: templates/movies/explore_list.html:40
+msgid "Hammasi"
+msgstr "All"
+
+#: templates/index.html:203
 msgid "Barcha dramalar"
 msgstr "All dramas"
 
-#: templates/index.html:174 templates/index.html:176
+#: templates/index.html:205 templates/index.html:207
 #: templates/movies/movie_list.html:17
 msgid "Filtrlash"
 msgstr "Filter"
-
-#: templates/movies/_carousel.html:20 templates/movies/explore_list.html:40
-msgid "Hammasi"
-msgstr "All"
 
 #: templates/movies/explore_list.html:4
 msgid "Katalog — barcha dramalar - Drama.uz"
@@ -1054,14 +1088,6 @@ msgstr "%(t)s ago"
 msgid "Hozircha bildirishnoma yo'q."
 msgstr "No notifications yet."
 
-#: templates/users/notifications.html:60
-msgid "Oldingi"
-msgstr "Previous"
-
-#: templates/users/notifications.html:65
-msgid "Keyingi"
-msgstr "Next"
-
 #: templates/users/password_reset.html:4
 #: templates/users/password_reset.html:14
 msgid "Parolni tiklash"
@@ -1474,67 +1500,67 @@ msgstr "In seconds. If both are filled, a “Skip intro” button appears in the
 msgid "Video faylni shu yerga yuklang — Bunny'ga yuborish, encoding va GUID bog'lash avtomatik. GUID'ni qo'lda kiritish odatda shart emas (faqat favqulodda/legacy holat)."
 msgstr "Upload the video file here — sending to Bunny, encoding and GUID linking are automatic. Entering the GUID manually is usually not needed (only for emergency/legacy cases)."
 
-#: drama/views.py:194
+#: drama/views.py:198
 msgid "Shikoyat yuborildi — moderatorlar ko'rib chiqadi."
 msgstr "Report submitted — moderators will review it."
 
-#: drama/views.py:196
+#: drama/views.py:200
 msgid "Siz bu izohga allaqachon shikoyat yuborgansiz."
 msgstr "You have already reported this comment."
 
-#: drama/views.py:540
+#: drama/views.py:545
 msgid "'%(title)s' ro'yxatingizga saqlandi!"
 msgstr "'%(title)s' was saved to your list!"
 
-#: drama/views.py:488
+#: drama/views.py:492
 msgid "Noto'g'ri status tanlandi."
 msgstr "Invalid status selected."
 
-#: drama/views.py:845
+#: drama/views.py:853
 msgid "Gul 🌹"
 msgstr "Rose 🌹"
 
-#: drama/views.py:845
+#: drama/views.py:853
 msgid "Qahva ☕"
 msgstr "Coffee ☕"
 
-#: drama/views.py:845
+#: drama/views.py:853
 msgid "Toj 👑"
 msgstr "Crown 👑"
 
-#: drama/views.py:853
+#: drama/views.py:861
 msgid "Aktyor topilmadi."
 msgstr "Actor not found."
 
-#: drama/views.py:517
+#: drama/views.py:521
 msgid "Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi."
 msgstr "The rating must be between 1 and 10. The movie was saved without a rating."
 
-#: drama/views.py:521
+#: drama/views.py:525
 msgid "Noto'g'ri baho kiritildi. Kino bahosiz saqlandi."
 msgstr "Invalid rating entered. The movie was saved without a rating."
 
-#: drama/views.py:815
+#: drama/views.py:821
 msgid "Noto'g'ri sovg'a tanlandi."
 msgstr "Invalid gift selected."
 
-#: drama/views.py:848
+#: drama/views.py:856
 msgid "%(actor)s ga %(gift)s yubordingiz! U bundan juda xursand bo'ladi 🎉"
 msgstr "You sent %(gift)s to %(actor)s! They will be very happy 🎉"
 
-#: drama/views.py:830
+#: drama/views.py:836
 msgid "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
 msgstr "Not enough Coins to send a gift. Please top up your balance."
 
-#: users/views.py:553
+#: users/views.py:564
 msgid "Barcha bildirishnomalar o'qilgan deb belgilandi."
 msgstr "All notifications marked as read."
 
-#: users/views.py:581
+#: users/views.py:592
 msgid "Telegram bot uzildi — endi botdan xabar kelmaydi."
 msgstr "Telegram bot disconnected — you'll no longer get messages from the bot."
 
-#: users/views.py:661
+#: users/views.py:674
 msgid "Kolleksiya o'chirildi."
 msgstr "Collection deleted."
 
@@ -1542,107 +1568,107 @@ msgstr "Collection deleted."
 msgid "Tasdiqlash havolasi yaroqsiz yoki muddati o'tgan."
 msgstr "The confirmation link is invalid or expired."
 
-#: users/views.py:108
+#: users/views.py:110
 msgid "Avval sozlamalarda email manzil kiriting."
 msgstr "First add an email address in settings."
 
-#: users/views.py:162
+#: users/views.py:165
 msgid "Telegram orqali kirishda xatolik (imzo yaroqsiz yoki eskirgan)."
 msgstr "Telegram sign-in error (signature invalid or expired)."
 
-#: users/views.py:166
+#: users/views.py:172
 msgid "Xush kelibsiz, %(username)s! Telegram orqali kirdingiz."
 msgstr "Welcome, %(username)s! You signed in via Telegram."
 
-#: users/views.py:409
+#: users/views.py:420
 msgid "Sizda aktiv obuna yo'q."
 msgstr "You have no active subscription."
 
-#: users/views.py:413
+#: users/views.py:424
 msgid "yoqildi"
 msgstr "enabled"
 
-#: users/views.py:413
+#: users/views.py:424
 msgid "o'chirildi"
 msgstr "disabled"
 
-#: users/views.py:568
+#: users/views.py:579
 msgid "Telegram bot hali sozlanmagan."
 msgstr "The Telegram bot is not set up yet."
 
-#: users/views.py:652
+#: users/views.py:665
 msgid "Kolleksiya yangilandi."
 msgstr "Collection updated."
 
-#: users/views.py:94
+#: users/views.py:95
 msgid "%(email)s manzili tasdiqlandi ✅"
 msgstr "%(email)s has been confirmed ✅"
 
-#: users/views.py:110
+#: users/views.py:112
 msgid "Emailingiz allaqachon tasdiqlangan."
 msgstr "Your email is already confirmed."
 
-#: users/views.py:113
+#: users/views.py:115
 msgid "Tasdiqlash havolasi qayta yuborildi."
 msgstr "The confirmation link was resent."
 
-#: users/views.py:325
+#: users/views.py:332
 msgid "Ma'lumotlaringiz muvaffaqiyatli yangilandi!"
 msgstr "Your information was updated successfully!"
 
-#: users/views.py:379
+#: users/views.py:386
 msgid "Obuna rejasi topilmadi yoki sotuvda emas."
 msgstr "The subscription plan was not found or is not on sale."
 
-#: users/views.py:414
+#: users/views.py:425
 msgid "Avto-uzaytirish %(state)s."
 msgstr "Auto-renew %(state)s."
 
-#: users/views.py:442
+#: users/views.py:453
 msgid "Sizda allaqachon kutilayotgan so'rov mavjud!"
 msgstr "You already have a pending request!"
 
-#: users/views.py:461 users/views.py:504
+#: users/views.py:472 users/views.py:515
 msgid "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."
 msgstr "Your request was submitted successfully! Please wait for admin approval."
 
-#: users/views.py:485
+#: users/views.py:496
 msgid "Sizda allaqachon kutilayotgan kripto so'rov mavjud!"
 msgstr "You already have a pending crypto request!"
 
-#: users/views.py:672
+#: users/views.py:686
 msgid "Kolleksiyada eng ko'pi %(max)s ta kino bo'la oladi."
 msgstr "A collection can hold at most %(max)s movies."
 
-#: users/views.py:684
+#: users/views.py:699
 msgid "“%(title)s” qo'shildi."
 msgstr "“%(title)s” was added."
 
-#: users/views.py:750
+#: users/views.py:765
 msgid "“%(username)s” topilmadi."
 msgstr "“%(username)s” was not found."
 
-#: users/views.py:752
+#: users/views.py:767
 msgid "O'zingizni bloklay olmaysiz."
 msgstr "You can't block yourself."
 
-#: users/views.py:775
+#: users/views.py:794
 msgid "%(username)s blokdan olindi."
 msgstr "%(username)s was unblocked."
 
-#: users/views.py:329
+#: users/views.py:336
 msgid "Yangi emailingizga tasdiqlash havolasi yubordik."
 msgstr "We sent a confirmation link to your new email."
 
-#: users/views.py:389
+#: users/views.py:397
 msgid "Tabriklaymiz! %(plan)s obunasi muvaffaqiyatli xarid qilindi 👑"
 msgstr "Congratulations! The %(plan)s subscription was purchased successfully 👑"
 
-#: users/views.py:396
+#: users/views.py:407
 msgid "Sizda muddatsiz VIP mavjud — xarid shart emas."
 msgstr "You have lifetime VIP — no purchase needed."
 
-#: users/views.py:609
+#: users/views.py:621
 msgid "“%(name)s” kolleksiyasi yaratildi."
 msgstr "The “%(name)s” collection was created."
 
@@ -1650,15 +1676,15 @@ msgstr "The “%(name)s” collection was created."
 msgid "Xush kelibsiz %(username)s! Account yaratildi. Emailingizga tasdiqlash havolasi yubordik (spam papkasini ham tekshiring). Endi username va parolingiz bilan kiring."
 msgstr "Welcome %(username)s! Your account was created. We sent a confirmation link to your email (check the spam folder too). Now sign in with your username and password."
 
-#: users/views.py:393
+#: users/views.py:403
 msgid "Hisobingizda mablag' yetarli emas! Narxi: %(price)s Coin."
 msgstr "You don't have enough balance! Price: %(price)s Coin."
 
-#: users/views.py:759
+#: users/views.py:775
 msgid "%(username)s bloklandi — izohlari yig'ilgan ko'rinadi."
 msgstr "%(username)s was blocked — their comments appear collapsed."
 
-#: users/views.py:762
+#: users/views.py:780
 msgid "%(username)s allaqachon bloklangan."
 msgstr "%(username)s is already blocked."
 
@@ -1682,6 +1708,42 @@ msgstr "Invalid amount entered."
 msgid "Hisobingizda Coin yetarli emas. Iltimos, profile bo'limidan hisobingizni to'ldiring."
 msgstr "You don't have enough Coins. Please top up your balance from the profile section."
 
-#: funding/views.py:51
+#: funding/views.py:53
 msgid "Muvaffaqiyatli! Loyihaga %(coins)s Coin hissa qo'shdingiz. Rahmat!"
 msgstr "Success! You contributed %(coins)s Coin to the project. Thank you!"
+
+#: blog/admin.py:49
+msgid "Chop etish"
+msgstr "Publishing"
+
+#: blog/admin.py:50
+msgid "Bog'lanishlar"
+msgstr "Relations"
+
+#: blog/admin.py:51
+msgid "Tizim"
+msgstr "System"
+
+#: blog/admin.py:60
+msgid "Chop etish (published)"
+msgstr "Publish (published)"
+
+#: blog/admin.py:68
+msgid "Qoralamaga olish (draft)"
+msgstr "Move to draft (draft)"
+
+#: blog/admin.py:66
+msgid "%(n)d maqola chop etildi."
+msgstr "%(n)d article(s) published."
+
+#: blog/admin.py:72
+msgid "%(n)d maqola qoralamaga olindi."
+msgstr "%(n)d article(s) moved to draft."
+
+#: blog/feeds.py:25
+msgid "Drama.Uz — Yangiliklar"
+msgstr "Drama.Uz — News"
+
+#: blog/feeds.py:28
+msgid "K-drama yangiliklari, sharhlar va tavsiyalar"
+msgstr "K-drama news, reviews and recommendations"

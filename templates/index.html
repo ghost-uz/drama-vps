@@ -166,6 +166,37 @@
     {% trans "Siz ko'rganingiz asosida" as t_reco %}
     {% include 'movies/_carousel.html' with carousel_title=t_reco carousel_icon="fa-wand-magic-sparkles" carousel_movies=recommended_movies %}
 
+    {# ── Yangiliklar bloki [V2G-T2] ── #}
+    {% if latest_posts %}
+    <section class="mb-8 md:mb-10">
+        <div class="flex items-center justify-between mb-3 md:mb-4">
+            <h2 class="text-base md:text-xl lg:text-2xl font-bold flex items-center gap-2">
+                <i class="fas fa-newspaper text-[#00cc4c]"></i> {% trans "Yangiliklar" %}
+            </h2>
+            <a href="{% url 'blog:post_list' %}" class="text-xs md:text-sm text-gray-400 hover:text-[#00cc4c] transition">
+                {% trans "Hammasi" %} <i class="fas fa-chevron-right text-[10px]"></i>
+            </a>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {% for post in latest_posts %}
+            <a href="{{ post.get_absolute_url }}" class="group block bg-white/3 border border-white/5 rounded-2xl overflow-hidden hover:border-[#00cc4c]/40 transition-colors">
+                <div class="relative aspect-video bg-gray-800 overflow-hidden">
+                    {% if post.cover %}
+                    <img src="{{ post.cover.url }}" alt="{{ post.title }}" loading="lazy" decoding="async" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-gray-700"><i class="fas fa-newspaper text-2xl"></i></div>
+                    {% endif %}
+                </div>
+                <div class="p-3">
+                    <h3 class="text-xs md:text-sm font-bold text-gray-200 group-hover:text-[#00cc4c] transition-colors line-clamp-2 leading-tight">{{ post.title }}</h3>
+                    <p class="text-[10px] text-gray-600 mt-1.5 uppercase tracking-widest font-bold">{{ post.publish_at|date:"d M Y" }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <!-- Section Header -->
     <div class="flex items-center justify-between mb-4 md:mb-6">
         <h2 class="text-lg md:text-2xl lg:text-3xl font-bold border-l-4 border-green-500 pl-3">
