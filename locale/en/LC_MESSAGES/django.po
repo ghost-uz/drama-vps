@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: drama.uz\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-24 19:00+0000\n"
+"POT-Creation-Date: 2026-07-27 01:11+0000\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -177,6 +177,7 @@ msgstr "Drama.Uz - Korean and Chinese dramas"
 
 #: templates/base.html:211 templates/movies/movie_detail.html:1279
 #: templates/movies/movie_detail_classic.html:296
+#: templates/users/profile.html:580 templates/users/profile.html:589
 msgid "Yopish"
 msgstr "Close"
 
@@ -353,7 +354,7 @@ msgstr "Welcome to DramaUz"
 msgid "Eng so'nggi koreys va xitoy dramalari"
 msgstr "The latest Korean and Chinese dramas"
 
-#: templates/index.html:131
+#: templates/index.html:131 templates/users/profile.html:346
 msgid "Davom ettirish"
 msgstr "Continue watching"
 
@@ -547,7 +548,7 @@ msgstr "Save"
 msgid "Qismlar"
 msgstr "Episodes"
 
-#: templates/movies/movie_detail.html:1140
+#: templates/movies/movie_detail.html:1140 templates/users/profile.html:134
 msgid "Sozlamalar"
 msgstr "Settings"
 
@@ -1215,69 +1216,150 @@ msgstr "Link sent"
 msgid "%(u)s Profili"
 msgstr "%(u)s's Profile"
 
-#: templates/users/profile.html:111
-msgid "Default avatar"
-msgstr "Default avatar"
+#: templates/users/profile.html:70
+msgid "%(u)s avatari"
+msgstr "%(u)s avatar"
 
-#: templates/users/profile.html:142
+#: templates/users/profile.html:104
+msgid "A'zo: %(d)s"
+msgstr "Member since %(d)s"
+
+#: templates/users/profile.html:115
+msgid "%(n)s-darajagacha"
+msgstr "To level %(n)s"
+
+#: templates/users/profile.html:138
+msgid "Chiqish"
+msgstr "Log out"
+
+#: templates/users/profile.html:200
 msgid "Obunachilar"
 msgstr "Followers"
 
-#: templates/users/profile.html:148
+#: templates/users/profile.html:206
 msgid "Obunalar"
 msgstr "Following"
 
-#: templates/users/profile.html:177
+#: templates/users/profile.html:212
 msgid "Ro'yxatda"
 msgstr "In list"
 
-#: templates/users/profile.html:182
-msgid "Tugallangan"
-msgstr "Completed"
-
-#: templates/users/profile.html:186
+#: templates/users/profile.html:218 templates/users/profile.html:331
 msgid "Sharhlar"
 msgstr "Reviews"
 
-#: templates/users/profile.html:191
-msgid "Ballar (XP)"
-msgstr "Points (XP)"
-
-#: templates/users/profile.html:206
-msgid "Shaxsiy Balans"
+#: templates/users/profile.html:238
+msgid "Shaxsiy balans"
 msgstr "Your balance"
 
-#: templates/users/profile.html:225 templates/users/transactions.html:13
+#: templates/users/profile.html:248
+msgid "To'ldirish"
+msgstr "Top up"
+
+#: templates/users/profile.html:250 templates/users/profile.html:254
+#: templates/users/transactions.html:13
 msgid "Tranzaksiyalar tarixi"
 msgstr "Transaction history"
 
-#: templates/users/profile.html:238
+#: templates/users/profile.html:267
 msgid "Statusingiz"
 msgstr "Your status"
 
-#: templates/users/profile.html:240
+#: templates/users/profile.html:269
 msgid "Premium VIP"
 msgstr "Premium VIP"
 
-#: templates/users/profile.html:245
-msgid "Oddiy User"
-msgstr "Regular user"
+#: templates/users/profile.html:271
+msgid "Amal qiladi: %(d)s"
+msgstr "Valid until %(d)s"
 
-#: templates/users/profile.html:246
+#: templates/users/profile.html:274
+msgid "Oddiy user"
+msgstr "Free user"
+
+#: templates/users/profile.html:275
 msgid "Reklamasiz ko'rish uchun VIP oling"
 msgstr "Get VIP for ad-free watching"
 
-#: templates/users/profile.html:332
-msgid "Hali kolleksiya yo'q — <a href=\"%(coll_url)s\" class=\"text-[#00cc4c] hover:underline\">yarating</a>!"
-msgstr "No collections yet — <a href=\"%(coll_url)s\" class=\"text-[#00cc4c] hover:underline\">create one</a>!"
+#: templates/users/profile.html:282
+msgid "Uzaytirish"
+msgstr "Extend"
 
-#: templates/users/profile.html:440
-msgid "30 Kunlik Premium VIP"
-msgstr "30-day Premium VIP"
+#: templates/users/profile.html:282
+msgid "Sotib olish"
+msgstr "Subscribe"
 
-#: templates/users/profile.html:447
+#: templates/users/profile.html:302
+msgid "Profil bo`limlari"
+msgstr "Profile sections"
+
+#: templates/users/profile.html:309
+msgid "Faoliyat"
+msgstr "Activity"
+
+#: templates/users/profile.html:316
+msgid "Ro'yxat"
+msgstr "Watchlist"
+
+#: templates/users/profile.html:324
+msgid "Kolleksiyalar"
+msgstr "Collections"
+
+#: templates/users/profile.html:386
+msgid "Oxirgi harakatlar"
+msgstr "Recent activity"
+
+#: templates/users/profile.html:391
+msgid "To'liq ro'yxat"
+msgstr "Full list"
+
+#: templates/users/profile.html:427
+msgid "Siz"
+msgstr "You"
+
+#: templates/users/profile.html:445
+msgid "Ro'yxat taqsimoti"
+msgstr "Watchlist breakdown"
+
+#: templates/users/profile.html:471
+msgid "To'liq ro'yxatni ochish"
+msgstr "Open full list"
+
+#: templates/users/profile.html:488
+msgid "Boshqarish"
+msgstr "Manage"
+
+#: templates/users/profile.html:517
+msgid "Hali kolleksiya yo'q — sevimli dramalaringizni to'plamga jamlang."
+msgstr "No collections yet — group your favourite dramas into one."
+
+#: templates/users/profile.html:520
+msgid "Yaratish"
+msgstr "Create"
+
+#: templates/users/profile.html:554
+msgid "Spoyler — ochish uchun bosing"
+msgstr "Spoiler — click to reveal"
+
+#: templates/users/profile.html:587
+msgid "VIP obuna"
+msgstr "VIP subscription"
+
+#: templates/users/profile.html:601
+msgid "30 kunlik Premium VIP"
+msgstr "30 days of Premium VIP"
+
+#: templates/users/profile.html:602
+msgid "Reklamalarsiz va barcha VIP doramalarni cheklovsiz tomosha qiling."
+msgstr "Watch ad-free and get unlimited access to every VIP drama."
+
+#: templates/users/profile.html:605
 msgid "Narxi:"
 msgstr "Price:"
+
+#: templates/users/profile.html:615
+msgid "Tasdiqlash va sotib olish"
+msgstr "Confirm and subscribe"
 
 #: templates/users/register.html:5
 msgid "Saytda ro`yxatdan o`tish"
@@ -1639,143 +1721,143 @@ msgstr "You sent %(gift)s to %(actor)s! They will be very happy 🎉"
 msgid "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
 msgstr "Not enough Coins to send a gift. Please top up your balance."
 
-#: users/views.py:564
+#: users/views.py:610
 msgid "Barcha bildirishnomalar o'qilgan deb belgilandi."
 msgstr "All notifications marked as read."
 
-#: users/views.py:592
+#: users/views.py:638
 msgid "Telegram bot uzildi — endi botdan xabar kelmaydi."
 msgstr "Telegram bot disconnected — you'll no longer get messages from the bot."
 
-#: users/views.py:674
+#: users/views.py:720
 msgid "Kolleksiya o'chirildi."
 msgstr "Collection deleted."
 
-#: users/views.py:92
+#: users/views.py:93
 msgid "Tasdiqlash havolasi yaroqsiz yoki muddati o'tgan."
 msgstr "The confirmation link is invalid or expired."
 
-#: users/views.py:110
+#: users/views.py:111
 msgid "Avval sozlamalarda email manzil kiriting."
 msgstr "First add an email address in settings."
 
-#: users/views.py:165
+#: users/views.py:166
 msgid "Telegram orqali kirishda xatolik (imzo yaroqsiz yoki eskirgan)."
 msgstr "Telegram sign-in error (signature invalid or expired)."
 
-#: users/views.py:172
+#: users/views.py:173
 msgid "Xush kelibsiz, %(username)s! Telegram orqali kirdingiz."
 msgstr "Welcome, %(username)s! You signed in via Telegram."
 
-#: users/views.py:420
+#: users/views.py:466
 msgid "Sizda aktiv obuna yo'q."
 msgstr "You have no active subscription."
 
-#: users/views.py:424
+#: users/views.py:470
 msgid "yoqildi"
 msgstr "enabled"
 
-#: users/views.py:424
+#: users/views.py:470
 msgid "o'chirildi"
 msgstr "disabled"
 
-#: users/views.py:579
+#: users/views.py:625
 msgid "Telegram bot hali sozlanmagan."
 msgstr "The Telegram bot is not set up yet."
 
-#: users/views.py:665
+#: users/views.py:711
 msgid "Kolleksiya yangilandi."
 msgstr "Collection updated."
 
-#: users/views.py:95
+#: users/views.py:96
 msgid "%(email)s manzili tasdiqlandi ✅"
 msgstr "%(email)s has been confirmed ✅"
 
-#: users/views.py:112
+#: users/views.py:113
 msgid "Emailingiz allaqachon tasdiqlangan."
 msgstr "Your email is already confirmed."
 
-#: users/views.py:115
+#: users/views.py:116
 msgid "Tasdiqlash havolasi qayta yuborildi."
 msgstr "The confirmation link was resent."
 
-#: users/views.py:332
+#: users/views.py:378
 msgid "Ma'lumotlaringiz muvaffaqiyatli yangilandi!"
 msgstr "Your information was updated successfully!"
 
-#: users/views.py:386
+#: users/views.py:432
 msgid "Obuna rejasi topilmadi yoki sotuvda emas."
 msgstr "The subscription plan was not found or is not on sale."
 
-#: users/views.py:425
+#: users/views.py:471
 msgid "Avto-uzaytirish %(state)s."
 msgstr "Auto-renew %(state)s."
 
-#: users/views.py:453
+#: users/views.py:499
 msgid "Sizda allaqachon kutilayotgan so'rov mavjud!"
 msgstr "You already have a pending request!"
 
-#: users/views.py:472 users/views.py:515
+#: users/views.py:518 users/views.py:561
 msgid "So'rovingiz muvaffaqiyatli yuborildi! Admin tasdiqlashini kuting."
 msgstr "Your request was submitted successfully! Please wait for admin approval."
 
-#: users/views.py:496
+#: users/views.py:542
 msgid "Sizda allaqachon kutilayotgan kripto so'rov mavjud!"
 msgstr "You already have a pending crypto request!"
 
-#: users/views.py:686
+#: users/views.py:732
 msgid "Kolleksiyada eng ko'pi %(max)s ta kino bo'la oladi."
 msgstr "A collection can hold at most %(max)s movies."
 
-#: users/views.py:699
+#: users/views.py:745
 msgid "“%(title)s” qo'shildi."
 msgstr "“%(title)s” was added."
 
-#: users/views.py:765
+#: users/views.py:811
 msgid "“%(username)s” topilmadi."
 msgstr "“%(username)s” was not found."
 
-#: users/views.py:767
+#: users/views.py:813
 msgid "O'zingizni bloklay olmaysiz."
 msgstr "You can't block yourself."
 
-#: users/views.py:794
+#: users/views.py:840
 msgid "%(username)s blokdan olindi."
 msgstr "%(username)s was unblocked."
 
-#: users/views.py:336
+#: users/views.py:382
 msgid "Yangi emailingizga tasdiqlash havolasi yubordik."
 msgstr "We sent a confirmation link to your new email."
 
-#: users/views.py:397
+#: users/views.py:443
 msgid "Tabriklaymiz! %(plan)s obunasi muvaffaqiyatli xarid qilindi 👑"
 msgstr "Congratulations! The %(plan)s subscription was purchased successfully 👑"
 
-#: users/views.py:407
+#: users/views.py:453
 msgid "Sizda muddatsiz VIP mavjud — xarid shart emas."
 msgstr "You have lifetime VIP — no purchase needed."
 
-#: users/views.py:621
+#: users/views.py:667
 msgid "“%(name)s” kolleksiyasi yaratildi."
 msgstr "The “%(name)s” collection was created."
 
-#: users/views.py:71
+#: users/views.py:72
 msgid "Xush kelibsiz %(username)s! Account yaratildi. Emailingizga tasdiqlash havolasi yubordik (spam papkasini ham tekshiring). Endi username va parolingiz bilan kiring."
 msgstr "Welcome %(username)s! Your account was created. We sent a confirmation link to your email (check the spam folder too). Now sign in with your username and password."
 
-#: users/views.py:403
+#: users/views.py:449
 msgid "Hisobingizda mablag' yetarli emas! Narxi: %(price)s Coin."
 msgstr "You don't have enough balance! Price: %(price)s Coin."
 
-#: users/views.py:775
+#: users/views.py:821
 msgid "%(username)s bloklandi — izohlari yig'ilgan ko'rinadi."
 msgstr "%(username)s was blocked — their comments appear collapsed."
 
-#: users/views.py:780
+#: users/views.py:826
 msgid "%(username)s allaqachon bloklangan."
 msgstr "%(username)s is already blocked."
 
-#: users/views.py:80
+#: users/views.py:81
 msgid "Xatolik yuz berdi: %(err)s"
 msgstr "An error occurred: %(err)s"
 
