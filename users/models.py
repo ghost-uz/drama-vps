@@ -146,9 +146,23 @@ class UserMovieList(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Poster ustidagi kichik nishon uchun qisqa nom: to'liq "Ko'rib tugallangan"
+    # mobil kartada ikki qatorga sinib rasmni bosib qolardi.
+    SHORT_STATUS = {
+        1: "Ko'ryapman",
+        2: "Tugallangan",
+        3: "Rejada",
+        4: "To'xtatilgan",
+        5: "Qiziq emas",
+    }
+
     class Meta:
         unique_together = ("profile", "movie")  # Bir profil bitta kinoni qayta qo'sholmaydi
         ordering = ["-updated_at"]
+
+    @property
+    def short_status(self) -> str:
+        return self.SHORT_STATUS.get(self.status, self.get_status_display())
 
     def __str__(self):
         return f"{self.profile.user.username} - {self.movie.title}"

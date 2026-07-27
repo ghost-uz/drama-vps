@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Count
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -178,16 +179,44 @@ def profile_view(request, username):
     person = get_object_or_404(User, username=username)
     profile = person.profile
 
-    watched_history = UserMovieList.objects.filter(profile=profile).select_related("movie")[:5]
+    # 6 ta: shablon gridi 3/6 ustunli — 6 element ikkala kengsizlikda ham
+    # qatorni tekis to'ldiradi (yetim karta yo'q)
+    watched_history = list(
+        UserMovieList.objects.filter(profile=profile).select_related("movie")[:6]
+    )
 
-    # Review modeli user FK ga related_name yo'q, shuning uchun review_set ishlatamiz
+    # Status taqsimoti BITTA aggregat bilan: 'Ro'yxat' tab'ining taqsimot chizig'i
+    # ham, umumiy sanoqlar ham shundan chiqadi (ilgari 2 ta alohida COUNT edi).
+    status_counts = dict(
+        UserMovieList.objects.filter(profile=profile)
+        .values("status")
+        .annotate(n=Count("id"))
+        .values_list("status", "n")
+    )
+    list_count = sum(status_counts.values())
+    # Shablon dict'ga butun-son kalit bilan murojaat qila olmaydi -> tayyor qatorlar.
+    status_rows = [
+        {
+            "label": label,
+            "count": status_counts.get(value, 0),
+            # Nol bo'lganda ham chiziq ko'rinsin uchun min 2% — 0/0 bo'linishi yo'q
+            "percent": round(status_counts.get(value, 0) * 100 / list_count) if list_count else 0,
+        }
+        for value, label in UserMovieList.STATUS_CHOICES
+    ]
+
+    # Review modeli user FK ga related_name yo'q, shuning uchun review_set ishlatamiz.
+    # is_hidden=False HAM sanoqda, HAM ro'yxatda — moderatsiya yashirgan izoh ommaviy
+    # profilda na ko'rinadi, na sanaladi (aks holda "3 sharh" yozib 1 tasini ko'rsatardik).
+    public_reviews = person.review_set.filter(is_hidden=False)
     stats = {
-        "watched_count": UserMovieList.objects.filter(profile=profile, status=2).count(),
-        "list_count": profile.movie_list.count(),
-        "review_count": person.review_set.count(),
+        "watched_count": status_counts.get(2, 0),
+        "list_count": list_count,
+        "review_count": public_reviews.count(),
         "followers_count": profile.followers.count(),
         "following_count": profile.following.count(),
     }
+    reviews = list(public_reviews.select_related("movie").order_by("-created_at")[:6])
 
     # Follow holatini tekshirish — .exists() bilan, barcha followerlarni yuklamasdan
     is_following = False
@@ -199,20 +228,37 @@ def profile_view(request, username):
             blocker=request.user.profile, blocked=profile
         ).exists()
 
-    # [V2B-T4] Vitrina: mehmonga faqat OMMAVIY kolleksiyalar; egaga hammasi
-    collections_qs = profile.collections.all()
+    # [V2B-T4] Vitrina: mehmonga faqat OMMAVIY kolleksiyalar; egaga hammasi.
+    # movie_count annotatsiyasi — shablonda {{ c.movies.count }} har kolleksiya
+    # uchun alohida COUNT so'rovi qilardi (N+1).
+    collections_qs = profile.collections.annotate(movie_count=Count("movies"))
     if request.user != person:
         collections_qs = collections_qs.filter(is_public=True)
+
+    # 'Davom ettirish' — faqat o'z profilida (shaxsiy progress) [P6-T3]
+    cw = list(continue_watching(person, limit=6)) if request.user == person else None
+
+    # Kinematik banner foni: eng so'nggi faollikdagi poster. ATAYLAB dekorativ —
+    # shablonda alt="" + aria-hidden bilan chiqadi, sarlavha sizdirmaydi
+    # (mehmonga continue_watching ko'rinmasligi testi shunga tayanadi).
+    if cw:
+        backdrop = cw[0].episode.movie
+    elif watched_history:
+        backdrop = watched_history[0].movie
+    else:
+        backdrop = None
 
     context = {
         "person": person,
         "profile": profile,
         "watched_history": watched_history,
+        "status_rows": status_rows,
+        "reviews": reviews,
+        "backdrop": backdrop,
         "is_following": is_following,
         "is_blocked": is_blocked,
         "collections": collections_qs[:6],
-        # 'Davom ettirish' — faqat o'z profilida (shaxsiy progress) [P6-T3]
-        "continue_watching": continue_watching(person, limit=6) if request.user == person else None,
+        "continue_watching": cw,
         **stats,
     }
     return render(request, "users/profile.html", context)

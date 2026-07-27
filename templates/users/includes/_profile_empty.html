@@ -1,0 +1,19 @@
+{% comment %}
+Profil tab'larining ixcham bo'sh holati.
+
+Ilgari bo'sh "Oxirgi harakatlar" bo'limi 250px balandlikdagi katta karta edi —
+hech qanday ma'lumot bermay ekranni egallardi. Bu variant bir qatorga sig'adi.
+
+Ishlatilishi:
+    {% include "users/includes/_profile_empty.html" with icon="fa-film" text="Ro'yxat hali bo'sh." %}
+
+`col-span-full` — include grid ichida chaqirilsa butun qatorni egallashi uchun
+(grid'dan tashqarida hech qanday ta'sir qilmaydi).
+{% endcomment %}
+<p class="col-span-full flex items-center gap-3 bg-white/[0.03] border border-dashed border-white/10
+          rounded-2xl px-4 py-5 text-sm text-gray-500">
+    <span class="w-9 h-9 shrink-0 rounded-xl bg-white/5 flex items-center justify-center text-gray-600">
+        <i class="fas {{ icon|default:'fa-inbox' }}" aria-hidden="true"></i>
+    </span>
+    {{ text }}
+</p>
