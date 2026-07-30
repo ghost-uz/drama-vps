@@ -4,7 +4,7 @@ from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.generic import RedirectView, TemplateView
 
 from blog.sitemaps import PostSitemap
@@ -117,6 +117,46 @@ urlpatterns = [
     path(
         "accounts/signup/",
         RedirectView.as_view(pattern_name="users:register", permanent=True, query_string=True),
+    ),
+    # Parol tiklash — yuqoridagi mantiqning aynan o'zi. Anonim foydalanuvchiga
+    # 200 qaytaradigan TO'RTTA allauth yo'li bor edi; `password/change/` va
+    # `password/set/` esa login talab qiladi (302) -> indekslanmaydi, tegilmadi.
+    #
+    # ⚠️ `key/done/` `key/<str:key>/` dan OLDIN turishi SHART: `<str:key>` bitta
+    # segmentga mos keladi, ya'ni "done" ni ham ushlab ketardi.
+    path(
+        "accounts/password/reset/done/",
+        RedirectView.as_view(
+            pattern_name="users:password_reset_done", permanent=True, query_string=True
+        ),
+    ),
+    path(
+        "accounts/password/reset/key/done/",
+        RedirectView.as_view(
+            pattern_name="users:password_reset_complete", permanent=True, query_string=True
+        ),
+    ),
+    # Token TASHLANADI va foydalanuvchi boshidan boshlaydi: allauth kaliti
+    # `<uidb36>-<key>`, Django'niki `<uidb64>/<token>` — formatlar bir-biriga
+    # O'TMAYDI, ya'ni tasdiqlash sahifasiga yo'naltirish yaroqsiz token berardi.
+    # Amalda bu yo'l o'lik: haqiqiy tiklash emaillarini Django'ning
+    # PasswordResetView (users/urls.py, AsyncPasswordResetForm) yuboradi va ular
+    # `/users/password-reset/...` ga ishora qiladi; allauth formatidagi kalit
+    # faqat `/accounts/password/reset/` orqali yaralardi — u endi yopiq.
+    # ⚠️ `re_path` + NOMSIZ guruh, `path("<str:key>")` EMAS: RedirectView
+    # ushlangan kwargs'ni `reverse()` ga uzatadi (generic/base.py:250), ya'ni
+    # `key` argumenti argumentsiz `users:password_reset` ga borib NoReverseMatch
+    # -> 500 berardi. Nomsiz naqsh hech narsa ushlamaydi. Kenglik allauth'niki
+    # bilan bir xil (uning `(?P<key>.+)` i ham `/` ga toqat qiladi).
+    re_path(
+        r"^accounts/password/reset/key/.+/$",
+        RedirectView.as_view(pattern_name="users:password_reset", permanent=True),
+    ),
+    path(
+        "accounts/password/reset/",
+        RedirectView.as_view(
+            pattern_name="users:password_reset", permanent=True, query_string=True
+        ),
     ),
     # allauth — Google OAuth callback yo'llari (/accounts/google/login/...) [P6-T2].
     # Birinchi-tomon login/register MAXSUS (users:) — allauth account view'lariga

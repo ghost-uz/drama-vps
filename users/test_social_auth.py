@@ -322,3 +322,49 @@ def test_allauth_internal_reverse_is_not_shadowed():
     """
     assert reverse("account_login") == "/accounts/login/"
     assert reverse("account_signup") == "/accounts/signup/"
+
+
+@pytest.mark.parametrize(
+    ("allauth_path", "target_name"),
+    [
+        ("/accounts/password/reset/", "users:password_reset"),
+        ("/accounts/password/reset/done/", "users:password_reset_done"),
+        ("/accounts/password/reset/key/done/", "users:password_reset_complete"),
+        # Token TASHLANADI: allauth kaliti `<uidb36>-<key>`, Django'niki
+        # `<uidb64>/<token>` — formatlar o'tmaydi, shu bois "boshidan boshlang".
+        ("/accounts/password/reset/key/abc123-xyz/", "users:password_reset"),
+    ],
+)
+@pytest.mark.django_db
+def test_allauth_password_reset_paths_redirect_to_first_party(client, allauth_path, target_name):
+    resp = client.get(allauth_path)
+    assert resp.status_code == 301, allauth_path
+    assert resp["Location"] == reverse(target_name), allauth_path
+
+
+@pytest.mark.django_db
+def test_allauth_reset_key_done_is_not_swallowed_by_key_converter(client):
+    """`<str:key>` bitta segmentga mos keladi — "done" ni ham ushlab ketardi.
+
+    Naqshlar tartibi (key/done/ AVVAL) shuni kafolatlaydi; kimdir ularning
+    o'rnini almashtirsa bu test yiqiladi.
+    """
+    resp = client.get("/accounts/password/reset/key/done/")
+    assert resp["Location"] == reverse("users:password_reset_complete")
+    assert resp["Location"] != reverse("users:password_reset")
+
+
+@pytest.mark.django_db
+def test_login_required_allauth_password_paths_are_untouched(client):
+    """`password/change/` va `password/set/` login talab qiladi -> indekslanmaydi.
+
+    Ular ATAYLAB yo'naltirilmagan; 301 ga aylanib qolsa, tizimga kirgan
+    foydalanuvchining parol-o'zgartirish oqimi jimgina buzilardi.
+    """
+    for path_ in ("/accounts/password/change/", "/accounts/password/set/"):
+        assert client.get(path_).status_code != 301, path_
+
+
+@pytest.mark.django_db
+def test_allauth_password_reset_reverse_is_not_shadowed():
+    assert reverse("account_reset_password") == "/accounts/password/reset/"
