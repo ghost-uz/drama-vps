@@ -263,3 +263,62 @@ def test_google_login_entrypoint_redirects_to_google(client):
     resp = client.get("/accounts/google/login/")
     assert resp.status_code == 302
     assert "accounts.google.com" in resp["Location"]
+
+
+# ---------------------------------------------------------------------------
+# allauth'ning O'Z account sahifalari -> birinchi-tomon `users:` ga 301.
+# `include("allauth.urls")` ularni ham ulaydi; havola qilinmasa-da ochiq
+# qolib, `users:` sahifalarining indekslanadigan DUBLIKATIGA aylanardi.
+# Naqshlar config/urls.py da allauth include'idan OLDIN turadi.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_allauth_login_page_redirects_permanently_to_first_party(client):
+    resp = client.get("/accounts/login/")
+    # 301 (302 EMAS): faqat doimiy yo'naltirish reyting signalini birlashtiradi.
+    assert resp.status_code == 301
+    assert resp["Location"] == reverse("users:login")
+
+
+@pytest.mark.django_db
+def test_allauth_signup_page_redirects_permanently_to_register(client):
+    # signup -> REGISTER (login EMAS): ekvivalent bo'lmagan sahifaga yo'naltirish
+    # Google uchun "soft 404" signali bo'lib, birlashtirishning o'zini buzardi.
+    resp = client.get("/accounts/signup/")
+    assert resp.status_code == 301
+    assert resp["Location"] == reverse("users:register")
+
+
+@pytest.mark.django_db
+def test_allauth_redirect_preserves_next_query(client):
+    # `?next=` yo'qolsa, login'dan keyin foydalanuvchi mo'ljallangan sahifaga
+    # emas, bosh sahifaga tushardi (LoginView `next` ni o'zi hurmat qiladi).
+    resp = client.get("/accounts/login/?next=/users/settings/")
+    assert resp.status_code == 301
+    assert resp["Location"] == f"{reverse('users:login')}?next=/users/settings/"
+
+
+@pytest.mark.django_db
+def test_allauth_redirect_target_never_carries_language_prefix(client):
+    """301 brauzerda DOIMIY keshlanadi -> manzil tilga bog'liq BO'LMASLIGI shart.
+
+    Aks holda bir foydalanuvchining brauzeri `/en/users/login/` ni abadiy
+    keshlab qo'yishi mumkin edi. `/accounts/` i18n_patterns'dan tashqarida va
+    `prefix_default_language=False`, shu bois LocaleMiddleware prefikssiz
+    yo'lda tilni LANGUAGE_CODE'ga majburlaydi. Kimdir `prefix_default_language`
+    ni yoqsa yoki `accounts/` ni i18n_patterns ichiga ko'chirsa — bu yiqiladi.
+    """
+    resp = client.get("/accounts/login/", headers={"accept-language": "en"})
+    assert resp["Location"] == "/users/login/"
+
+
+@pytest.mark.django_db
+def test_allauth_internal_reverse_is_not_shadowed():
+    """Yo'naltirish naqshlari ATAYLAB NOMSIZ — allauth ichki reverse'i omon qolsin.
+
+    allauth `reverse("account_login")`/`account_signup` ni o'z oqimlarida
+    chaqiradi; naqshlarga o'sha nomlar berilsa reverse ularga bog'lanib qolardi.
+    """
+    assert reverse("account_login") == "/accounts/login/"
+    assert reverse("account_signup") == "/accounts/signup/"

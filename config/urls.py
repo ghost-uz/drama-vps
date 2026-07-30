@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
-from django.views.generic import TemplateView
+from django.views.generic import RedirectView, TemplateView
 
 from blog.sitemaps import PostSitemap
 from core.agent_discovery import agent_index
@@ -81,6 +81,42 @@ urlpatterns = [
         sitemap,
         {"sitemaps": {"videos": VideoSitemap}, "template_name": "sitemaps/sitemap-video.xml"},
         name="sitemap_video",
+    ),
+    # -- allauth'ning O'Z account sahifalari -> birinchi-tomon `users:` ga 301 --
+    # `include("allauth.urls")` BUTUN to'plamni ulaydi, shu jumladan hech
+    # qayerdan havola qilinmaydigan `/accounts/login/` va `/accounts/signup/`.
+    # Ochiq qolgani uchun ular `users:` sahifalarining DUBLIKATI bo'lib
+    # indekslanardi (canonical'siz, `<meta robots>`siz), ustiga robots.txt
+    # `/users/` ni yopib `/accounts/` ni yopmaydi — ya'ni haqiqiy sahifa
+    # berkitilib, nusxasi ochiq turardi. `/accounts/login/` bundan tashqari
+    # bo'sh `client_id` bilan buzuq "Google bilan davom etish" tugmasini
+    # ko'rsatardi (birinchi-tomon sahifa uni `google_login_enabled` bilan
+    # to'g'ri yashiradi).
+    #
+    # 301, `Disallow` EMAS: robot bloklangan URL'ni skanerlay olmaydi, demak
+    # 301 ni ham KO'RMAYDI va URL indeksda snippetsiz osilib qolardi.
+    # Yo'naltirish esa signalni haqiqiy sahifaga BIRLASHTIRADI.
+    #
+    # allauth include'idan OLDIN turishi SHART — Django birinchi mos kelgan
+    # naqshni oladi. `/accounts/google/login/` boshqa yo'l, ta'sirlanmaydi.
+    #
+    # ⚠️ ATAYLAB NOMSIZ: allauth ichkarida `reverse("account_login")` va
+    # `reverse("account_signup")` chaqiradi (masalan ACCOUNT_SIGNUP_REDIRECT_URL
+    # oqimida). Bu naqshlarga o'sha nomlar berilsa reverse ularga bog'lanib
+    # qolardi; nomsiz naqsh faqat KIRUVCHI so'rovni ushlaydi.
+    #
+    # Manzil TILGA BOG'LIQ EMAS — 301 brauzerda doimiy keshlanadi, o'zgaruvchan
+    # manzil xato tilni abadiy keshlab qo'yardi. `prefix_default_language=False`
+    # bo'lgani uchun Django LocaleMiddleware prefikssiz yo'lda tilni
+    # LANGUAGE_CODE'ga MAJBURLAYDI (django/middleware/locale.py) -> reverse()
+    # doim prefikssiz uz URL beradi. Buni test qotirib turadi.
+    path(
+        "accounts/login/",
+        RedirectView.as_view(pattern_name="users:login", permanent=True, query_string=True),
+    ),
+    path(
+        "accounts/signup/",
+        RedirectView.as_view(pattern_name="users:register", permanent=True, query_string=True),
     ),
     # allauth — Google OAuth callback yo'llari (/accounts/google/login/...) [P6-T2].
     # Birinchi-tomon login/register MAXSUS (users:) — allauth account view'lariga
