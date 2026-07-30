@@ -10,7 +10,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"]
 
 # Email — konsolga chiqadi
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "admin@drama.uz"
+DEFAULT_FROM_EMAIL = "admin@dramauz.com"
 
 # Lokal HTTP ishlashi uchun HTTPS/secure-cookie majburlanmaydi
 SECURE_SSL_REDIRECT = False

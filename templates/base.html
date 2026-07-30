@@ -162,15 +162,19 @@
     <script src="{% static 'js/app.js' %}" defer></script>
     <script src="{% static 'js/vendor/alpine-csp.min.js' %}" defer></script>
 
+    {% comment %} WebSite sxemasi [DOMEN-KO'CHISH]: URL'lar so'rov xostidan quriladi,
+    QATTIQ KODLANMAYDI. Qattiq kodlangan eski domen qidiruv tizimiga "bu sahifa
+    boshqa saytniki" degan signal beradi — aynan duplikat/klon shubhasini
+    keltirib chiqaradigan holat. canonical va og:url ham shu naqshda ishlaydi. {% endcomment %}
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Drama.Uz",
-      "url": "https://drama.uz/",
+      "url": "{{ request.scheme }}://{{ request.get_host }}/",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://drama.uz/search/?q={search_term_string}",
+        "target": "{{ request.scheme }}://{{ request.get_host }}{% url 'drama:search' %}?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
     }

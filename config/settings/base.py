@@ -245,6 +245,12 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000  # 500 MB
 # -- GOOGLE CLOUD STORAGE (CDN) konfiguratsiyasi --
 # GCS faqat prod.py da yoqiladi (service-account kaliti kerak). Default (base/dev/test):
 # lokal fayl tizimi — tashqi bog'liqliksiz ishlaydi.
+#
+# [DOMEN-KO'CHISH 2026-07-30] Sayt dramauz.com'ga ko'chdi, CDN esa ATAYLAB
+# cdn.drama.uz'da qoldi: GCS bucket nomi custom-domen bilan bir xil bo'lishi
+# SHART, ya'ni ko'chirish = yangi bucket + barcha obyektlarni nusxalash.
+# Qidiruv tizimlari uchun bu neytral — duplikat-kontent faqat SAHIFA domeni
+# bo'yicha baholanadi, statik/asset xosti bo'yicha emas.
 GS_PROJECT_ID = "my-drama-uz"
 GS_BUCKET_NAME = "cdn.drama.uz"
 GS_QUERYSTRING_AUTH = False
@@ -355,7 +361,7 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # -- BILDIRISHNOMA (Telegram + email) [P3-T3] --
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="admin@drama.uz")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="admin@dramauz.com")
 
 # -- TELEGRAM LOGIN (Login Widget + Mini App) [P6-T2] --
 # HMAC tekshiruvi TELEGRAM_LOGIN_BOT_TOKEN bilan (default: bildirishnoma boti bilan
@@ -373,7 +379,7 @@ TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default=TELEGRAM_LOGIN_B
 # X-Telegram-Bot-Api-Secret-Token header'ida qaytaradi (soxta so'rov 403).
 TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
 # Bot xabarlari va boshqa kanal-tashqarisidagi absolyut havolalar bazasi.
-SITE_URL = config("SITE_URL", default="https://drama.uz").rstrip("/")
+SITE_URL = config("SITE_URL", default="https://dramauz.com").rstrip("/")
 
 # -- TMDB IMPORT [V2D-T1] --
 # api.themoviedb.org kaliti: v3 kalit (api_key param) ham, v4 Read Access Token
@@ -458,7 +464,7 @@ SIMPLE_JWT = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Drama.uz API",
-    "DESCRIPTION": "drama.uz striming platformasi REST API (mobil/SPA/integratsiyalar).",
+    "DESCRIPTION": "dramauz.com striming platformasi REST API (mobil/SPA/integratsiyalar).",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }

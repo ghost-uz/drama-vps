@@ -510,7 +510,7 @@ def topup_view(request):
                 f"👤 <b>Foydalanuvchi:</b> @{request.user.username}\n"
                 f"💵 <b>To'lov summasi:</b> {topup.amount_uzs} UZS\n"
                 f"💎 <b>Beriladigan Coin:</b> {topup.points} Coin\n\n"
-                f"👉 https://drama.uz/admin/users/topuprequest/"
+                f"👉 {settings.SITE_URL}/admin/users/topuprequest/"
             )
             notify_telegram_task.delay(msg)
 
@@ -553,7 +553,7 @@ def crypto_topup_view(request):
                 f"👤 <b>Foydalanuvchi:</b> @{request.user.username}\n"
                 f"💵 <b>To'lov summasi:</b> {topup.amount_usdt} USDT (TON)\n"
                 f"🪙 <b>Beriladigan Coin:</b> {topup.points} Coin\n\n"
-                f"👉 https://drama.uz/admin/users/cryptotopuprequest/"
+                f"👉 {settings.SITE_URL}/admin/users/cryptotopuprequest/"
             )
             notify_telegram_task.delay(msg)
 

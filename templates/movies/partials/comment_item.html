@@ -50,7 +50,7 @@
                 {% endif %}
                 <div>
                     <h4 class="font-black text-sm tracking-tight flex items-center gap-2">
-                        <a href="https://drama.uz/users/profile/{{ review.user.username }}/" class="hover:text-[#00cc4c] transition-colors">
+                        <a href="{% url 'users:profile' review.user.username %}" class="hover:text-[#00cc4c] transition-colors">
                             {{ review.user.username }}
                         </a>
                         {% if review.user.is_superuser %}

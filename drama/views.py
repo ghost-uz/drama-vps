@@ -106,7 +106,10 @@ def robots_txt(request):
         "Allow: /",
         f"Sitemap: {request.scheme}://{request.get_host()}/sitemap.xml",
         f"Sitemap: {request.scheme}://{request.get_host()}/sitemap-video.xml",
-        "Host: drama.uz",
+        # `Host:` Yandex direktivasi — so'rov xostidan quriladi. Qattiq
+        # kodlangan eski domen bu yerda "kanonik sayt boshqa joyda" degan
+        # signal berib, domen-ko'chishni buzardi [DOMEN-KO'CHISH].
+        f"Host: {request.get_host()}",
     ]
     return HttpResponse("\n".join(lines), content_type="text/plain")
 

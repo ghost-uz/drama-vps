@@ -29,8 +29,8 @@ class Command(BaseCommand):
         parser.add_argument("video_id", help="Mavjud Bunny video GUID (jonli tekshiruv shu bilan)")
         parser.add_argument(
             "--referer",
-            default="https://drama.uz/",
-            help="Ruxsat etilgan referer (default: https://drama.uz/)",
+            default="https://dramauz.com/",
+            help="Ruxsat etilgan referer (default: https://dramauz.com/)",
         )
         parser.add_argument(
             "--strict", action="store_true", help="Muammo topilsa exit 1 (CI/cron uchun)"

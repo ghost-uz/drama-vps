@@ -14,6 +14,16 @@ DEBUG = False
 SECRET_KEY = config("SECRET_KEY")  # noqa: F405
 
 ALLOWED_HOSTS = [
+    # -- Asosiy (kanonik) domen [DOMEN-KO'CHISH 2026-07-30] --
+    "dramauz.com",
+    "www.dramauz.com",
+    # -- Eski domen: 301 bilan yo'naltiriladi, LEKIN ro'yxatda QOLISHI SHART --
+    # nginx (va Cloudflare edge) drama.uz'ni 301 qiladi, ammo tashqi
+    # provayder callback'lari (/webhooks/, /billing/click|payme) ATAYLAB
+    # yo'naltirilmaydi — 301 POST'ni GET'ga aylantirib to'lov/webhook'ni
+    # buzardi. Ular Django'ga `Host: drama.uz` bilan yetib keladi, shu bois
+    # bu ikki host ALLOWED_HOSTS'da qoladi. Barcha provayder panellari
+    # dramauz.com'ga o'tgach olib tashlash mumkin (docs/ops/domain-migration.md).
     "drama.uz",
     "www.drama.uz",
     # Origin server IP — to'g'ridan murojaat (Cloudflare'ni chetlab sinash) uchun.
@@ -23,7 +33,7 @@ ALLOWED_HOSTS = [
     "159.89.100.207",
 ]
 # Qo'shimcha hostlar .env'dan — yangi server IP'sini DNS'gacha sinash uchun:
-#   EXTRA_ALLOWED_HOSTS=164.92.1.2,staging.drama.uz
+#   EXTRA_ALLOWED_HOSTS=164.92.1.2,staging.dramauz.com
 ALLOWED_HOSTS += config("EXTRA_ALLOWED_HOSTS", default="", cast=Csv())  # noqa: F405
 # Konteyner healthcheck'i (curl http://localhost:8000/healthz) uchun SHART —
 # bularsiz web hech qachon "healthy" bo'lmaydi va deploy.sh har safar
@@ -58,17 +68,23 @@ SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_DOMAIN = ".drama.uz"
+# Apex + www o'rtasida bo'lishish uchun nuqtali domen. FAQAT kanonik domen:
+# brauzer o'zi turgan domenga tegishli bo'lmagan Domain= atributli cookie'ni
+# RAD ETADI, ya'ni bu qiymatni eski domen uchun ham "ishlatib bo'lmaydi".
+# drama.uz baribir faqat 301 qaytaradi — unda sessiya/CSRF kerak emas.
+CSRF_COOKIE_DOMAIN = ".dramauz.com"
 
 # -- CORS / CSRF --
+# Eski domen ATAYLAB yo'q: drama.uz'dan forma yuborilmaydi (301 GET'ga
+# aylantiradi), webhook'lar esa @csrf_exempt — ishonchli-origin talab qilmaydi.
 CORS_ALLOWED_ORIGINS = [
-    "https://drama.uz",
-    "https://www.drama.uz",
+    "https://dramauz.com",
+    "https://www.dramauz.com",
     "https://web.telegram.org",
 ]
 CSRF_TRUSTED_ORIGINS = [
-    "https://drama.uz",
-    "https://www.drama.uz",
+    "https://dramauz.com",
+    "https://www.dramauz.com",
     "https://web.telegram.org",
 ]
 
@@ -81,7 +97,7 @@ EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)  # noqa: F405
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)  # noqa: F405
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")  # noqa: F405
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")  # noqa: F405
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="admin@drama.uz")  # noqa: F405
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="admin@dramauz.com")  # noqa: F405
 
 # -- Google Cloud Storage (CDN) --
 # Kalit yo'li: .env GS_CREDENTIALS_FILE (prod'da /app/secrets/gcs.json —

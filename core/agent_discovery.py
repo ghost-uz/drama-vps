@@ -1,15 +1,15 @@
 """Agent-discovery indeksi [DNS-AID] — /.well-known/agent-index.json.
 
-DNS-AID (draft-mozleywilliams-dnsop-dnsaid) `_index._agents.drama.uz` SVCB
+DNS-AID (draft-mozleywilliams-dnsop-dnsaid) `_index._agents.dramauz.com` SVCB
 yozuvi agentlarni shu hostga yo'naltiradi; ular esa bu yerdan mashina-o'qiydigan
 xizmat xaritasini oladi (well-known entrypoint, RFC 8615).
 
-MUHIM (halollik): drama.uz avtonom agent protokolini (A2A/MCP) YURITMAYDI —
+MUHIM (halollik): dramauz.com avtonom agent protokolini (A2A/MCP) YURITMAYDI —
 u ommaviy REST API + OpenAPI taqdim etadi. Shu sabab bu hujjat "agent-card" EMAS,
 balki mavjud mashina-o'qiydigan resurslarning ROSTGO'Y indeksi:
   service-desc — OpenAPI sxemasi (mashina), service-doc — Swagger UI (inson).
 Havolalar absolyut: hujjat mustaqil olinadi/saqlanadi (kontekstdan uzilgan), shu
-bois to'liq URL kerak. prod'da https://drama.uz/... (SECURE_PROXY_SSL_HEADER
+bois to'liq URL kerak. prod'da https://dramauz.com/... (SECURE_PROXY_SSL_HEADER
 Cloudflare orqasida https sxemani, ALLOWED_HOSTS kanonik hostni kafolatlaydi).
 """
 
@@ -25,7 +25,7 @@ def agent_index(request: HttpRequest) -> JsonResponse:
         {
             "name": "Drama.uz",
             "description": (
-                "drama.uz striming platformasi — ommaviy REST API va OpenAPI hujjatlari."
+                "dramauz.com striming platformasi — ommaviy REST API va OpenAPI hujjatlari."
             ),
             "homepage": request.build_absolute_uri("/"),
             "services": [

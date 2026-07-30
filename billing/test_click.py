@@ -273,7 +273,7 @@ def test_complete_refund_after_paid_then_cancel(client, click_settings):
 @pytest.mark.django_db
 def test_checkout_url_built(click_settings):
     order = _order(amount_uzs=5000)
-    url = click.checkout_url(order, return_url="https://drama.uz/users/transactions/")
+    url = click.checkout_url(order, return_url="https://dramauz.com/users/transactions/")
     assert url.startswith("https://my.click.uz/services/pay?")
     assert f"transaction_param={order.id}" in url
     assert "service_id=12345" in url
