@@ -167,7 +167,9 @@ class MoviesView(HxPartialListMixin, GenreYearMixin, ListView):
         from drama import recommendations
 
         context = super().get_context_data(**kwargs)
-        context["top_sliders"] = TopSlider.objects.all()
+        # Hero slayder [P8-T2 / hero v2]: select_related + qism-sanog'i + qoralama
+        # kinolarni chiqarib tashlash — hammasi `for_home()` ichida (N+1 yo'q).
+        context["top_sliders"] = TopSlider.objects.for_home()
         # Trenddagi karusel — keshdan (recompute_trending_movies to'ldiradi) [P8-T2]
         context["trending_movies"] = recommendations.trending_movies()
         # Yangiliklar bloki — eng so'nggi ommaviy maqolalar (keshlangan) [V2G-T2]

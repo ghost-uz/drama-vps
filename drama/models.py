@@ -143,18 +143,168 @@ class Actor(ImageOptimizationMixin, models.Model):
         return self.name
 
 
+def published_q(prefix: str = "") -> models.Q:
+    """``MovieQuerySet.published()`` shartining qayta ishlatiladigan Q ko'rinishi.
+
+    Xuddi shu shart ikki joyda kerak: `Movie` ustidan to'g'ridan-to'g'ri
+    (``published()``) va BOG'LANGAN modeldan (``TopSlider.movie``). Shartni
+    ikki marta yozish — aynan `MovieQuerySet` docstring'i ogohlantirgan xavf:
+    birini yangilab ikkinchisini unutsa, qoralama public'ga sizib chiqadi.
+
+    ``prefix`` — bog'lanish yo'li, masalan ``published_q("movie")``.
+    """
+    p = f"{prefix}__" if prefix else ""
+    return models.Q(**{f"{p}status": Movie.Status.PUBLISHED}) | models.Q(
+        **{
+            f"{p}status": Movie.Status.SCHEDULED,
+            f"{p}publish_at__lte": timezone.now(),
+        }
+    )
+
+
+class TopSliderQuerySet(models.QuerySet):
+    def for_home(self):
+        """Bosh sahifa hero-slayderi uchun tayyor queryset.
+
+        Uchta ishni BITTA so'rovda bajaradi:
+
+        1. ``select_related("movie")`` — har slayd uchun alohida so'rov emas
+           (N+1 yo'q; xossalar `movie`ga tegadi).
+        2. ``live_episode_count`` — chiqqan qismlar soni, kartadagi
+           "N-qism" yozuvi uchun (`with_card_data()` bilan bir xil semantika).
+        3. Ko'rinish invarianti — kinosi QORALAMA bo'lgan slayd public bosh
+           sahifada CHIQMAYDI. `movie` bo'sh slaydlar (eski bannerlar)
+           o'zgarishsiz qoladi.
+        """
+        return (
+            self.select_related("movie")
+            .annotate(live_episode_count=models.Count("movie__episodes", distinct=True))
+            .filter(models.Q(movie__isnull=True) | published_q("movie"))
+            # `image` endi blank=True (kino tanlansa shart emas) — demak
+            # "kinosi ham, rasmi ham yo'q" yozuv paydo bo'lishi MUMKIN.
+            # Shablonda `.url` ValueError beradi, shuning uchun shu yerda
+            # tashlab yuboriladi: `for_home()` dan chiqqan HAR slaydda rasm bor.
+            .exclude(movie__isnull=True, image="")
+            # ORDER BY ni QO'LDA berish SHART — `Meta.ordering` ga tayanib
+            # bo'lmaydi: aggregat `annotate()` (yuqoridagi Count) standart
+            # tartiblashni JIMGINA tashlab yuboradi, chunki tartib ustunlari
+            # GROUP BY ga qo'shilsa COUNT natijasi buzilardi. Bu yerda
+            # unutilsa — Postgres qatorlarni ixtiyoriy tartibda qaytaradi
+            # va slaydlar ketma-ketligi so'rovdan so'rovga o'zgarib turadi.
+            .order_by("sort_order", "id")
+        )
+
+
 class TopSlider(ImageOptimizationMixin, models.Model):
+    """Bosh sahifa hero-slayderi.
+
+    Ikki rejimda ishlaydi:
+
+    * **Kino rejimi** (tavsiya etiladi) — ``movie`` to'ldirilgan bo'lsa poster,
+      nom va havola KINODAN olinadi. Admin faqat kinoni tanlaydi; nomi
+      tarjima qilinganda (modeltranslation) slayder ham o'sha tilda chiqadi.
+    * **Banner rejimi** (eski yozuvlar) — ``movie`` bo'sh bo'lsa qo'lda
+      yuklangan ``image`` + ``name`` + ``target_url`` ishlatiladi.
+
+    Shablon HECH QACHON ``if slider.movie`` yozmaydi — quyidagi
+    ``card_image``/``display_title``/``link_url`` xossalari ikki rejimni bitta
+    interfeysga yig'adi (bitta joyda o'zgartirish yetarli).
+    """
+
     OPTIMIZE_IMAGE_FIELDS = {"image": {"max_size": (1280, 1280), "quality": 80}}
 
-    name = models.CharField("Slayder nomi", max_length=100, null=True)
-    rank = models.CharField("Rank matni", max_length=50)
+    objects = TopSliderQuerySet.as_manager()
+
+    # Ilgari `TopSlider` `Movie`dan OLDIN e'lon qilingan — shuning uchun string
+    # havola ("Movie"). SET_NULL: kino o'chsa slayder banner rejimiga tushadi,
+    # butun slayd yo'qolib ketmaydi.
+    movie = models.ForeignKey(
+        "Movie",
+        verbose_name="Kino",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="top_sliders",
+        help_text="Tanlansa: poster, nom va havola shu kinodan olinadi.",
+    )
+    name = models.CharField("Slayder nomi", max_length=100, null=True, blank=True)
+    rank = models.CharField("Rank matni", max_length=50, blank=True)
+    sort_order = models.PositiveSmallIntegerField(
+        "Tartib",
+        default=0,
+        db_index=True,
+        help_text="Kichik raqam oldinda turadi.",
+    )
     image = models.ImageField(
-        "Slayder rasmi", upload_to="sliders/", validators=[ImageFileValidator()]
+        "Slayder rasmi",
+        upload_to="sliders/",
+        blank=True,
+        validators=[ImageFileValidator()],
+        help_text="Kino tanlangan bo'lsa shart emas — kino posteri ishlatiladi.",
     )
     target_url = models.URLField("Yo'naltiriluvchi URL", blank=True)
 
+    class Meta:
+        # ATAYLAB: ilgari `TopSlider.objects.all()` TARTIBSIZ edi — Postgres
+        # qatorlarni ixtiyoriy tartibda qaytaradi, ya'ni slaydlar ketma-ketligi
+        # (va qaysi biri birinchi/aktiv bo'lishi) so'rovdan so'rovga o'zgarib
+        # turardi. `rank` CharField bo'lgani uchun unga tartiblab bo'lmaydi
+        # ("10" < "2") — shuning uchun alohida raqamli `sort_order`.
+        ordering = ("sort_order", "id")
+        verbose_name = "Bosh slayder"
+        verbose_name_plural = "Bosh slayderlar"
+
     def __str__(self):
-        return self.name or "Slayder"
+        return self.display_title or "Slayder"
+
+    def clean(self):
+        """Kamida bittasi bo'lsin: kino yoki qo'lda rasm.
+
+        `for_home()` bunday yozuvni baribir chiqarib tashlaydi — bu tekshiruv
+        admin'da DARHOL tushunarli xato ko'rsatish uchun ("saqladim, lekin
+        saytda ko'rinmayapti" holatining oldini oladi).
+        """
+        from django.core.exceptions import ValidationError
+
+        if not self.movie_id and not self.image:
+            raise ValidationError(
+                {"movie": "Kino tanlang yoki 'Qo'lda banner' bo'limida rasm yuklang."}
+            )
+
+    # ── Rejimni yashiradigan xossalar (shablon uchun yagona interfeys) ──
+    # Hech biri DB so'rovi qo'shmaydi: view `select_related("movie")` qiladi.
+
+    @property
+    def display_title(self):
+        """Ko'rinadigan sarlavha — kino nomi (tarjimali) yoki slayder nomi."""
+        if self.movie_id and self.movie:
+            return self.movie.title
+        return self.name
+
+    @property
+    def card_image(self):
+        """Kartadagi kichik variant (srcset'ning 342w tarmog'i).
+
+        Kino posterining `poster_card`i optimize_image_task tomonidan keyinroq
+        to'ldiriladi — hali tayyor bo'lmasa to'liq posterga tushadi.
+        """
+        if self.movie_id and self.movie:
+            return self.movie.poster_card or self.movie.poster
+        return self.image
+
+    @property
+    def full_image(self):
+        """To'liq o'lchamli rasm — srcset'ning katta tarmog'i va blur foni."""
+        if self.movie_id and self.movie:
+            return self.movie.poster
+        return self.image
+
+    @property
+    def link_url(self):
+        """Slayd bosilganda ochiladigan havola (bo'lmasa — bo'sh satr)."""
+        if self.movie_id and self.movie:
+            return self.movie.get_absolute_url()
+        return self.target_url
 
 
 # --- Asosiy Film Modeli ---
@@ -184,11 +334,11 @@ class MovieQuerySet(models.QuerySet):
         status=published YOKI (status=scheduled VA publish_at o'tib ketgan).
         Ikkinchi shart — self-healing: Celery beat o'lib qolsa ham, vaqti
         yetgan rejalashtirilgan kino public bo'lib ko'rinaveradi.
+
+        Shartning o'zi `published_q()` da — bog'langan modellar (`TopSlider`)
+        ham AYNAN shu shartni ishlatishi uchun.
         """
-        return self.filter(
-            models.Q(status=Movie.Status.PUBLISHED)
-            | models.Q(status=Movie.Status.SCHEDULED, publish_at__lte=timezone.now())
-        )
+        return self.filter(published_q())
 
     def drafts(self):
         return self.filter(status=Movie.Status.DRAFT)

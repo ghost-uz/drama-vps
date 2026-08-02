@@ -1251,6 +1251,146 @@ def test_home_slider_fragment_invalidated_on_slider_save(client):
     assert b"Slayder Ikkinchi" in resp2.content
 
 
+# --- Hero slayder v2: kino posteri + nomi ---
+
+
+@pytest.mark.django_db
+def test_hero_slider_renders_movie_poster_and_title():
+    """Kino bog'langan slayd poster/nom/havolani KINODAN oladi."""
+    movie = Movie.objects.create(
+        title="Hero Kino",
+        description="x",
+        country="KR",
+        poster=_uploaded("hero.jpg"),
+        slug="hero-kino",
+    )
+    slider = TopSlider.objects.create(movie=movie, sort_order=1)
+
+    assert slider.display_title == "Hero Kino"
+    assert slider.full_image.name == movie.poster.name
+    assert slider.link_url == movie.get_absolute_url()
+
+
+@pytest.mark.django_db
+def test_hero_slider_falls_back_to_banner_when_no_movie():
+    """Eski (kino bog'lanmagan) slayderlar o'z rasmi/nomi bilan ishlashda davom etadi."""
+    slider = TopSlider.objects.create(
+        name="Eski Banner", image=_uploaded("b.jpg"), target_url="https://dramauz.com/x"
+    )
+
+    assert slider.display_title == "Eski Banner"
+    assert slider.card_image.name == slider.image.name
+    assert slider.link_url == "https://dramauz.com/x"
+
+
+@pytest.mark.django_db
+def test_hero_slider_hides_draft_movie():
+    """QORALAMA kinoga bog'langan slayd public bosh sahifada CHIQMAYDI.
+
+    `for_home()` `published_q("movie")` ni ishlatadi — `Movie.objects.published()`
+    bilan AYNAN bir xil shart.
+    """
+    draft = Movie.objects.create(
+        title="Qoralama Kino",
+        description="x",
+        country="KR",
+        poster=_uploaded("d.jpg"),
+        slug="qoralama-kino",
+        status=Movie.Status.DRAFT,
+    )
+    live = Movie.objects.create(
+        title="Chiqqan Kino",
+        description="x",
+        country="KR",
+        poster=_uploaded("l.jpg"),
+        slug="chiqqan-kino",
+    )
+    TopSlider.objects.create(movie=draft, sort_order=1)
+    TopSlider.objects.create(movie=live, sort_order=2)
+
+    titles = [s.display_title for s in TopSlider.objects.for_home()]
+    assert titles == ["Chiqqan Kino"]
+
+
+@pytest.mark.django_db
+def test_hero_slider_ordering_is_deterministic():
+    """`sort_order` tartibni belgilaydi — ilgari queryset TARTIBSIZ edi."""
+    for order, title in ((3, "Uchinchi"), (1, "Birinchi"), (2, "Ikkinchi")):
+        TopSlider.objects.create(name=title, image=_uploaded(f"{order}.jpg"), sort_order=order)
+
+    assert [s.name for s in TopSlider.objects.for_home()] == [
+        "Birinchi",
+        "Ikkinchi",
+        "Uchinchi",
+    ]
+
+
+@pytest.mark.django_db
+def test_hero_slider_episode_count_annotated_without_n_plus_one(django_assert_num_queries):
+    """`live_episode_count` annotatsiyadan keladi — slayd sonidan qat'i nazar 1 so'rov."""
+    for i in range(3):
+        movie = Movie.objects.create(
+            title=f"Serial {i}",
+            description="x",
+            country="KR",
+            poster=_uploaded(f"m{i}.jpg"),
+            slug=f"serial-{i}",
+        )
+        Episode.objects.create(movie=movie, title="1-qism", episode_number=1)
+        TopSlider.objects.create(movie=movie, sort_order=i)
+
+    with django_assert_num_queries(1):
+        rows = [(s.display_title, s.live_episode_count) for s in TopSlider.objects.for_home()]
+
+    assert rows == [("Serial 0", 1), ("Serial 1", 1), ("Serial 2", 1)]
+
+
+@pytest.mark.django_db
+def test_hero_slider_skips_rows_without_movie_and_without_image():
+    """`image` endi majburiy emas — "na kino, na rasm" yozuv `.url` da yiqilmasin."""
+    TopSlider.objects.create(name="Bo'sh slayd", sort_order=1)
+    TopSlider.objects.create(name="Rasmli", image=_uploaded("ok.jpg"), sort_order=2)
+
+    assert [s.name for s in TopSlider.objects.for_home()] == ["Rasmli"]
+
+
+@pytest.mark.django_db
+def test_hero_slider_requires_movie_or_image():
+    """Admin darhol xato ko'rsin — "saqladim, lekin ko'rinmayapti" bo'lmasin."""
+    from django.core.exceptions import ValidationError
+
+    with pytest.raises(ValidationError):
+        TopSlider(name="Hech nima").full_clean()
+
+
+@pytest.mark.django_db
+def test_hero_fragment_cache_is_per_language(client):
+    """Fragment kaliti tilni HAM o'z ichiga oladi.
+
+    `Movie.title` modeltranslation orqali tarjimali — til kalitga kirmasa,
+    keshni birinchi to'ldirgan til 6 soat davomida HAMMAGA berilardi.
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    movie = Movie.objects.create(
+        title="Uz Sarlavha",
+        title_en="En Title",
+        description="x",
+        country="KR",
+        poster=_uploaded("lang.jpg"),
+        slug="lang-kino",
+    )
+    TopSlider.objects.create(movie=movie, sort_order=1)
+
+    uz = client.get("/", headers={"accept-language": "uz"})
+    assert b"Uz Sarlavha" in uz.content
+
+    en = client.get("/en/", headers={"accept-language": "en"})
+    assert b"En Title" in en.content
+    assert b"Uz Sarlavha" not in en.content
+
+
 @pytest.mark.django_db
 def test_similar_movies_cached_and_refreshed(client):
     """similar ID'lar versiyalangan keshda; yangi mos kino bump'dan keyin chiqadi."""

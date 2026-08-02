@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: drama.uz\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-02 14:20+0000\n"
+"POT-Creation-Date: 2026-08-02 22:04+0000\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -49,7 +49,8 @@ msgid "Serial (TV)"
 msgstr "Series (TV)"
 
 #: templates/admin/drama/movie/tmdb_import.html:14
-#: templates/movies/movies_card.html:45 drama/admin.py:301 drama/admin.py:516
+#: templates/movies/_hero_slider.html:401 templates/movies/movies_card.html:45
+#: drama/admin.py:301 drama/admin.py:516
 msgid "Film"
 msgstr "Movie"
 
@@ -73,7 +74,7 @@ msgstr ""
 "Import creates a <strong>draft</strong> — review it, translate it, then publish.\n"
 "    On poster and image rights: <code>docs/ops/tmdb-import.md</code>."
 
-#: templates/admin/drama/searchquerylog/report.html:4 drama/admin.py:724
+#: templates/admin/drama/searchquerylog/report.html:4 drama/admin.py:763
 msgid "Qidiruv hisoboti"
 msgstr "Search report"
 
@@ -310,7 +311,7 @@ msgid "Yoki qo'lda chek yuklash"
 msgstr "Or upload a receipt manually"
 
 #: templates/blog/post_detail.html:23 templates/blog/post_list.html:13
-#: templates/index.html:174
+#: templates/index.html:66
 msgid "Yangiliklar"
 msgstr "News"
 
@@ -330,11 +331,13 @@ msgstr "News and reviews"
 msgid "K-drama yangiliklari, sharhlar va tavsiyalar — Drama.uz blogi."
 msgstr "K-drama news, reviews and recommendations — the Drama.uz blog."
 
-#: templates/blog/post_list.html:50 templates/users/notifications.html:60
+#: templates/blog/post_list.html:50 templates/movies/_hero_slider.html:365
+#: templates/users/notifications.html:60
 msgid "Oldingi"
 msgstr "Previous"
 
-#: templates/blog/post_list.html:54 templates/users/notifications.html:65
+#: templates/blog/post_list.html:54 templates/movies/_hero_slider.html:367
+#: templates/users/notifications.html:65
 msgid "Keyingi"
 msgstr "Next"
 
@@ -342,24 +345,21 @@ msgstr "Next"
 msgid "Hozircha yangilik yo'q."
 msgstr "No news yet."
 
-#: templates/index.html:57
-msgid "Eng yaxshi dramalar"
-msgstr "The best dramas"
-
-#: templates/index.html:123
+#: templates/index.html:15
 msgid "DramaUz ga xush kelibsiz"
 msgstr "Welcome to DramaUz"
 
-#: templates/index.html:124
+#: templates/index.html:16
 msgid "Eng so'nggi koreys va xitoy dramalari"
 msgstr "The latest Korean and Chinese dramas"
 
-#: templates/index.html:131 templates/users/profile.html:346
+#: templates/index.html:23 templates/users/profile.html:346
 msgid "Davom ettirish"
 msgstr "Continue watching"
 
-#: templates/index.html:143 templates/movies/movie_detail.html:4
-#: templates/movies/movie_detail.html:5 templates/movies/movie_detail.html:8
+#: templates/index.html:35 templates/movies/_hero_slider.html:398
+#: templates/movies/movie_detail.html:4 templates/movies/movie_detail.html:5
+#: templates/movies/movie_detail.html:8
 #: templates/movies/movie_detail.html:1066
 #: templates/movies/movie_detail_classic.html:8
 #: templates/movies/movie_detail_classic.html:9
@@ -367,27 +367,47 @@ msgstr "Continue watching"
 msgid "%(n)s-qism"
 msgstr "Episode %(n)s"
 
-#: templates/index.html:162
+#: templates/index.html:54
 msgid "Trenddagi"
 msgstr "Trending"
 
-#: templates/index.html:166
+#: templates/index.html:58
 msgid "Siz ko'rganingiz asosida"
 msgstr "Based on what you watched"
 
-#: templates/index.html:177 templates/movies/_carousel.html:20
+#: templates/index.html:69 templates/movies/_carousel.html:20
 #: templates/movies/explore_list.html:40
 msgid "Hammasi"
 msgstr "All"
 
-#: templates/index.html:203
+#: templates/index.html:95
 msgid "Barcha dramalar"
 msgstr "All dramas"
 
-#: templates/index.html:205 templates/index.html:207
+#: templates/index.html:97 templates/index.html:99
 #: templates/movies/movie_list.html:17
 msgid "Filtrlash"
 msgstr "Filter"
+
+#: templates/movies/_hero_slider.html:320
+msgid "Tavsiya etilgan kinolar"
+msgstr "Featured movies"
+
+#: templates/movies/_hero_slider.html:396 templates/movies/movies_card.html:40
+msgid "%(n)s qism"
+msgstr "%(n)s episodes"
+
+#: templates/movies/_hero_slider.html:403 templates/movies/movies_card.html:47
+msgid "Tez kunda"
+msgstr "Coming soon"
+
+#: templates/movies/_hero_slider.html:411
+msgid "Ko'rish"
+msgstr "Watch"
+
+#: templates/movies/_hero_slider.html:425
+msgid "Eng yaxshi dramalar"
+msgstr "The best dramas"
 
 #: templates/movies/explore_list.html:4
 msgid "Katalog — barcha dramalar - Drama.uz"
@@ -772,14 +792,6 @@ msgstr "Most helpful"
 #: templates/movies/movie_reviews.html:64
 msgid "Hali hech kim fikr bildirmagan."
 msgstr "No one has commented yet."
-
-#: templates/movies/movies_card.html:40
-msgid "%(n)s qism"
-msgstr "%(n)s episodes"
-
-#: templates/movies/movies_card.html:47
-msgid "Tez kunda"
-msgstr "Coming soon"
 
 #: templates/movies/partials/_like_button.html:9
 msgid "Yoqtirish"
@@ -1510,7 +1522,7 @@ msgstr "Current balance"
 msgid "Hozircha tranzaksiyalar yo'q."
 msgstr "No transactions yet."
 
-#: drama/admin.py:656 drama/admin.py:688
+#: drama/admin.py:695 drama/admin.py:727
 msgid "Natija"
 msgstr "Result"
 
@@ -1566,7 +1578,7 @@ msgstr "Cast & crew"
 msgid "Statistika"
 msgstr "Statistics"
 
-#: drama/admin.py:309
+#: drama/admin.py:309 drama/admin.py:573
 msgid "Poster"
 msgstr "Poster"
 
@@ -1626,35 +1638,43 @@ msgstr "Time"
 msgid "Matn"
 msgstr "Text"
 
-#: drama/admin.py:540
-msgid "Slayd Rasmi"
-msgstr "Slide image"
+#: drama/admin.py:550
+msgid "Kino (tavsiya etiladi)"
+msgstr "Movie (recommended)"
 
-#: drama/admin.py:601
+#: drama/admin.py:560
+msgid "Qo'lda banner (kino tanlanmagan bo'lsa)"
+msgstr "Manual banner (when no movie is selected)"
+
+#: drama/admin.py:583
+msgid "Sarlavha"
+msgstr "Title"
+
+#: drama/admin.py:640
 msgid "Izoh"
 msgstr "Comment"
 
-#: drama/admin.py:606
+#: drama/admin.py:645
 msgid "Kino"
 msgstr "Movie"
 
-#: drama/admin.py:610
+#: drama/admin.py:649
 msgid "Qabul qilish — izohni yashirish"
 msgstr "Accept — hide the comment"
 
-#: drama/admin.py:627
+#: drama/admin.py:666
 msgid "Rad etish — asossiz shikoyat"
 msgstr "Reject — unfounded report"
 
-#: drama/admin.py:690 drama/admin.py:688
+#: drama/admin.py:729 drama/admin.py:727
 msgid "natijasiz"
 msgstr "no results"
 
-#: drama/admin.py:690 drama/admin.py:688
+#: drama/admin.py:729 drama/admin.py:727
 msgid "bor"
 msgstr "found"
 
-#: drama/admin.py:692
+#: drama/admin.py:731
 msgid "Hisobot (top / natijasiz)"
 msgstr "Report (top / zero-result)"
 
@@ -1670,63 +1690,67 @@ msgstr "In seconds. If both are filled, a “Skip intro” button appears in the
 msgid "Video faylni shu yerga yuklang — Bunny'ga yuborish, encoding va GUID bog'lash avtomatik. GUID'ni qo'lda kiritish odatda shart emas (faqat favqulodda/legacy holat)."
 msgstr "Upload the video file here — sending to Bunny, encoding and GUID linking are automatic. Entering the GUID manually is usually not needed (only for emergency/legacy cases)."
 
-#: drama/admin.py:660
+#: drama/admin.py:553
+msgid "Kino tanlansa — poster, nom va havola avtomatik olinadi, quyidagi maydonlarni to'ldirish SHART EMAS."
+msgstr "When a movie is selected, its poster, title and link are taken automatically — the fields below are NOT required."
+
+#: drama/admin.py:699
 msgid "Natijasiz (0)"
 msgstr "No results (0)"
 
-#: drama/admin.py:660
+#: drama/admin.py:699
 msgid "Natijali (1+)"
 msgstr "With results (1+)"
 
-#: drama/views.py:217
+#: drama/views.py:219
 msgid "Shikoyat yuborildi — moderatorlar ko'rib chiqadi."
 msgstr "Report submitted — moderators will review it."
 
-#: drama/views.py:219
+#: drama/views.py:221
 msgid "Siz bu izohga allaqachon shikoyat yuborgansiz."
 msgstr "You have already reported this comment."
 
-#: drama/views.py:564
+#: drama/views.py:566
 msgid "'%(title)s' ro'yxatingizga saqlandi!"
 msgstr "'%(title)s' was saved to your list!"
 
-#: drama/views.py:511
+#: drama/views.py:513
 msgid "Noto'g'ri status tanlandi."
 msgstr "Invalid status selected."
 
-#: drama/views.py:872
+#: drama/views.py:874
 msgid "Gul 🌹"
 msgstr "Rose 🌹"
 
-#: drama/views.py:872
+#: drama/views.py:874
 msgid "Qahva ☕"
 msgstr "Coffee ☕"
 
-#: drama/views.py:872
+#: drama/views.py:874
 msgid "Toj 👑"
 msgstr "Crown 👑"
 
-#: drama/views.py:880
+#: drama/views.py:882
 msgid "Aktyor topilmadi."
 msgstr "Actor not found."
 
-#: drama/views.py:540
+#: drama/views.py:542
 msgid "Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi."
 msgstr "The rating must be between 1 and 10. The movie was saved without a rating."
 
-#: drama/views.py:544
+#: drama/views.py:546
 msgid "Noto'g'ri baho kiritildi. Kino bahosiz saqlandi."
 msgstr "Invalid rating entered. The movie was saved without a rating."
 
-#: drama/views.py:840
+#: drama/views.py:842
 msgid "Noto'g'ri sovg'a tanlandi."
 msgstr "Invalid gift selected."
 
-#: drama/views.py:875
+#: drama/views.py:877
 msgid "%(actor)s ga %(gift)s yubordingiz! U bundan juda xursand bo'ladi 🎉"
 msgstr "You sent %(gift)s to %(actor)s! They will be very happy 🎉"
 
-#: drama/views.py:855
+#: drama/views.py:857
 msgid "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
 msgstr "Not enough Coins to send a gift. Please top up your balance."
 

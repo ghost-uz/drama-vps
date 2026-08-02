@@ -535,15 +535,54 @@ class ReviewAdmin(ModelAdmin):
 
 @admin.register(TopSlider)
 class TopSliderAdmin(ModelAdmin):
-    list_display = ("name", "rank", "display_slide")
+    list_display = ("display_slide", "display_title", "movie", "sort_order", "rank")
+    list_display_links = ("display_slide", "display_title")
+    # Tartibni ro'yxatdan turib o'zgartirish — har slaydni ochish shart emas.
+    list_editable = ("sort_order",)
+    list_filter = ("movie__status",)
+    search_fields = ("name", "movie__title")
+    # Minglab kino ichidan tez tanlash (MovieAdmin.search_fields bor).
+    autocomplete_fields = ["movie"]
+    ordering = ("sort_order", "id")
 
-    @display(description=_("Slayd Rasmi"))
+    fieldsets = (
+        (
+            _("Kino (tavsiya etiladi)"),
+            {
+                "fields": ("movie", "sort_order"),
+                "description": _(
+                    "Kino tanlansa — poster, nom va havola avtomatik olinadi, "
+                    "quyidagi maydonlarni to'ldirish SHART EMAS."
+                ),
+            },
+        ),
+        (
+            _("Qo'lda banner (kino tanlanmagan bo'lsa)"),
+            {
+                "fields": ("name", "image", "target_url", "rank"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def get_queryset(self, request):
+        # Ro'yxatda `movie` ustuni va `display_title` har qator uchun so'rov
+        # qilmasin (admin changelist N+1).
+        return super().get_queryset(request).select_related("movie")
+
+    @display(description=_("Poster"))
     def display_slide(self, obj):
-        if obj.image:
-            return mark_safe(
-                f'<img src="{obj.image.url}" class="h-12 w-24 object-cover rounded-md" />'
-            )
-        return "-"
+        # `card_image` ikki rejimni ham qamraydi: kino posteri yoki banner.
+        img = obj.card_image
+        if not img:
+            return "-"
+        return mark_safe(  # noqa: S308 - manba FileField.url, foydalanuvchi kiritmasi emas
+            f'<img src="{img.url}" class="h-16 w-11 object-cover rounded-md" alt="" />'
+        )
+
+    @display(description=_("Sarlavha"))
+    def display_title(self, obj):
+        return obj.display_title or "-"
 
 
 # drama/admin.py fayli

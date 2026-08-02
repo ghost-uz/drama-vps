@@ -1,0 +1,556 @@
+{% comment %}
+Bosh sahifa hero-slayderi — 3D "coverflow" poster javon [hero v2].
+
+Kutilgan kontekst:
+  top_sliders   — TopSlider.objects.for_home() (select_related + live_episode_count)
+  catalog_ver   — fragment-kesh versiyasi (views.py: catalog_version())
+
+DIZAYN: markazdagi poster tik va yorqin, yon tomondagilar orqaga qiyshaygan
+va xiralashgan; orqa fonda aktiv posterning bulaniq nusxasi. Sarlavha/meta
+slayder OSTIDA turadi va aktiv slayd bilan almashadi.
+
+TEXNIK QAROR: 3D transformlar QO'LDA yozilmagan — Swiper 11 bundle'ining
+`EffectCoverflow` moduli ishlatiladi (base.html allaqachon yuklaydi, ya'ni
+qo'shimcha bayt YO'Q). Swiper `.swiper-slide` ni transform qiladi; biz esa
+ICHKARIDAGI `.hero-card` ni transform/filter qilamiz — ikkisi bir-biriga
+xalaqit bermay QO'SHILADI (scale, rotateZ va xiralashtirish shundan).
+
+Uslublar Tailwind'da EMAS, shu yerda: `output.css` build qilingan fayl —
+undagi yo'q klass ishlamaydi, `npm run build:css` esa deploy'ga bog'liq.
+Bundan tashqari 3D kaskad (perspective/translateZ) utility klasslarda
+o'qilmaydigan bo'lib ketadi.
+{% endcomment %}
+{% load cache i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+
+<style>
+    .hero {
+        --hero-brand: #00cc4c;
+        --hero-card-w: 230px;   /* kartaning MAKSIMUM kengligi (aspect 2:3) */
+        position: relative;
+        overflow: hidden;
+        padding: 18px 0 26px;
+        background: #050505;
+        /* Xotira/kompozitsiya: butun blok bitta qatlamga tushsin (Telegram
+           WebView'da qotib qolishga qarshi — eski `.hero-swiper` dan meros). */
+        transform: translate3d(0, 0, 0);
+    }
+
+    @media (min-width: 640px)  { .hero { --hero-card-w: 250px; padding: 24px 0 32px; } }
+    @media (min-width: 768px)  { .hero { --hero-card-w: 275px; padding: 30px 0 38px; } }
+    @media (min-width: 1024px) { .hero { --hero-card-w: 300px; padding: 38px 0 46px; } }
+
+    /* ── Bulaniq fon ──────────────────────────────────────────────────
+       Manba ATAYLAB kichik (342px `poster_card`) rasm: blur(46px) dan keyin
+       farqi ko'rinmaydi, lekin katta rasmni bulantirish mobil GPU'da qimmat. */
+    .hero__bg { position: absolute; inset: 0; pointer-events: none; }
+    .hero__bg img {
+        position: absolute;
+        /* ATAYLAB top/left + width/height, `inset: -12%` EMAS: `inset` chap va
+           O'NG ni ham belgilaydi, `width` bilan birga esa ular bir-biriga zid
+           bo'lib qoladi — brauzer `right` ni tashlaydi va o'ng chetda
+           bulanmagan chiziq qolib ketadi. Chetdan chiqarish blur qirralarini
+           yashirish uchun kerak. */
+        top: -12%;
+        left: -12%;
+        width: 124%;
+        height: 124%;
+        object-fit: cover;
+        filter: blur(46px) saturate(1.5);
+        opacity: 0;
+        transition: opacity .7s ease;
+        will-change: opacity;
+    }
+    .hero__bg img.is-active { opacity: .55; }
+
+    /* Kontrast qatlami — matn o'qiladigan bo'lsin, LEKIN bulaniq fonni
+       o'ldirmasin: markaz ochiq qoladi, faqat chet va past qorayadi. */
+    .hero__scrim {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(105% 72% at 50% 32%, rgba(5,5,5,0) 0%, rgba(5,5,5,.42) 62%, rgba(5,5,5,.9) 100%),
+            linear-gradient(180deg, rgba(5,5,5,.5) 0%, rgba(5,5,5,0) 26%, rgba(5,5,5,.82) 86%, #050505 100%);
+    }
+
+    /* ── Karusel ──────────────────────────────────────────────────── */
+    /* Kenglik ATAYLAB cheklangan: coverflow'da bir vaqtda ko'rinadigan
+       slaydlar soni Swiper'ning halqa matematikasini belgilaydi
+       (`slidesPerView * 2` dan kam slayd bo'lsa halqa o'chadi). Keng
+       ekranda konteyner cheklanmasa 5-6 karta sig'ib ketardi va halqa uchun
+       10+ slayder talab qilinardi. */
+    .hero__stage { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; }
+
+    .hero-swiper {
+        /* Chetlarda yumshoq so'nish — React kodidagi MAX_VISIBLE=2 qattiq
+           kesishining o'rniga (qattiq kesish poster chetini "qirqib" qo'yadi).
+           Chegara ataylab ICHKARIROQ: coverflow chetdagi kartalarni juda
+           kichraytiradi, ular "qipiq" bo'lib ko'rinib kompozitsiyani
+           iflos qiladi — 2 ta qo'shni ko'rinsa yetarli. */
+        -webkit-mask-image: linear-gradient(90deg, transparent 3%, #000 25%, #000 75%, transparent 97%);
+                mask-image: linear-gradient(90deg, transparent 3%, #000 25%, #000 75%, transparent 97%);
+        padding: 6px 0 10px;
+        overflow: visible;
+    }
+    /* Mobilda konteyner tor: 25%/75% chegara qo'shnilarni deyarli butunlay
+       yeb qo'yadi va "surish mumkin" ishorasi yo'qoladi — chetlar ochiqroq. */
+    @media (max-width: 767px) {
+        .hero-swiper {
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 13%, #000 87%, transparent 100%);
+                    mask-image: linear-gradient(90deg, transparent 0%, #000 13%, #000 87%, transparent 100%);
+        }
+    }
+
+    /* JS ishlamasa Swiper init bo'lmaydi — slaydlar qatorda qolib ketmasin,
+       hech bo'lmasa barmoq bilan surib ko'rish mumkin bo'lsin. */
+    .hero-swiper:not(.swiper-initialized) .swiper-wrapper { overflow-x: auto; }
+
+    /* Slayd KENGLIGINI Swiper beradi (`slidesPerView`), CSS emas —
+       `slidesPerView: 'auto'` + halqa ishonchsiz juftlik: Swiper slayd
+       kengligini oldindan bilmagani uchun halqada nechta slaydni
+       tayyorlashni xato hisoblaydi (natijada aktivning bir tomoni bo'shab
+       qoladi yoki karusel butunlay qotib qoladi). */
+    .hero-swiper .swiper-slide { height: auto; }
+
+    .hero-card {
+        display: block;
+        position: relative;
+        width: 100%;
+        /* Keng ekranda poster haddan tashqari kattayib ketmasin */
+        max-width: var(--hero-card-w);
+        margin: 0 auto;
+        aspect-ratio: 2 / 3;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #14161a;
+        text-decoration: none;
+        /* Aktiv bo'lmagan kartalar: kichikroq + xira (React'dagi SCALE_STEP va
+           dim overlay'ning arzonroq — qo'shimcha DOM'siz — muqobili). */
+        transform: scale(.88);
+        filter: brightness(.52) saturate(.8);
+        transition: transform .55s cubic-bezier(.22,1,.36,1),
+                    filter .55s cubic-bezier(.22,1,.36,1),
+                    box-shadow .55s cubic-bezier(.22,1,.36,1);
+        will-change: transform, filter;
+    }
+    .hero-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    /* Yon tomondagilarga yengil rotateZ — React'dagi `sideTilt`.
+       Ataylab KICHIK burchak: coverflow allaqachon rotateY beradi, ikkalasi
+       katta bo'lsa kartalar "yiqilib tushayotgandek" ko'rinadi. */
+    .swiper-slide-prev .hero-card { transform: scale(.88) rotate(-1.5deg); }
+    .swiper-slide-next .hero-card { transform: scale(.88) rotate(1.5deg); }
+
+    .swiper-slide-active .hero-card {
+        transform: scale(1.04);
+        filter: none;
+        box-shadow: 0 26px 60px -18px rgba(0,0,0,.9),
+                    0 0 0 1px rgba(255,255,255,.09) inset;
+    }
+    /* Faqat sichqoncha bor qurilmalarda — mobil "yopishib qolgan hover" yo'q */
+    @media (hover: hover) {
+        .swiper-slide-active .hero-card:hover { transform: scale(1.07); }
+    }
+
+    .hero-card__rank {
+        position: absolute;
+        top: 9px;
+        left: 9px;
+        background: var(--hero-brand);
+        color: #04120a;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        padding: 3px 7px;
+        border-radius: 6px;
+    }
+    .hero-card__vip {
+        position: absolute;
+        top: 9px;
+        right: 9px;
+        background: linear-gradient(90deg, #eab308, #ea580c);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 900;
+        font-style: italic;
+        padding: 3px 7px;
+        border-radius: 6px;
+    }
+
+    /* ── Sarlavha / meta ──────────────────────────────────────────── */
+    .hero__meta {
+        position: relative;
+        z-index: 2;
+        display: grid;               /* barcha variantlar BITTA katakda */
+        justify-items: center;
+        text-align: center;
+        margin-top: 14px;
+        padding: 0 16px;
+        min-height: 118px;
+    }
+    .hero__meta > * { grid-area: 1 / 1; }
+
+    .hero-meta {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: opacity .45s ease, transform .45s ease, visibility .45s;
+    }
+    .hero-meta.is-active { opacity: 1; visibility: visible; transform: none; }
+
+    .hero-meta__title {
+        font-size: clamp(19px, 4.6vw, 40px);
+        font-weight: 900;
+        line-height: 1.08;
+        letter-spacing: -.02em;
+        color: #fff;
+        text-transform: uppercase;
+        text-shadow: 0 3px 18px rgba(0,0,0,.65);
+        max-width: 20ch;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .hero-meta__facts {
+        margin-top: 7px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 10px;
+    }
+    .hero-meta__facts .dot { color: #4b5563; }
+    .hero-meta__facts .star { color: var(--hero-brand); }
+    @media (min-width: 768px) { .hero-meta__facts { font-size: 12.5px; margin-top: 10px; } }
+
+    .hero-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 13px;
+        padding: 9px 22px;
+        border-radius: 999px;
+        background: var(--hero-brand);
+        color: #04120a;
+        font-size: 13px;
+        font-weight: 800;
+        text-decoration: none;
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .hero-cta:hover { background: #00e657; transform: translateY(-1px); box-shadow: 0 8px 24px -6px rgba(0,204,76,.6); }
+
+    /* ── Nav / paginatsiya ────────────────────────────────────────── */
+    .hero__nav {
+        position: absolute;
+        top: 38%;
+        z-index: 3;
+        width: 42px;
+        height: 42px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(10,10,10,.62);
+        color: #fff;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+        transition: background .2s ease, color .2s ease, opacity .2s ease;
+    }
+    .hero__nav:hover { background: var(--hero-brand); color: #04120a; }
+    .hero__nav.swiper-button-disabled { opacity: .3; cursor: default; }
+    .hero__nav--prev { left: 14px; }
+    .hero__nav--next { right: 14px; }
+    @media (min-width: 1024px) { .hero__nav { display: flex; } }
+
+    .hero__dots {
+        position: relative;
+        z-index: 2;
+        margin-top: 12px;
+        text-align: center;
+    }
+    .hero__dots .swiper-pagination-bullet {
+        background: #6b7280;
+        opacity: .5;
+        transition: width .3s ease, opacity .3s ease, background .3s ease;
+    }
+    .hero__dots .swiper-pagination-bullet-active {
+        background: var(--hero-brand);
+        opacity: 1;
+        width: 22px;
+        border-radius: 4px;
+    }
+
+    /* Bo'sh holat (hech qanday slayder yo'q) */
+    .hero__empty { position: relative; z-index: 2; text-align: center; padding: 54px 16px; }
+
+    /* Foydalanuvchi animatsiyani kamaytirishni so'ragan bo'lsa — hurmat qilamiz */
+    @media (prefers-reduced-motion: reduce) {
+        .hero-card, .hero-meta, .hero__bg img, .hero-cta { transition: none; }
+        .hero-card { transform: none; }
+        .swiper-slide-prev .hero-card,
+        .swiper-slide-next .hero-card { transform: none; }
+        .swiper-slide-active .hero-card { transform: none; }
+    }
+</style>
+
+{% comment %}
+Global fragment — foydalanuvchiga bog'liq emas.
+KALIT: `catalog_ver` (kontent o'zgarsa signal bump qiladi) + `LANGUAGE_CODE`.
+Til kalitga QO'SHILISHI SHART: `movie.title` modeltranslation orqali tarjima
+qilinadi, ya'ni fragment tilga bog'liq. Tilsiz kalitda birinchi kelgan til
+6 soat davomida HAMMAGA berilardi.
+{% endcomment %}
+{% cache 21600 home_sliders catalog_ver LANGUAGE_CODE %}
+<section class="hero" id="heroSlider" aria-roledescription="carousel"
+         aria-label="{% trans 'Tavsiya etilgan kinolar' %}">
+
+    <div class="hero__bg" aria-hidden="true">
+        {% for slider in top_sliders %}
+        <img data-hero-bg="{{ forloop.counter0 }}"
+             class="{% if forloop.first %}is-active{% endif %}"
+             src="{{ slider.card_image.url }}" alt=""
+             decoding="async" {% if not forloop.first %}loading="lazy"{% endif %}>
+        {% endfor %}
+    </div>
+    <div class="hero__scrim" aria-hidden="true"></div>
+
+    {% if top_sliders %}
+    <div class="hero__stage">
+        <div class="swiper hero-swiper">
+            <div class="swiper-wrapper">
+                {% for slider in top_sliders %}
+                <div class="swiper-slide">
+                    <a class="hero-card" href="{{ slider.link_url|default:'#' }}"
+                       aria-label="{{ slider.display_title }}">
+                        <img src="{{ slider.card_image.url }}"
+                             {% if slider.full_image and slider.card_image != slider.full_image %}
+                             srcset="{{ slider.card_image.url }} 342w, {{ slider.full_image.url }} 780w"
+                             sizes="(max-width: 768px) 45vw, 280px"
+                             {% endif %}
+                             alt="{{ slider.display_title }}"
+                             {% comment %}
+                             Birinchi poster — LCP nomzodi: `eager` + yuqori
+                             prioritet. Qolganlari `lazy` (eski kod HAMMASINI
+                             lazy qilib LCP'ni ataylab kechiktirardi).
+                             {% endcomment %}
+                             {% if forloop.first %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
+                             decoding="async"
+                             onerror="this.onerror=null; this.src='https://cdn.drama.uz/static/img/no-poster.jpg';">
+                        {% if slider.rank %}<span class="hero-card__rank">{{ slider.rank }}</span>{% endif %}
+                        {% if slider.movie.is_vip %}<span class="hero-card__vip">VIP</span>{% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if top_sliders|length > 1 %}
+        <button class="hero__nav hero__nav--prev" type="button"
+                aria-label="{% trans 'Oldingi' %}"><i class="fas fa-chevron-left"></i></button>
+        <button class="hero__nav hero__nav--next" type="button"
+                aria-label="{% trans 'Keyingi' %}"><i class="fas fa-chevron-right"></i></button>
+        {% endif %}
+    </div>
+
+    <div class="hero__meta">
+        {% for slider in top_sliders %}
+        <div class="hero-meta {% if forloop.first %}is-active{% endif %}"
+             data-hero-meta="{{ forloop.counter0 }}">
+            <h2 class="hero-meta__title">{{ slider.display_title }}</h2>
+
+            {% if slider.movie %}
+            <p class="hero-meta__facts">
+                <span>{{ slider.movie.year }}</span>
+                <span class="dot" aria-hidden="true">•</span>
+                <span>{{ slider.movie.country }}</span>
+                {% if slider.movie.mdl_rank > 0 %}
+                <span class="dot" aria-hidden="true">•</span>
+                <span class="star">★ {{ slider.movie.mdl_rank }}</span>
+                {% endif %}
+                <span class="dot" aria-hidden="true">•</span>
+                <span>
+                    {% comment %}
+                    Kartadagi (movies_card.html) bilan AYNAN bir xil mantiq:
+                    qismlar ustun, keyin yakka film, oxirida "Tez kunda".
+                    `live_episode_count` — for_home() annotatsiyasi (N+1 yo'q).
+                    {% endcomment %}
+                    {% if slider.live_episode_count > 0 %}
+                        {% if slider.live_episode_count == slider.movie.episodes_count %}
+                            {% blocktrans with n=slider.movie.episodes_count %}{{ n }} qism{% endblocktrans %}
+                        {% else %}
+                            {% blocktrans with n=slider.live_episode_count %}{{ n }}-qism{% endblocktrans %}
+                        {% endif %}
+                    {% elif slider.movie.is_film %}
+                        {% trans "Film" %}
+                    {% else %}
+                        {% trans "Tez kunda" %}
+                    {% endif %}
+                </span>
+            </p>
+            {% endif %}
+
+            {% if slider.link_url %}
+            <a class="hero-cta" href="{{ slider.link_url }}">
+                <i class="fas fa-play" aria-hidden="true"></i> {% trans "Ko'rish" %}
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if top_sliders|length > 1 %}
+    <div class="hero__dots"></div>
+    {% endif %}
+
+    {% else %}
+    <div class="hero__empty">
+        <h1 class="text-3xl md:text-6xl font-black uppercase text-white">DramaUz</h1>
+        <p class="text-gray-400 mt-2 text-sm md:text-base">{% trans "Eng yaxshi dramalar" %}</p>
+    </div>
+    {% endif %}
+</section>
+{% endcache %}
+
+<script>
+(function () {
+    'use strict';
+
+    function initHero() {
+        var root = document.getElementById('heroSlider');
+        if (!root || typeof Swiper === 'undefined') return;
+
+        var el = root.querySelector('.hero-swiper');
+        if (!el) return;
+
+        var count = el.querySelectorAll('.swiper-slide').length;
+        if (!count) return;
+
+        // Fon rasmlari va meta bloklari slayd bilan sinxron — indeks bo'yicha.
+        var backdrops = root.querySelectorAll('[data-hero-bg]');
+        var metas = root.querySelectorAll('[data-hero-meta]');
+
+        function sync(index) {
+            for (var i = 0; i < backdrops.length; i++) {
+                backdrops[i].classList.toggle('is-active', i === index);
+            }
+            for (var j = 0; j < metas.length; j++) {
+                metas[j].classList.toggle('is-active', j === index);
+            }
+        }
+
+        // Bitta slayd bo'lsa karusel kerak emas — CSS aktiv holatni bersin.
+        if (count < 2) {
+            var only = el.querySelector('.swiper-slide');
+            if (only) only.classList.add('swiper-slide-active');
+            return;
+        }
+
+        // Telegram WebView: avtomatik aylanish RAM/qotib qolishga olib keladi
+        // (eski `.hero-swiper` kodidan saqlangan xulosa).
+        var isTelegram = /Telegram/i.test(navigator.userAgent || '');
+        var reduceMotion = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        try {
+            // Halqa faqat slayd YETARLI bo'lsa: Swiper'ga bir vaqtda
+            // ko'rinadigan slaydlarning IKKI BARAVARI kerak (aks holda
+            // aylanish paytida bir chet bo'sh qoladi yoki karusel qotadi).
+            // Eng katta `slidesPerView` = 3.4 -> minimum 7 slayd.
+            var MAX_SPV = 3.4;
+            var canLoop = count >= Math.ceil(MAX_SPV * 2);
+
+            var swiper = new Swiper(el, {
+                effect: 'coverflow',
+                centeredSlides: true,
+                // Kasrli son ATAYLAB: qo'shni kartaning bir qismi ko'rinib
+                // tursa "yana bor" degan ishora beradi. `'auto'` EMAS —
+                // halqa matematikasi aniq songa tayanadi.
+                slidesPerView: 1.6,
+                spaceBetween: 10,
+                breakpoints: {
+                    480:  { slidesPerView: 2.0, spaceBetween: 12 },
+                    640:  { slidesPerView: 2.4, spaceBetween: 14 },
+                    768:  { slidesPerView: 2.8, spaceBetween: 16 },
+                    1024: { slidesPerView: 3.2, spaceBetween: 18 },
+                    1280: { slidesPerView: MAX_SPV, spaceBetween: 20 },
+                },
+                grabCursor: true,
+                speed: 520,
+                loop: canLoop,
+                // Halqa imkonsiz bo'lsa ham oxiridan boshiga qaytsin
+                // (autoplay oxirgi slaydda o'lib qolmasin).
+                rewind: !canLoop,
+                // Bosilgan kartani markazga olib kelish (React kodidagi
+                // `handleCardClick` ning tayyor muqobili).
+                slideToClickedSlide: true,
+                coverflowEffect: {
+                    rotate: 18,        // React: `tilt`
+                    depth: 190,        // React: `DEPTH`
+                    stretch: 0,
+                    modifier: 1,
+                    slideShadows: false,
+                },
+                keyboard: { enabled: true, onlyInViewport: true },
+                // Xotira gigiyenasi — eski koddan meros
+                observer: true,
+                observeParents: true,
+                watchSlidesProgress: true,
+                pagination: {
+                    el: root.querySelector('.hero__dots'),
+                    clickable: true,
+                    // Chegara ATAYLAB baland: `dynamicBullets` nuqtalarni
+                    // siqib 1-2 tagacha kamaytiradi — 7 slaydda "buzuq"
+                    // ko'rinadi. Faqat haqiqatan ko'p slaydda yoqiladi.
+                    dynamicBullets: count > 10,
+                },
+                navigation: {
+                    prevEl: root.querySelector('.hero__nav--prev'),
+                    nextEl: root.querySelector('.hero__nav--next'),
+                },
+                autoplay: (isTelegram || reduceMotion) ? false : {
+                    delay: 5200,
+                    disableOnInteraction: true,
+                    pauseOnMouseEnter: true,
+                },
+                on: {
+                    // `realIndex` — halqadagi dublikatlar emas, ASL indeks.
+                    init: function () { sync(this.realIndex); },
+                    slideChange: function () { sync(this.realIndex); },
+                },
+            });
+
+            // Sahifa ko'rinmay qolganda avtoplay to'xtasin (fon tab'da
+            // taymer aylanib turishi mobil batareyani yeydi).
+            if (swiper.autoplay && swiper.params.autoplay) {
+                document.addEventListener('visibilitychange', function () {
+                    if (document.hidden) swiper.autoplay.stop();
+                    else swiper.autoplay.start();
+                });
+            }
+        } catch (e) {
+            console.error('Hero slayder xatosi:', e);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHero);
+    } else {
+        initHero();
+    }
+})();
+</script>
