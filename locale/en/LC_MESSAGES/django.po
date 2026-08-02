@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: drama.uz\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-02 13:48+0000\n"
+"POT-Creation-Date: 2026-08-02 14:20+0000\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -48,8 +48,8 @@ msgstr "Title, TMDB ID or link (e.g. Vincenzo, 71712, themoviedb.org/tv/71712)"
 msgid "Serial (TV)"
 msgstr "Series (TV)"
 
-#: templates/admin/drama/movie/tmdb_import.html:14 drama/admin.py:301
-#: drama/admin.py:516
+#: templates/admin/drama/movie/tmdb_import.html:14
+#: templates/movies/movies_card.html:45 drama/admin.py:301 drama/admin.py:516
 msgid "Film"
 msgstr "Movie"
 
@@ -363,7 +363,7 @@ msgstr "Continue watching"
 #: templates/movies/movie_detail.html:1066
 #: templates/movies/movie_detail_classic.html:8
 #: templates/movies/movie_detail_classic.html:9
-#: templates/movies/movies_card.html:36
+#: templates/movies/movies_card.html:42
 msgid "%(n)s-qism"
 msgstr "Episode %(n)s"
 
@@ -773,11 +773,11 @@ msgstr "Most helpful"
 msgid "Hali hech kim fikr bildirmagan."
 msgstr "No one has commented yet."
 
-#: templates/movies/movies_card.html:34
+#: templates/movies/movies_card.html:40
 msgid "%(n)s qism"
 msgstr "%(n)s episodes"
 
-#: templates/movies/movies_card.html:39
+#: templates/movies/movies_card.html:47
 msgid "Tez kunda"
 msgstr "Coming soon"
 

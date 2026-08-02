@@ -356,6 +356,24 @@ class Movie(ImageOptimizationMixin, TimeStampedModel):
     def get_absolute_url(self):
         return reverse("drama:movie_detail", kwargs={"slug": self.slug})
 
+    @property
+    def is_film(self):
+        """Yakka film (serial emas) — video Episode'da emas, MOVIE darajasida.
+
+        Detail view filmni aynan shu manbadan o'ynatadi (`views.py`: aktiv
+        epizod yo'q + `movie.bunny_video_id` bor), shuning uchun karta ham SHU
+        signalga tayanadi — ikkalasi bitta haqiqatni ko'rsatadi. Aks holda
+        karta "Tez kunda" deb turib, ichida film bemalol o'ynardi.
+
+        DB so'rovi qo'shmaydi: `bunny_video_id` oddiy maydon, karta
+        queryset'ida allaqachon yuklangan (`.only()` ishlatilmaydi).
+
+        Eski `film_embed_code` ATAYLAB hisobga olinmaydi — uning default
+        qiymati "<div>...</div>" placeholder, ya'ni deyarli har kinoda
+        truthy; unga tayansak barcha bo'sh serial ham "film" bo'lib qolardi.
+        """
+        return bool(self.bunny_video_id)
+
 
 class Season(models.Model):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="seasons")

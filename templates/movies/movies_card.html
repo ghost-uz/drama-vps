@@ -29,12 +29,19 @@
         <div class="absolute bottom-2 left-2 right-2">
             <p class="text-white text-[10px] md:text-xs font-medium drop-shadow-md truncate">
                 {# live_episode_count = with_card_data() annotation — .count N+1 emas [P9-T2] #}
+                {% comment %}
+                Tartib MUHIM: qismlar bo'lsa ular ustun (serialda movie.bunny_video_id
+                xato to'ldirilgan bo'lsa ham qism-sanog'i to'g'ri ko'rinadi), keyin
+                yakka film, va faqat manbasiz kino "Tez kunda" bo'ladi.
+                {% endcomment %}
                 {% if movie.live_episode_count > 0 %}
                     {% if movie.live_episode_count == movie.episodes_count %}
                         {% blocktrans with n=movie.episodes_count %}{{ n }} qism{% endblocktrans %}
                     {% else %}
                         {% blocktrans with n=movie.live_episode_count %}{{ n }}-qism{% endblocktrans %}
                     {% endif %}
+                {% elif movie.is_film %}
+                    {% trans "Film" %}
                 {% else %}
                     {% trans "Tez kunda" %}
                 {% endif %}

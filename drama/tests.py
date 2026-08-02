@@ -1387,6 +1387,91 @@ def test_index_query_count_constant(client, django_assert_num_queries):
     assert b"2-qism" in resp.content  # annotatsiya kartada ishlayapti
 
 
+# --- Yakka film kartasi: qismsiz film "Tez kunda" bo'lib qolmasin ---
+
+
+def _film(title, bunny_id="film-guid-0001"):
+    """Qismsiz YAKKA FILM — video Episode'da emas, MOVIE darajasida."""
+    return Movie.objects.create(
+        title=title,
+        description="x",
+        country="US",
+        year=1996,
+        poster=_uploaded(),
+        bunny_video_id=bunny_id,
+    )
+
+
+def _card_html(movie):
+    """movies_card.html'ni view'siz render qiladi (with_card_data annotatsiyasi bilan)."""
+    from django.template.loader import render_to_string
+
+    annotated = Movie.objects.with_card_data().get(pk=movie.pk)
+    return render_to_string("movies/movies_card.html", {"movie": annotated})
+
+
+@pytest.mark.django_db
+def test_film_card_shows_film_label_not_coming_soon():
+    """Bunny film-GUID'i bor kino kartada "Film" deydi, "Tez kunda" EMAS.
+
+    REGRESSIYA: karta faqat qism-sanog'iga qarardi, shu bois Episode yozuvi
+    bo'lmagan yakka film doim "Tez kunda" bo'lib turaverardi — holbuki detail
+    sahifada o'sha film bemalol o'ynardi (views.py `movie.bunny_video_id`).
+    """
+    html = _card_html(_film("Yakka Kino"))
+    assert "Film" in html
+    assert "Tez kunda" not in html
+
+
+@pytest.mark.django_db
+def test_card_without_any_source_stays_coming_soon():
+    """Manbasiz kino (qism ham, film-GUID ham yo'q) "Tez kunda" bo'lib QOLADI.
+
+    Tuzatish haddan tashqari keng qo'llanmasligini qo'riqlaydi.
+    """
+    empty = Movie.objects.create(
+        title="Bo'sh Kino", description="x", country="KR", year=2024, poster=_uploaded()
+    )
+    html = _card_html(empty)
+    assert "Tez kunda" in html
+    assert "Film" not in html
+
+
+@pytest.mark.django_db
+def test_episodes_win_over_stray_film_guid():
+    """Qismlar bo'lsa ular USTUN — serialda film-GUID xato to'ldirilgan bo'lsa ham.
+
+    Admin yanglishib Movie.bunny_video_id'ni serialga yozib qo'ysa, karta
+    "Film" emas, qism-sanog'ini ko'rsatishi kerak.
+    """
+    serial = _movie_with_episodes("Serial Kino", ep_count=2)
+    serial.bunny_video_id = "adashgan-guid"
+    serial.save()
+    html = _card_html(serial)
+    assert "2-qism" in html
+    assert "Film" not in html
+
+
+@pytest.mark.django_db
+def test_film_card_adds_no_queries(client, django_assert_num_queries):
+    """`is_film` xossasi N+1 keltirmaydi — `bunny_video_id` allaqachon yuklangan.
+
+    Bosh sahifa so'rov-sanog'i filmlar aralashganda ham o'zgarmasligi shart
+    (`.only()` qo'shilib qolsa shu test ushlaydi).
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    for i in range(4):
+        _movie_with_episodes(f"Aralash Serial {i}")
+    for i in range(4):
+        _film(f"Aralash Film {i}", bunny_id=f"guid-{i}")
+    client.get("/")  # keshlarni isitamiz
+    with django_assert_num_queries(3):
+        resp = client.get("/")
+    assert resp.status_code == 200
+
+
 @pytest.mark.django_db
 def test_explore_query_count_constant(client, django_assert_num_queries):
     from django.core.cache import cache
