@@ -109,11 +109,24 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     </div>
                     <span id="cpTime" class="cp-time">0:00 / 0:00</span>
                     <div class="cp-spacer"></div>
+                    {% comment %}
+                    [audio-track] Ovoz tili (dublyaj). Treklar HLS manifestidan
+                    keladi — Django ularni bilmaydi, shuning uchun bandlar JS'da
+                    quriladi va menyu FAQAT 2+ trek topilganda ochiladi.
+                    {% endcomment %}
+                    <div class="cp-menu-wrap" id="cpAudioWrap" hidden>
+                        <button id="cpAudioBtn" class="cp-btn cp-btn-text cp-btn-audio" type="button"
+                                aria-label="{% trans 'Ovoz tili' %}" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-language" aria-hidden="true"></i><span id="cpAudioLabel"></span>
+                        </button>
+                        <div id="cpAudioMenu" class="cp-menu" role="menu" aria-label="{% trans 'Ovoz tili' %}"></div>
+                    </div>
                     {% if subtitles %}
                     {# [V2E-T1 UX] Subtitr MENYU — cycle emas (speed/sifat bilan bir naqsh) #}
                     <div class="cp-menu-wrap">
-                        <button id="cpSubBtn" class="cp-btn cp-btn-text" aria-label="{% trans 'Subtitr tili' %}">CC</button>
-                        <div id="cpSubMenu" class="cp-menu">
+                        <button id="cpSubBtn" class="cp-btn cp-btn-text" type="button" aria-label="{% trans 'Subtitr tili' %}"
+                                aria-haspopup="true" aria-expanded="false">CC</button>
+                        <div id="cpSubMenu" class="cp-menu" role="menu" aria-label="{% trans 'Subtitr tili' %}">
                             <button data-sub="" class="active" type="button">{% trans "O'chiq" %}</button>
                             {% for sub in subtitles %}
                             <button data-sub="{{ sub.lang }}" type="button">{{ sub.display_label }}</button>
@@ -122,8 +135,9 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                     </div>
                     {% endif %}
                     <div class="cp-menu-wrap">
-                        <button id="cpSpeedBtn" class="cp-btn cp-btn-text" aria-label="{% trans 'Tezlik' %}">1x</button>
-                        <div id="cpSpeedMenu" class="cp-menu">
+                        <button id="cpSpeedBtn" class="cp-btn cp-btn-text" type="button" aria-label="{% trans 'Tezlik' %}"
+                                aria-haspopup="true" aria-expanded="false">1x</button>
+                        <div id="cpSpeedMenu" class="cp-menu" role="menu" aria-label="{% trans 'Tezlik' %}">
                             <button data-speed="0.5" type="button">0.5x</button>
                             <button data-speed="0.75" type="button">0.75x</button>
                             <button data-speed="1" class="active" type="button">1x</button>
@@ -133,8 +147,9 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
                         </div>
                     </div>
                     <div class="cp-menu-wrap">
-                        <button id="cpQualBtn" class="cp-btn cp-btn-text" aria-label="{% trans 'Sifat' %}">{% trans "Avto" %}</button>
-                        <div id="cpQualMenu" class="cp-menu">
+                        <button id="cpQualBtn" class="cp-btn cp-btn-text" type="button" aria-label="{% trans 'Sifat' %}"
+                                aria-haspopup="true" aria-expanded="false">{% trans "Avto" %}</button>
+                        <div id="cpQualMenu" class="cp-menu" role="menu" aria-label="{% trans 'Sifat' %}">
                             <button data-qual="auto" class="active" type="button">{% trans "Avto" %}</button>
                             <button data-qual="1080" type="button">1080p</button>
                             <button data-qual="720" type="button">720p</button>

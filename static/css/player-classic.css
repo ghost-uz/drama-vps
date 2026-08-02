@@ -215,6 +215,38 @@
 .cp-menu button:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 .cp-menu button.active { color: #00cc4c; font-weight: 700; }
 
+/* [a11y] Faol band FAQAT rang bilan belgilanmasin — belgi ham qo'shamiz
+   (rang ko'rmaydiganlar uchun; WCAG "color-not-only"). Joyni doim band
+   qilib turamiz, aks holda tanlaganda matn sakraydi. */
+.cp-menu button { position: relative; padding-right: 26px; }
+.cp-menu button::after {
+    content: "\f00c";           /* Font Awesome — check */
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    opacity: 0;
+}
+.cp-menu button.active::after { opacity: 1; }
+
+/* [audio-track] Ovoz tili tugmasi — ikonka + til kodi */
+.cp-btn-audio { gap: 5px; }
+.cp-btn-audio i { font-size: 14px; }
+/* Menyu 2+ trek topilmaguncha yopiq turadi (JS `hidden`ni oladi) */
+.cp-menu-wrap[hidden] { display: none !important; }
+
+/* [a11y] Klaviatura fokusi ko'rinadigan bo'lsin — sichqonchada chiqmaydi */
+.cp-btn:focus-visible,
+.cp-menu button:focus-visible,
+.cp-next-cancel:focus-visible,
+.cp-skip-intro:focus-visible {
+    outline: 2px solid #00cc4c;
+    outline-offset: 2px;
+}
+
 /* ── Keyingi qism countdown overlay ── */
 .cp-next-overlay {
     position: absolute;
@@ -322,6 +354,32 @@
     .cp-big-play { width: 64px; height: 64px; font-size: 20px; }
     .cp-time { font-size: 11px; }
     .cp-btn { width: 34px; }
+
+    /* [a11y] Teginish maydoni 44px'ga yetkaziladi — LEKIN ko'rinadigan o'lcham
+       o'zgarmaydi. 9 ta tugmani 44px qilsak tor ekranga sig'maydi, shuning uchun
+       maydonni ko'rinmas ::before bilan kengaytiramiz (layout'ga ta'sirsiz).
+       Gorizontal -3px: qo'shni tugmalar orasidagi 6px gap aynan to'ladi,
+       ustma-ust tushmaydi. Vertikal -5px: 34px -> 44px. */
+    .cp-bar .cp-btn { position: relative; }
+    .cp-bar .cp-btn::before {
+        content: "";
+        position: absolute;
+        inset: -5px -3px;
+    }
+    /* Menyu bandlari — barmoq uchun to'liq 44px */
+    .cp-menu button { min-height: 44px; display: flex; align-items: center; }
+    .cp-menu { min-width: 132px; }
+}
+
+/* [a11y] Harakatni kamaytirish so'ralgan bo'lsa — animatsiyasiz, lekin
+   funksional (spinner ko'rinib turadi, modal ochiladi) */
+@media (prefers-reduced-motion: reduce) {
+    .cp-big-play, .cp-controls, .cp-seek-track, .cp-played::after,
+    .cp-vol, .cp-btn, .cp-skip-intro, .cp-trailer-close, .cp-ep {
+        transition: none;
+    }
+    .cp-trailer-box { animation: none; }
+    .cp-loader.on { animation-duration: 2s; }
 }
 
 /* ── Intro-skip [V2E-T2] ─────────────────────────────── */

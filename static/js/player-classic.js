@@ -107,15 +107,27 @@ function bindMenu(btn, menu) {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         closeMenus(menu);
-        menu.classList.toggle('open');
+        const open = menu.classList.toggle('open');
+        /* [a11y] Ekran o'quvchilari popover holatini bilishi uchun */
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
 }
 function closeMenus(except) {
-    [els.cpSpeedMenu, els.cpQualMenu, document.getElementById('cpSubMenu')].forEach(m => {
-        if (m && m !== except) m.classList.remove('open');
+    [els.cpSpeedMenu, els.cpQualMenu,
+     document.getElementById('cpSubMenu'),
+     document.getElementById('cpAudioMenu')].forEach(m => {
+        if (m && m !== except) {
+            m.classList.remove('open');
+            const b = m.previousElementSibling;
+            if (b && b.hasAttribute('aria-expanded')) b.setAttribute('aria-expanded', 'false');
+        }
     });
 }
 document.addEventListener('click', () => closeMenus());
+/* [a11y] Escape — ochiq menyuni yopadi (modal'dan chiqish yo'li) */
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenus();
+});
 bindMenu(els.cpSpeedBtn, els.cpSpeedMenu);
 bindMenu(els.cpQualBtn, els.cpQualMenu);
 
@@ -223,12 +235,22 @@ function showControls() {
     wrap.classList.remove('cp-idle');
     scheduleHide();
 }
+function menuOpen() { return !!wrap.querySelector('.cp-menu.open'); }
 function scheduleHide() {
     clearTimeout(hideTimer);
-    if (!video.paused) hideTimer = setTimeout(() => wrap.classList.add('cp-idle'), 2600);
+    if (video.paused) return;
+    hideTimer = setTimeout(() => {
+        /* Menyular .cp-controls ICHIDA — panel yashirilsa ochiq menyu ham
+           yo'qolib, tanlov jarayoni uziladi. Shuning uchun menyu ochiq
+           ekan yashirmaymiz, faqat taymerni qayta qo'yamiz. */
+        if (menuOpen()) { scheduleHide(); return; }
+        wrap.classList.add('cp-idle');
+    }, 2600);
 }
 ['mousemove', 'touchstart'].forEach(ev => wrap.addEventListener(ev, showControls, { passive: true }));
-wrap.addEventListener('mouseleave', () => { if (!video.paused) wrap.classList.add('cp-idle'); });
+wrap.addEventListener('mouseleave', () => {
+    if (!video.paused && !menuOpen()) wrap.classList.add('cp-idle');
+});
 
 /* ── Klaviatura ── */
 document.addEventListener('keydown', (e) => {
@@ -288,6 +310,49 @@ function onEnded(nextEp) {
         const target = subMenu.querySelector('[data-sub="' + l + '"]') ||
                        subMenu.querySelector('[data-sub=""]');
         if (target) markActive(subMenu, target);
+    });
+})();
+
+/* ── OVOZ TILI (dublyaj) MENYUSI [audio-track] ────────────
+   Treklar HLS manifestidan keladi (Bunny'dagi ko'p ovozli yuklash), ya'ni
+   ular FAQAT brauzerda ma'lum bo'ladi — shuning uchun bandlar shu yerda
+   quriladi va menyu 2+ trek bo'lgandagina ko'rinadi.
+   innerHTML ATAYLAB ishlatilmadi: label'lar video metama'lumotidan kelgan
+   tashqi matn — DOM tugunlari orqali xavfsiz quriladi. */
+(function () {
+    const wrap  = document.getElementById('cpAudioWrap');
+    const btn   = document.getElementById('cpAudioBtn');
+    const menu  = document.getElementById('cpAudioMenu');
+    const label = document.getElementById('cpAudioLabel');
+    if (!wrap || !btn || !menu || !label) return;
+
+    bindMenu(btn, menu);
+    menu.addEventListener('click', (e) => {
+        const item = e.target.closest('[data-audio]');
+        if (!item) return;
+        core.setAudioTrack(parseInt(item.dataset.audio, 10));
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    });
+
+    core.onAudioTracks((tracks, lang) => {
+        if (tracks.length < 2) { wrap.hidden = true; return; }
+        wrap.hidden = false;
+        menu.textContent = '';
+        tracks.forEach((t) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('role', 'menuitemradio');
+            b.dataset.audio = t.id;
+            b.textContent = t.label;
+            const on = t.lang === lang;
+            b.setAttribute('aria-checked', on ? 'true' : 'false');
+            if (on) b.className = 'active';
+            menu.appendChild(b);
+        });
+        const cur = tracks.filter((t) => t.lang === lang)[0] || tracks[0];
+        label.textContent = (cur.lang || '').toUpperCase() || cur.label;
+        btn.title = cur.label;
     });
 })();
 

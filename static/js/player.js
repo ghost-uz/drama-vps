@@ -238,7 +238,9 @@ function showSeek(side) {
 ───────────────────────────────────────────────────────── */
 function markSetActive(kind, val) {
     document.querySelectorAll('.r-set-option[data-set="' + kind + '"]').forEach(function (b) {
-        b.classList.toggle('active', b.dataset.val === val);
+        const on = b.dataset.val === val;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false'); /* [a11y] holat e'lon qilinsin */
     });
 }
 
@@ -280,9 +282,48 @@ window.playerSet = function (btn) {
     if (kind === 'quality') { applyQuality(val); core.setQualityPref(val); }
     if (kind === 'subtitle') core.setSubtitle(val);
     if (kind === 'speed') core.setSpeed(parseFloat(val));
+    if (kind === 'audio') core.setAudioTrack(parseInt(val, 10)); /* [audio-track] */
     markSetActive(kind, val);
     closeSheet('playerSheet');
 };
+
+/* ─────────────────────────────────────────────────────────
+   OVOZ TILI / DUBLYAJ [audio-track]
+   Bunny ko'p ovozli video HLS manifestida bir nechta TYPE=AUDIO trek
+   uzatadi. Server ularni bilmaydi (manifestni brauzer o'qiydi), shuning
+   uchun ro'yxat shu yerda quriladi va 2+ trek bo'lgandagina ko'rsatiladi.
+   Label'lar tashqi metama'lumotdan kelgani uchun innerHTML EMAS, DOM
+   tugunlari ishlatiladi.
+───────────────────────────────────────────────────────── */
+(function () {
+    const group = document.getElementById('rAudioGroup');
+    const list  = document.getElementById('rAudioList');
+    if (!group || !list) return;
+
+    core.onAudioTracks(function (tracks, lang) {
+        if (tracks.length < 2) { group.hidden = true; return; }
+        group.hidden = false;
+        list.textContent = '';
+        tracks.forEach(function (t) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'r-set-option' + (t.lang === lang ? ' active' : '');
+            b.dataset.set = 'audio';
+            b.dataset.val = String(t.id);
+            b.setAttribute('aria-pressed', t.lang === lang ? 'true' : 'false');
+            b.addEventListener('click', function () { window.playerSet(b); });
+
+            const span = document.createElement('span');
+            span.textContent = t.label;
+            const check = document.createElement('i');
+            check.className = 'fas fa-check';
+            check.setAttribute('aria-hidden', 'true');
+            b.appendChild(span);
+            b.appendChild(check);
+            list.appendChild(b);
+        });
+    });
+})();
 
 /* [V2E-T4] Saqlangan tanlovlarni sheet'da belgilash + qo'llash.
    Sifat: HLS bo'lsa levels tayyor bo'lgach (MANIFEST_PARSED) qayta qo'llanadi. */

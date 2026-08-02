@@ -42,6 +42,8 @@ window.DramaPlayerCore = function (video, d, opts) {
     function fallbackToMp4() {
         if (hlsInst) { hlsInst.destroy(); hlsInst = null; }
         if (d.src720) video.src = d.src720;
+        /* MP4'da faqat BITTA (default) ovoz bor — dublyaj menyusi yashirinsin */
+        notifyAudio();
     }
 
     function initHls() {
@@ -183,6 +185,170 @@ window.DramaPlayerCore = function (video, d, opts) {
         video.addEventListener('loadedmetadata', restoreSubtitle);
     }
 
+    /* ── OVOZLI TREKLAR / DUBLYAJ [audio-track] ───────────────
+       Bunny ko'p ovozli videoni HLS master-playlist'ida
+       #EXT-X-MEDIA:TYPE=AUDIO qatorlari bilan uzatadi (LANGUAGE + NAME),
+       har bir sifat varianti esa AUDIO="audio" guruhiga bog'lanadi.
+       Ilgari pleyer faqat DEFAULT=YES trekni ijro etardi va qolgan tillar
+       foydalanuvchiga UMUMAN yetib bormasdi — shu yerda tuzatiladi.
+
+       Ikkala ijro yo'li ham qo'llanadi:
+       - hls.js (Chrome/Firefox/Android) -> hls.audioTracks + hls.audioTrack
+       - Safari nativ HLS (iOS)          -> video.audioTracks (AudioTrackList)
+
+       DIQQAT: hls.audioTracks MANIFEST_PARSED paytida hali BO'SH bo'ladi —
+       u tanlangan darajaning audio-GURUHIGA filtrlangan ro'yxat va faqat
+       AUDIO_TRACKS_UPDATED da to'ladi (allAudioTracks esa darhol to'la).
+       Shuning uchun UI aynan shu hodisaga ulanadi.
+
+       Tanlov TIL KODI bo'yicha saqlanadi, indeks bo'yicha EMAS: keyingi
+       qismda treklar boshqa tartibda kelib, indeks boshqa tilni yoqib
+       yuborishi mumkin. */
+    var AUDIO_KEY = 'drama:audioLang';
+
+    /* Til kodi -> o'zbekcha nom. Ro'yxatda yo'q til uchun Bunny'dagi NAME,
+       u ham bo'lmasa kod (RU/KO) ishlatiladi — hech qachon bo'sh chiqmaydi. */
+    var AUDIO_LABELS = {
+        uz: "O'zbekcha", ru: 'Ruscha', en: 'Inglizcha', ko: 'Koreyscha',
+        zh: 'Xitoycha', ja: 'Yaponcha', tr: 'Turkcha', hi: 'Hindcha',
+        ar: 'Arabcha', fa: 'Forscha', kk: 'Qozoqcha', tg: 'Tojikcha',
+        th: 'Taycha', es: 'Ispancha', fr: 'Fransuzcha', de: 'Nemischa',
+    };
+
+    var audioSubs = [];   /* UI kuzatuvchilari */
+    var audioWanted = null; /* tanlangan TIL — manba qayta yuklansa tiklanadi */
+
+    function normLang(v) {
+        return String(v || '').toLowerCase().split(/[-_]/)[0];
+    }
+
+    function audioLabel(lang, name, i) {
+        return AUDIO_LABELS[lang] || name || (lang ? lang.toUpperCase() : '')
+            || (i + 1) + '-ovoz';
+    }
+
+    function hlsAudio() {
+        /* hls.js faol VA rostdan tanlash imkoni bor bo'lsagina */
+        return (hlsInst && hlsInst.audioTracks && hlsInst.audioTracks.length > 1)
+            ? hlsInst.audioTracks : null;
+    }
+
+    function nativeAudio() {
+        return (video && video.audioTracks && video.audioTracks.length > 1)
+            ? video.audioTracks : null;
+    }
+
+    /* Tanlanadigan treklar. BITTA trek bo'lsa bo'sh ro'yxat qaytadi —
+       "tanlovsiz tanlov" menyusi ko'rsatilmaydi (progressive disclosure). */
+    function audioTracks() {
+        var out = [];
+        var i;
+        var h = hlsAudio();
+        if (h) {
+            for (i = 0; i < h.length; i++) {
+                var lang = normLang(h[i].lang || h[i].language);
+                out.push({ id: i, lang: lang, label: audioLabel(lang, h[i].name, i) });
+            }
+            return out;
+        }
+        var n = nativeAudio();
+        if (n) {
+            for (i = 0; i < n.length; i++) {
+                var nl = normLang(n[i].language);
+                out.push({ id: i, lang: nl, label: audioLabel(nl, n[i].label, i) });
+            }
+        }
+        return out;
+    }
+
+    function currentAudioId() {
+        if (hlsAudio()) return hlsInst.audioTrack;
+        var n = nativeAudio();
+        if (n) {
+            for (var i = 0; i < n.length; i++) if (n[i].enabled) return i;
+        }
+        return -1;
+    }
+
+    function currentAudioLang() {
+        var cur = currentAudioId();
+        var t = audioTracks().filter(function (x) { return x.id === cur; })[0];
+        return t ? t.lang : '';
+    }
+
+    function applyAudioTrack(id) {
+        if (hlsAudio()) {
+            if (hlsInst.audioTrack !== id) hlsInst.audioTrack = id;
+            return;
+        }
+        var n = nativeAudio();
+        /* AudioTrackList — eksklyuziv tanlov: keraksizlarini o'chirib, keyin yoqamiz */
+        if (n) for (var i = 0; i < n.length; i++) n[i].enabled = (i === id);
+    }
+
+    function setAudioTrack(id) {
+        var t = audioTracks().filter(function (x) { return x.id === id; })[0];
+        if (!t) return currentAudioLang();
+        audioWanted = t.lang;
+        applyAudioTrack(id);
+        try { localStorage.setItem(AUDIO_KEY, t.lang); } catch (e) { /* private mode */ }
+        return t.lang;
+    }
+
+    /* Standart trek KASKADI (foydalanuvchi qarori, 2026-08-02):
+       1) oldin saqlangan til  2) saytning interfeys tili (<html lang>)
+       3) ikkalasi ham mos kelmasa — Bunny'dagi DEFAULT=YES trek (tegilmaydi). */
+    function pickDefaultAudio(list) {
+        var saved = '';
+        try { saved = normLang(localStorage.getItem(AUDIO_KEY)); } catch (e) { /* private */ }
+        var ui = normLang(document.documentElement.lang);
+        function byLang(l) {
+            if (!l) return null;
+            return list.filter(function (t) { return t.lang === l; })[0] || null;
+        }
+        return byLang(saved) || byLang(ui) || null;
+    }
+
+    function emitAudio() {
+        /* fallbackToMp4() yadro to'liq init bo'lmasdan chaqirilishi mumkin —
+           o'sha paytda audioSubs hali hoisting tufayli undefined bo'ladi */
+        if (!audioSubs) return;
+        var list = audioTracks();
+        var lang = currentAudioLang();
+        audioSubs.forEach(function (cb) { cb(list, lang); });
+    }
+
+    function notifyAudio() {
+        var list = audioTracks();
+        if (list.length) {
+            if (audioWanted === null) {
+                var pick = pickDefaultAudio(list);
+                audioWanted = pick ? pick.lang : currentAudioLang();
+            }
+            /* Imzoli URL yangilangach hls.js standart trekka qaytadi —
+               foydalanuvchi tanlovi shu yerda qayta tiklanadi. */
+            var want = list.filter(function (t) { return t.lang === audioWanted; })[0];
+            if (want && currentAudioId() !== want.id) applyAudioTrack(want.id);
+        }
+        emitAudio();
+    }
+
+    /* UI ro'yxatdan o'tadi; treklar allaqachon tayyor bo'lsa darhol chaqiriladi */
+    function onAudioTracks(cb) {
+        audioSubs.push(cb);
+        if (audioTracks().length) cb(audioTracks(), currentAudioLang());
+    }
+
+    if (hlsInst && window.Hls) {
+        hlsInst.on(Hls.Events.AUDIO_TRACKS_UPDATED, notifyAudio);
+        /* SWITCHED'da FAQAT xabar beramiz — qayta qo'llasak cheksiz halqa bo'ladi */
+        hlsInst.on(Hls.Events.AUDIO_TRACK_SWITCHED, emitAudio);
+    }
+    if (video && video.audioTracks) {
+        video.audioTracks.addEventListener('addtrack', notifyAudio);
+        video.audioTracks.addEventListener('change', emitAudio);
+    }
+
     /* ── Pleyer sozlamalari persist [V2E-T4] ──────────────────
        Tezlik/sifat/ovoz localStorage'da — qurilmada eslab qolinadi.
        Sifat PREFERENSIYASI (string) yadroda saqlanadi; uni QO'LLASH
@@ -289,6 +455,10 @@ window.DramaPlayerCore = function (video, d, opts) {
         cycleSubtitle: cycleSubtitle,
         setSubtitle: setSubtitle,
         currentSubtitle: currentSubtitle,
+        audioTracks: audioTracks,
+        currentAudioLang: currentAudioLang,
+        setAudioTrack: setAudioTrack,
+        onAudioTracks: onAudioTracks,
         setSpeed: setSpeed,
         currentSpeed: currentSpeed,
         setQualityPref: setQualityPref,

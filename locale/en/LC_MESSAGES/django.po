@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: drama.uz\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-27 01:11+0000\n"
+"POT-Creation-Date: 2026-08-02 13:48+0000\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -53,7 +53,7 @@ msgstr "Series (TV)"
 msgid "Film"
 msgstr "Movie"
 
-#: templates/admin/drama/movie/tmdb_import.html:16 templates/base.html:285
+#: templates/admin/drama/movie/tmdb_import.html:16 templates/base.html:290
 msgid "Qidirish"
 msgstr "Search"
 
@@ -175,108 +175,108 @@ msgstr "dorama, series, uzbek, dorama uz, drama uz, korean series, chinese serie
 msgid "Drama.Uz - Korea va Xitoy dramalari"
 msgstr "Drama.Uz - Korean and Chinese dramas"
 
-#: templates/base.html:211 templates/movies/movie_detail.html:1279
-#: templates/movies/movie_detail_classic.html:296
+#: templates/base.html:216 templates/movies/movie_detail.html:1283
+#: templates/movies/movie_detail_classic.html:312
 #: templates/users/profile.html:580 templates/users/profile.html:589
 msgid "Yopish"
 msgstr "Close"
 
-#: templates/base.html:236
+#: templates/base.html:241
 msgid "Drama.uz Bosh sahifa"
 msgstr "Drama.uz Home"
 
-#: templates/base.html:244
+#: templates/base.html:249
 msgid "Kino, serial qidirish"
 msgstr "Search movies and series"
 
-#: templates/base.html:245
+#: templates/base.html:250
 msgid "Kino, serial qidirish..."
 msgstr "Search movies, series..."
 
-#: templates/base.html:252
+#: templates/base.html:257
 msgid "Qidiruvni ochish"
 msgstr "Open search"
 
-#: templates/base.html:257 templates/users/notifications.html:3
+#: templates/base.html:262 templates/users/notifications.html:3
 #: templates/users/notifications.html:12
 msgid "Bildirishnomalar"
 msgstr "Notifications"
 
-#: templates/base.html:267
+#: templates/base.html:272
 msgid "Profilga kirish"
 msgstr "Go to profile"
 
-#: templates/base.html:282
+#: templates/base.html:287
 msgid "Nima ko'ramiz?"
 msgstr "What shall we watch?"
 
-#: templates/base.html:283
+#: templates/base.html:288
 msgid "Kino qidirish"
 msgstr "Search movies"
 
-#: templates/base.html:297
+#: templates/base.html:302
 msgid "Mobil menyu"
 msgstr "Mobile menu"
 
-#: templates/base.html:301 drama/admin.py:434
+#: templates/base.html:306 drama/admin.py:434
 msgid "Asosiy"
 msgstr "Home"
 
-#: templates/base.html:305
+#: templates/base.html:310
 msgid "Katalog"
 msgstr "Catalog"
 
-#: templates/base.html:309
+#: templates/base.html:314
 msgid "Profil"
 msgstr "Profile"
 
-#: templates/base.html:323
+#: templates/base.html:328
 msgid "Yordam"
 msgstr "Help"
 
-#: templates/base.html:325 templates/pages/terms.html:4
+#: templates/base.html:330 templates/pages/terms.html:4
 #: templates/pages/terms.html:9
 msgid "Foydalanish shartlari"
 msgstr "Terms of Use"
 
-#: templates/base.html:326 templates/pages/privacy.html:4
+#: templates/base.html:331 templates/pages/privacy.html:4
 #: templates/pages/privacy.html:9
 msgid "Maxfiylik siyosati"
 msgstr "Privacy Policy"
 
-#: templates/base.html:331
+#: templates/base.html:336
 msgid "Ijtimoiy Tarmoqlar"
 msgstr "Social Networks"
 
-#: templates/base.html:333
+#: templates/base.html:338
 msgid "Telegram Kanal"
 msgstr "Telegram Channel"
 
-#: templates/base.html:345
+#: templates/base.html:350
 msgid "Til tanlash"
 msgstr "Choose language"
 
-#: templates/base.html:441
+#: templates/base.html:446
 msgid "Telegram brauzeri aniqlandi"
 msgstr "Telegram browser detected"
 
-#: templates/base.html:444
+#: templates/base.html:449
 msgid "Ushbu platforma Telegram ichki brauzerida to'liq stabil ishlamaydi."
 msgstr "This platform does not work fully stable inside the Telegram in-app browser."
 
-#: templates/base.html:447
+#: templates/base.html:452
 msgid "Davom etish uchun saytni qurilmangizning asosiy brauzerida oching. Masalan Google Chrome orqali Drama.Uz dan foydalaning yoki yuqoridagi 3 nuqtani bosib OCHISH ni tanlang."
 msgstr "To continue, open the site in your device's main browser. For example use Drama.Uz via Google Chrome, or tap the 3 dots above and choose OPEN."
 
-#: templates/base.html:456
+#: templates/base.html:461
 msgid "Brauzerda ochish"
 msgstr "Open in browser"
 
-#: templates/base.html:567
+#: templates/base.html:572
 msgid "posteri"
 msgstr "poster"
 
-#: templates/base.html:576
+#: templates/base.html:581
 msgid "Hech narsa topilmadi :("
 msgstr "Nothing found :("
 
@@ -360,7 +360,7 @@ msgstr "Continue watching"
 
 #: templates/index.html:143 templates/movies/movie_detail.html:4
 #: templates/movies/movie_detail.html:5 templates/movies/movie_detail.html:8
-#: templates/movies/movie_detail.html:1062
+#: templates/movies/movie_detail.html:1066
 #: templates/movies/movie_detail_classic.html:8
 #: templates/movies/movie_detail_classic.html:9
 #: templates/movies/movies_card.html:36
@@ -471,7 +471,7 @@ msgid "Balans"
 msgstr "Balance"
 
 #: templates/movies/inson.html:322
-#: templates/movies/movie_detail_classic.html:257
+#: templates/movies/movie_detail_classic.html:273
 #: templates/movies/movie_reviews.html:45
 #: templates/movies/partials/_report_form.html:22
 msgid "Yuborish"
@@ -485,163 +485,171 @@ msgstr "in Uzbek"
 msgid "o'zbekcha"
 msgstr "uzbek"
 
-#: templates/movies/movie_detail.html:985
+#: templates/movies/movie_detail.html:989
 msgid "Ushbu qism yopiq"
 msgstr "This episode is locked"
 
-#: templates/movies/movie_detail.html:986
+#: templates/movies/movie_detail.html:990
 #: templates/movies/movie_detail_classic.html:39
 msgid "Ko'rish uchun «O'zbekcha Dublyaj Loyihasi»ga hissa qo'shing. To'lovdan so'ng barcha qismlar ochiladi."
 msgstr "To watch, contribute to the “Uzbek Dubbing Project”. All episodes unlock after payment."
 
-#: templates/movies/movie_detail.html:989
+#: templates/movies/movie_detail.html:993
 msgid "To'lov qilish"
 msgstr "Make a payment"
 
-#: templates/movies/movie_detail.html:997
+#: templates/movies/movie_detail.html:1001
 #: templates/movies/movie_detail_classic.html:47
 msgid "VIP Bo'lim"
 msgstr "VIP Section"
 
-#: templates/movies/movie_detail.html:998
+#: templates/movies/movie_detail.html:1002
 #: templates/movies/movie_detail_classic.html:48
 msgid "Ushbu qismni ko'rish uchun premium obuna kerak."
 msgstr "A premium subscription is required to watch this episode."
 
-#: templates/movies/movie_detail.html:1061
+#: templates/movies/movie_detail.html:1065
 #: templates/movies/movie_detail_classic.html:105
 msgid "Keyingi qism"
 msgstr "Next episode"
 
-#: templates/movies/movie_detail.html:1065
-#: templates/movies/movie_detail.html:1346
+#: templates/movies/movie_detail.html:1069
+#: templates/movies/movie_detail.html:1360
 #: templates/movies/movie_detail_classic.html:92
 msgid "Bekor qilish"
 msgstr "Cancel"
 
-#: templates/movies/movie_detail.html:1090
+#: templates/movies/movie_detail.html:1094
 msgid "Bosh sahifaga qaytish"
 msgstr "Back to home"
 
-#: templates/movies/movie_detail.html:1107
 #: templates/movies/movie_detail.html:1111
+#: templates/movies/movie_detail.html:1115
 msgid "Yoqdi"
 msgstr "Liked"
 
-#: templates/movies/movie_detail.html:1115
-#: templates/movies/movie_detail.html:1188
-#: templates/movies/movie_detail_classic.html:235
+#: templates/movies/movie_detail.html:1119
+#: templates/movies/movie_detail.html:1192
+#: templates/movies/movie_detail_classic.html:251
 msgid "Fikrlar"
 msgstr "Comments"
 
-#: templates/movies/movie_detail.html:1123
 #: templates/movies/movie_detail.html:1127
-#: templates/movies/movie_detail.html:1345
+#: templates/movies/movie_detail.html:1131
+#: templates/movies/movie_detail.html:1359
 #: templates/users/collection_detail.html:48
 msgid "Saqlash"
 msgstr "Save"
 
-#: templates/movies/movie_detail.html:1131
 #: templates/movies/movie_detail.html:1135
-#: templates/movies/movie_detail.html:1240
-#: templates/movies/movie_detail_classic.html:219 drama/admin.py:479
+#: templates/movies/movie_detail.html:1139
+#: templates/movies/movie_detail.html:1244
+#: templates/movies/movie_detail_classic.html:235 drama/admin.py:479
 msgid "Qismlar"
 msgstr "Episodes"
 
-#: templates/movies/movie_detail.html:1140 templates/users/profile.html:134
+#: templates/movies/movie_detail.html:1144 templates/users/profile.html:134
 msgid "Sozlamalar"
 msgstr "Settings"
 
-#: templates/movies/movie_detail.html:1144
+#: templates/movies/movie_detail.html:1148
 msgid "Sozlash"
 msgstr "Settings"
 
-#: templates/movies/movie_detail.html:1152
+#: templates/movies/movie_detail.html:1156
 msgid "Bosib ko'rish"
 msgstr "Tap to play"
 
-#: templates/movies/movie_detail.html:1200
-#: templates/movies/movie_detail_classic.html:245
+#: templates/movies/movie_detail.html:1204
+#: templates/movies/movie_detail_classic.html:261
 #: templates/movies/movie_reviews.html:33
 msgid "Javobni bekor qilish"
 msgstr "Cancel reply"
 
-#: templates/movies/movie_detail.html:1210
-#: templates/movies/movie_detail_classic.html:255
+#: templates/movies/movie_detail.html:1214
+#: templates/movies/movie_detail_classic.html:271
 #: templates/movies/movie_reviews.html:43
 msgid "Fikringizni yozing..."
 msgstr "Write your comment..."
 
-#: templates/movies/movie_detail.html:1217
-#: templates/movies/movie_detail_classic.html:264
+#: templates/movies/movie_detail.html:1221
+#: templates/movies/movie_detail_classic.html:280
 #: templates/movies/movie_reviews.html:52
 msgid "Spoyler bor"
 msgstr "Contains spoiler"
 
-#: templates/movies/movie_detail.html:1224
-#: templates/movies/movie_detail_classic.html:268
+#: templates/movies/movie_detail.html:1228
+#: templates/movies/movie_detail_classic.html:284
 #: templates/movies/movie_reviews.html:56
 msgid "Fikr qoldirish uchun kiring"
 msgstr "Sign in to leave a comment"
 
-#: templates/movies/movie_detail.html:1258
-#: templates/movies/movie_detail_classic.html:280
+#: templates/movies/movie_detail.html:1262
+#: templates/movies/movie_detail_classic.html:296
 msgid "O'xshash dramalar"
 msgstr "Similar dramas"
 
-#: templates/movies/movie_detail.html:1278
+#: templates/movies/movie_detail.html:1282
 msgid "Pleyer sozlamalari"
 msgstr "Player settings"
 
-#: templates/movies/movie_detail.html:1286
-#: templates/movies/movie_detail.html:1296
-#: templates/movies/movie_detail_classic.html:137
+#: templates/movies/movie_detail.html:1295
+#: templates/movies/movie_detail_classic.html:121
+#: templates/movies/movie_detail_classic.html:124
+msgid "Ovoz tili"
+msgstr "Audio language"
+
+#: templates/movies/movie_detail.html:1300
+#: templates/movies/movie_detail.html:1310
+#: templates/movies/movie_detail_classic.html:152
+#: templates/movies/movie_detail_classic.html:154
 msgid "Sifat"
 msgstr "Quality"
 
-#: templates/movies/movie_detail.html:1288
+#: templates/movies/movie_detail.html:1302
 msgid "Avto (tavsiya etiladi)"
 msgstr "Auto (recommended)"
 
-#: templates/movies/movie_detail.html:1307
-#: templates/movies/movie_detail_classic.html:126
+#: templates/movies/movie_detail.html:1321
+#: templates/movies/movie_detail_classic.html:140
+#: templates/movies/movie_detail_classic.html:142
 msgid "Tezlik"
 msgstr "Speed"
 
-#: templates/movies/movie_detail.html:1309
+#: templates/movies/movie_detail.html:1323
 msgid "Normal (1x)"
 msgstr "Normal (1x)"
 
-#: templates/movies/movie_detail.html:1316
+#: templates/movies/movie_detail.html:1330
 msgid "Subtitr"
 msgstr "Subtitles"
 
-#: templates/movies/movie_detail.html:1318
-#: templates/movies/movie_detail_classic.html:118
+#: templates/movies/movie_detail.html:1332
+#: templates/movies/movie_detail_classic.html:132
 msgid "O'chiq"
 msgstr "Off"
 
-#: templates/movies/movie_detail.html:1337
+#: templates/movies/movie_detail.html:1351
 msgid "My Library"
 msgstr "My Library"
 
-#: templates/movies/movie_detail.html:1339
+#: templates/movies/movie_detail.html:1353
 msgid "▶ Ko'ryapman"
 msgstr "▶ Watching"
 
-#: templates/movies/movie_detail.html:1340
+#: templates/movies/movie_detail.html:1354
 msgid "✓ Tugallangan"
 msgstr "✓ Completed"
 
-#: templates/movies/movie_detail.html:1341
+#: templates/movies/movie_detail.html:1355
 msgid "📌 Rejamda bor"
 msgstr "📌 Plan to watch"
 
-#: templates/movies/movie_detail.html:1342
+#: templates/movies/movie_detail.html:1356
 msgid "⏸ To'xtatilgan"
 msgstr "⏸ On hold"
 
-#: templates/movies/movie_detail.html:1343
+#: templates/movies/movie_detail.html:1357
 msgid "✕ Qiziq emas"
 msgstr "✕ Not interested"
 
@@ -685,37 +693,38 @@ msgstr "Volume"
 msgid "Ovoz balandligi"
 msgstr "Volume level"
 
-#: templates/movies/movie_detail_classic.html:116
+#: templates/movies/movie_detail_classic.html:129
+#: templates/movies/movie_detail_classic.html:131
 msgid "Subtitr tili"
 msgstr "Subtitle language"
 
-#: templates/movies/movie_detail_classic.html:137
-#: templates/movies/movie_detail_classic.html:139
+#: templates/movies/movie_detail_classic.html:153
+#: templates/movies/movie_detail_classic.html:155
 msgid "Avto"
 msgstr "Auto"
 
-#: templates/movies/movie_detail_classic.html:144
+#: templates/movies/movie_detail_classic.html:160
 msgid "Kichik oyna"
 msgstr "Picture-in-picture"
 
-#: templates/movies/movie_detail_classic.html:145
+#: templates/movies/movie_detail_classic.html:161
 msgid "To'liq ekran"
 msgstr "Fullscreen"
 
-#: templates/movies/movie_detail_classic.html:165
+#: templates/movies/movie_detail_classic.html:181
 msgid "%(d)s daqiqa"
 msgstr "%(d)s min"
 
-#: templates/movies/movie_detail_classic.html:177
-#: templates/movies/movie_detail_classic.html:295
+#: templates/movies/movie_detail_classic.html:193
+#: templates/movies/movie_detail_classic.html:311
 msgid "Treyler"
 msgstr "Trailer"
 
-#: templates/movies/movie_detail_classic.html:197
+#: templates/movies/movie_detail_classic.html:213
 msgid "Bosh rollarda"
 msgstr "Starring"
 
-#: templates/movies/movie_detail_classic.html:237
+#: templates/movies/movie_detail_classic.html:253
 #: templates/users/collection_detail.html:29
 msgid "Barchasi"
 msgstr "See all"
@@ -1669,55 +1678,55 @@ msgstr "No results (0)"
 msgid "Natijali (1+)"
 msgstr "With results (1+)"
 
-#: drama/views.py:214
+#: drama/views.py:217
 msgid "Shikoyat yuborildi — moderatorlar ko'rib chiqadi."
 msgstr "Report submitted — moderators will review it."
 
-#: drama/views.py:216
+#: drama/views.py:219
 msgid "Siz bu izohga allaqachon shikoyat yuborgansiz."
 msgstr "You have already reported this comment."
 
-#: drama/views.py:561
+#: drama/views.py:564
 msgid "'%(title)s' ro'yxatingizga saqlandi!"
 msgstr "'%(title)s' was saved to your list!"
 
-#: drama/views.py:508
+#: drama/views.py:511
 msgid "Noto'g'ri status tanlandi."
 msgstr "Invalid status selected."
 
-#: drama/views.py:869
+#: drama/views.py:872
 msgid "Gul 🌹"
 msgstr "Rose 🌹"
 
-#: drama/views.py:869
+#: drama/views.py:872
 msgid "Qahva ☕"
 msgstr "Coffee ☕"
 
-#: drama/views.py:869
+#: drama/views.py:872
 msgid "Toj 👑"
 msgstr "Crown 👑"
 
-#: drama/views.py:877
+#: drama/views.py:880
 msgid "Aktyor topilmadi."
 msgstr "Actor not found."
 
-#: drama/views.py:537
+#: drama/views.py:540
 msgid "Baho 1 va 10 oralig'ida bo'lishi kerak. Kino bahosiz saqlandi."
 msgstr "The rating must be between 1 and 10. The movie was saved without a rating."
 
-#: drama/views.py:541
+#: drama/views.py:544
 msgid "Noto'g'ri baho kiritildi. Kino bahosiz saqlandi."
 msgstr "Invalid rating entered. The movie was saved without a rating."
 
-#: drama/views.py:837
+#: drama/views.py:840
 msgid "Noto'g'ri sovg'a tanlandi."
 msgstr "Invalid gift selected."
 
-#: drama/views.py:872
+#: drama/views.py:875
 msgid "%(actor)s ga %(gift)s yubordingiz! U bundan juda xursand bo'ladi 🎉"
 msgstr "You sent %(gift)s to %(actor)s! They will be very happy 🎉"
 
-#: drama/views.py:852
+#: drama/views.py:855
 msgid "Sovg'a yuborish uchun Coin yetarli emas. Iltimos hisobingizni to'ldiring."
 msgstr "Not enough Coins to send a gift. Please top up your balance."
 

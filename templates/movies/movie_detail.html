@@ -441,6 +441,10 @@ body > main {
 .r-set-option .fa-check { opacity: 0; color: #00cc4c; transition: opacity 0.15s; }
 .r-set-option.active { border-color: rgba(0,204,76,0.5); background: rgba(0,204,76,0.08); }
 .r-set-option.active .fa-check { opacity: 1; }
+/* [audio-track] 2+ ovoz trek topilmaguncha guruh yopiq (JS `hidden`ni oladi) */
+.r-set-group[hidden] { display: none !important; }
+/* [a11y] Klaviatura fokusi ko'rinsin */
+.r-set-option:focus-visible { outline: 2px solid #00cc4c; outline-offset: 2px; }
 
 /* ═══════════════════════════════════════════════════════════
    LOADER / SPINNER
@@ -1281,6 +1285,15 @@ body > main {
             </button>
         </div>
         <div class="r-set-scroll">
+            {% comment %}
+            [audio-track] Ovoz tili (dublyaj) — eng ta'sirli tanlov, shuning uchun
+            birinchi. Bandlar HLS manifestidan JS orqali to'ldiriladi; 2+ trek
+            topilmasa butun guruh yashirin qoladi.
+            {% endcomment %}
+            <div class="r-set-group" id="rAudioGroup" hidden>
+                <div class="r-set-title"><i class="fas fa-language"></i> {% trans "Ovoz tili" %}</div>
+                <div id="rAudioList"></div>
+            </div>
             {% if use_bunny %}
             <div class="r-set-group">
                 <div class="r-set-title"><i class="fas fa-gauge-high"></i> {% trans "Sifat" %}</div>
