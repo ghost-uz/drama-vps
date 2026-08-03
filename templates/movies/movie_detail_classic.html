@@ -24,7 +24,16 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6 max-w-6xl">
+{% comment %} Sahna: pleyer sahifaning qahramoni (video-first). Mobilda chetdan
+chetga, fonda posterdan qurilgan kinoteatr yorug'ligi (blur+scrim). Fon
+qatlami sahnadan TASHQARIDA — pleyer bilan birga sarlavha blokini ham
+qamrashi kerak (mobilda sahna balandligi aynan pleyerga teng). {% endcomment %}
+<div class="mv-page">
+{% if movie.poster %}
+<div class="mv-backdrop" style="--mv-art: url('{{ movie.poster.url }}')" aria-hidden="true"></div>
+{% endif %}
+<div class="mv-stage">
+    <div class="mv-stage-inner">
 
     {# ── PLEYER ─────────────────────────────────────────── #}
     <div id="cpWrap" class="cp-wrap">
@@ -78,6 +87,20 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
 
             <button id="cpBigPlay" class="cp-big-play" aria-label="{% trans 'Ijro etish' %}"><i class="fas fa-play"></i></button>
             <div id="cpLoader" class="cp-loader"></div>
+
+            {% comment %} To'liq ekranda nima ko'rilayotgani ko'rinib tursin —
+            faqat :fullscreen da chiqadi (CSS), panel bilan birga yashiriladi. {% endcomment %}
+            <div class="cp-fs-title" aria-hidden="true">
+                {{ movie.title }}{% if active_episode and episodes|length > 1 %} · {% blocktrans with n=active_episode.episode_number %}{{ n }}-qism{% endblocktrans %}{% endif %}
+            </div>
+
+            {% comment %} Ikki teginish bilan orqaga/oldinga ±10s — vizual javob {% endcomment %}
+            <div class="cp-seek-fb" id="cpSeekL" aria-hidden="true">
+                <i class="fas fa-rotate-left"></i><span>-10s</span>
+            </div>
+            <div class="cp-seek-fb" id="cpSeekR" aria-hidden="true">
+                <i class="fas fa-rotate-right"></i><span>+10s</span>
+            </div>
 
             {% if active_episode and active_episode.intro_end is not None %}
             <button id="cpSkipIntro" class="cp-skip-intro" type="button">
@@ -161,69 +184,64 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
             </div>
         {% endif %}
     </div>
+    </div>{# /mv-stage-inner #}
+</div>{# /mv-stage #}
+
+<div class="mv-body">
 
     {# ── MA'LUMOT ───────────────────────────────────────── #}
-    <div class="mt-6 grid gap-8 lg:grid-cols-3">
-        <div class="lg:col-span-2">
-            <h1 class="text-2xl md:text-3xl font-black leading-tight">
+    <div class="mv-grid">
+        <div>
+            <h1 class="mv-title">
                 {{ movie.title }}{% if active_episode and episodes|length > 1 %}
-                <span class="text-drama-green">— {{ active_episode.episode_number }}-qism</span>{% endif %}
+                <span class="mv-title-ep">— {{ active_episode.episode_number }}-qism</span>{% endif %}
             </h1>
             {% if movie.original_title %}
-            <p class="text-gray-500 mt-1">{{ movie.original_title }}</p>
+            <p class="mv-subtitle">{{ movie.original_title }}</p>
             {% endif %}
 
-            <div class="flex flex-wrap items-center gap-2 mt-4 text-xs font-bold">
-                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.year }}</span>
-                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.country }}</span>
-                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{% blocktrans with d=movie.duration %}{{ d }} daqiqa{% endblocktrans %}</span>
-                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-gray-300">{{ movie.age_limit }}+</span>
+            <div class="mv-meta">
+                <span class="mv-chip">{{ movie.year }}</span>
+                <span class="mv-chip">{{ movie.country }}</span>
+                <span class="mv-chip">{% blocktrans with d=movie.duration %}{{ d }} daqiqa{% endblocktrans %}</span>
+                <span class="mv-chip">{{ movie.age_limit }}+</span>
                 {% if movie.is_vip %}
-                <span class="px-3 py-1.5 rounded-full font-black" style="background:linear-gradient(135deg,#ffd700,#f4a01a);color:#000;">VIP</span>
+                <span class="mv-chip mv-chip-vip">VIP</span>
                 {% endif %}
-                <span class="px-3 py-1.5 rounded-full bg-card border border-[#262626] text-yellow-400">
-                    <i class="fas fa-star mr-1"></i>{{ movie.average_rating }} ({{ movie.total_votes }})
+                <span class="mv-chip mv-chip-rating">
+                    <i class="fas fa-star" aria-hidden="true"></i>{{ movie.average_rating }} ({{ movie.total_votes }})
                 </span>
                 {# [V2E-T3] Treyler tugmasi — faqat bunny_trailer_id bor bo'lsa #}
                 {% if trailer_hls %}
-                <button type="button" id="cpTrailerBtn"
-                        class="px-3 py-1.5 rounded-full font-black bg-drama-green/15 text-drama-green border border-drama-green/30 hover:bg-drama-green/25 transition-colors flex items-center gap-1.5">
-                    <i class="fas fa-film"></i> {% trans "Treyler" %}
+                <button type="button" id="cpTrailerBtn" class="mv-chip mv-chip-btn">
+                    <i class="fas fa-film" aria-hidden="true"></i> {% trans "Treyler" %}
                 </button>
                 {% endif %}
             </div>
 
             {% if movie.genres.all %}
-            <div class="flex flex-wrap gap-2 mt-3">
+            <div class="mv-genres">
                 {% for genre in movie.genres.all %}
-                <a href="{{ genre.get_absolute_url }}"
-                   class="px-3 py-1.5 rounded-full text-xs font-bold bg-drama-green/10 text-drama-green hover:bg-drama-green/20 transition-colors">
-                    {{ genre.name }}
-                </a>
+                <a href="{{ genre.get_absolute_url }}" class="mv-genre">{{ genre.name }}</a>
                 {% endfor %}
             </div>
             {% endif %}
 
-            <p class="mt-5 text-gray-300 leading-relaxed">{{ movie.description }}</p>
+            <p class="mv-desc">{{ movie.description }}</p>
 
             {% if movie.main_actors.all %}
-            <div class="mt-5">
-                <p class="text-[11px] text-gray-500 uppercase font-black tracking-widest mb-2">{% trans "Bosh rollarda" %}</p>
-                <div class="flex flex-wrap gap-2">
-                    {% for actor in movie.main_actors.all %}
-                    <a href="{{ actor.get_absolute_url }}"
-                       class="px-3 py-1.5 rounded-full text-xs font-bold bg-card border border-[#262626] text-gray-300 hover:border-drama-green hover:text-white transition-colors">
-                        {{ actor.name }}
-                    </a>
-                    {% endfor %}
-                </div>
+            <p class="mv-section-label">{% trans "Bosh rollarda" %}</p>
+            <div class="mv-people">
+                {% for actor in movie.main_actors.all %}
+                <a href="{{ actor.get_absolute_url }}" class="mv-person">{{ actor.name }}</a>
+                {% endfor %}
             </div>
             {% endif %}
         </div>
 
-        <aside class="hidden lg:block">
+        <aside class="mv-aside">
             <img src="{{ movie.poster.url }}" alt="{{ movie.title }}"
-                 class="w-full rounded-2xl border border-[#1f1f1f]" loading="lazy" decoding="async">
+                 class="mv-poster" loading="lazy" decoding="async">
         </aside>
     </div>
 
@@ -300,7 +318,8 @@ bo'lganda shu template; reels (vertikal) — movie_detail.html. {% endcomment %}
     </section>
     {% endif %}
 
-</div>
+</div>{# /mv-body #}
+</div>{# /mv-page #}
 
 {# ── Treyler modal [V2E-T3] — gating'siz marketing pleyer ── #}
 {% if trailer_hls %}

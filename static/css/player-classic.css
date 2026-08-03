@@ -1,5 +1,191 @@
-/* Drama.uz — klassik 16:9 pleyer stillari [klassik-pleyer].
-   Pleyer-ichki stil Tailwind'ga bog'lanmagan (build'siz ham butun). */
+/* Drama.uz — klassik kino sahifasi: 16:9 pleyer (.cp-*) + sahifa tartibi (.mv-*).
+   ATAYLAB Tailwind'ga bog'lanmagan: bu fayl `npm run build:css` siz ham butun,
+   ya'ni bu yerga stil qo'shish JIT qayta-qurish talab qilmaydi. */
+
+/* ═══════════════════════════════════════════════════════════
+   SAHNA — "Video-First Hero": pleyer sahifaning qahramoni.
+   Mobilda chetdan chetga (16:9 kadr 390px ekranda 32px yon
+   padding yo'qotardi), fonda posterdan qurilgan kinoteatr
+   yorug'ligi. Blur/scrim naqshi profil sahifasidan olindi.
+═══════════════════════════════════════════════════════════ */
+.mv-page { position: relative; }
+.mv-stage {
+    position: relative;
+    overflow: hidden;
+}
+/* Fon SAHIFA darajasida: mobilda sahna balandligi aynan pleyerga teng
+   bo'lgani uchun sahna ichidagi fon butunlay pleyer ostida qolardi.
+   Endi u pleyer + sarlavha blokini qamrab, pastga qarab qora rangga
+   singib ketadi (kontrast yo'qolmaydi). */
+.mv-backdrop {
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    right: -10%;
+    height: 520px;                   /* pleyer + sarlavha/chiplar zonasi */
+    background: var(--mv-art) center 30% / cover no-repeat;
+    filter: blur(72px) saturate(170%);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+}
+.mv-backdrop::after {               /* pastga qarab qorayadi — matn kontrasti */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(0, 0, 0, 0.35) 38%,
+        rgba(0, 0, 0, 0.88) 78%,
+        #000 100%
+    );
+}
+.mv-stage-inner {
+    position: relative;             /* fon USTIDA */
+    z-index: 1;
+    max-width: 1152px;
+    margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAHIFA TANASI
+═══════════════════════════════════════════════════════════ */
+.mv-body {
+    position: relative;             /* fon qatlami USTIDA */
+    z-index: 1;
+    max-width: 1152px;
+    margin: 0 auto;
+    padding: 22px 16px 0;
+}
+.mv-grid { display: grid; gap: 26px; }
+.mv-title {
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.4px;
+    color: #fff;
+}
+.mv-title-ep { color: #00cc4c; }
+.mv-subtitle {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #8b8b8b;
+}
+/* Meta chiplar — bitta qatorli ritm, tabular raqamlar (reyting sakramasin) */
+.mv-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-top: 14px;
+    font-variant-numeric: tabular-nums;
+}
+.mv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #141414;
+    border: 1px solid #262626;
+    color: #cfcfcf;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.mv-chip-rating { color: #ffc93c; }
+.mv-chip-vip {
+    background: linear-gradient(135deg, #ffd700, #f4a01a);
+    border-color: transparent;
+    color: #000;
+    font-weight: 900;
+}
+.mv-chip-btn {
+    cursor: pointer;
+    background: rgba(0, 204, 76, 0.14);
+    border-color: rgba(0, 204, 76, 0.32);
+    color: #00cc4c;
+    min-height: 34px;
+    transition: background 0.2s, border-color 0.2s;
+}
+.mv-chip-btn:hover { background: rgba(0, 204, 76, 0.24); border-color: #00cc4c; }
+
+.mv-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 10px;
+}
+.mv-genre {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(0, 204, 76, 0.10);
+    color: #00cc4c;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.mv-genre:hover { background: rgba(0, 204, 76, 0.2); }
+
+.mv-desc {
+    margin-top: 18px;
+    max-width: 68ch;                /* o'qish o'lchovi: ~65-75 belgi */
+    color: #c7c7c7;
+    font-size: 15px;
+    line-height: 1.7;
+}
+.mv-section-label {
+    margin-top: 22px;
+    margin-bottom: 9px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6f6f6f;
+}
+.mv-people { display: flex; flex-wrap: wrap; gap: 7px; }
+.mv-person {
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: #141414;
+    border: 1px solid #262626;
+    color: #cfcfcf;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+}
+.mv-person:hover { border-color: #00cc4c; color: #fff; }
+
+.mv-aside { display: none; }
+.mv-poster {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid #1f1f1f;
+    display: block;
+}
+
+@media (min-width: 640px) {
+    .mv-stage { padding: 18px 16px; }
+    .mv-title { font-size: 30px; }
+    .mv-body { padding-top: 26px; }
+    .mv-backdrop { height: 620px; }
+}
+@media (min-width: 1024px) {
+    .mv-stage { padding: 26px 16px; }
+    .mv-title { font-size: 34px; }
+    /* Poster ustuni tor: 2fr/1fr da u matndan balandroq bo'lib, qator
+       balandligini cho'zardi va bo'sh joy qolardi */
+    .mv-grid { grid-template-columns: minmax(0, 1fr) 290px; gap: 34px; }
+    .mv-aside { display: block; }
+    .mv-backdrop { height: 780px; }
+    /* 16:9 kadr past ekranga (masalan 1280x700 noutbuk) sig'sin: balandlik
+       cheklanadi, video object-fit:contain bilan qora fonda letterbox
+       bo'ladi — fon ham qora, ya'ni ko'zga tashlanmaydi */
+    .cp-wrap { max-height: calc(100vh - 170px); max-height: calc(100dvh - 170px); }
+}
 
 .cp-wrap {
     position: relative;
@@ -9,13 +195,30 @@
     overflow: hidden;
     user-select: none;
 }
+/* :fullscreen va -webkit-full-screen ALOHIDA qoidalar — noma'lum pseudo
+   butun selektor ro'yxatini bekor qiladi, birlashtirib bo'lmaydi */
 .cp-wrap:fullscreen { border-radius: 0; }
+.cp-wrap:-webkit-full-screen { border-radius: 0; }
+/* Fullscreen'da boshqaruv paneli home-bar/notch ostida qolmasin */
+.cp-wrap:fullscreen .cp-controls {
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+}
+.cp-wrap:-webkit-full-screen .cp-controls {
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+}
 .cp-wrap video {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
     cursor: pointer;
+    /* Brauzerning 300ms ikki-teginish-zum kutishini olib tashlaydi: zum bu
+       yerda kerak emas, ikki teginish o'zimizning seek imo-ishoramiz */
+    touch-action: manipulation;
 }
 
 /* ── Embed fallback (iframe/eski kod) ── */
@@ -348,9 +551,21 @@
     color: #00cc4c;
 }
 
+/* Sensorli qurilma: seek-tutqich hover'siz DOIM ko'rinsin (barmoq uchun
+   affordance) + teginish zonasi balandroq. Ovoz slayderi olib tashlanadi:
+   hover'ga bog'liq edi, iOS esa video.volume ni UMUMAN e'tiborsiz qoldiradi
+   (apparat tugmalari) — panelda faqat joy egallardi. Mute tugmasi qoladi. */
+@media (pointer: coarse) {
+    .cp-seek { height: 22px; }
+    .cp-seek-track { height: 5px; }
+    .cp-played::after { transform: translateY(-50%) scale(1); }
+    .cp-vol { display: none; }
+}
+
 /* Mobil */
 @media (max-width: 640px) {
-    .cp-wrap { border-radius: 10px; }
+    /* Chetdan chetga: 16:9 kadr tor ekranda har piksel yon paddingni yo'qotadi */
+    .cp-wrap { border-radius: 0; }
     .cp-big-play { width: 64px; height: 64px; font-size: 20px; }
     .cp-time { font-size: 11px; }
     .cp-btn { width: 34px; }
@@ -375,12 +590,67 @@
    funksional (spinner ko'rinib turadi, modal ochiladi) */
 @media (prefers-reduced-motion: reduce) {
     .cp-big-play, .cp-controls, .cp-seek-track, .cp-played::after,
-    .cp-vol, .cp-btn, .cp-skip-intro, .cp-trailer-close, .cp-ep {
+    .cp-vol, .cp-btn, .cp-skip-intro, .cp-trailer-close, .cp-ep,
+    .cp-fs-title, .mv-chip-btn, .mv-genre, .mv-person {
         transition: none;
     }
     .cp-trailer-box { animation: none; }
     .cp-loader.on { animation-duration: 2s; }
+    /* Seek javobi FUNKSIONAL — butunlay o'chirilmaydi, faqat qisqartiriladi */
+    .cp-seek-fb.pop { animation-duration: 0.01s; }
 }
+
+/* ── Ikki teginish bilan ±10s: vizual javob [mobil UX] ──
+   Reels pleeridagi .r-seek-fb bilan bir xil til — foydalanuvchi ikkala
+   pleerda bitta imo-ishorani o'rganadi. */
+.cp-seek-fb {
+    position: absolute;
+    top: 50%;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    color: #fff;
+}
+.cp-seek-fb i { font-size: 30px; }
+.cp-seek-fb span {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.7);
+}
+#cpSeekL { left: 16%; }
+#cpSeekR { right: 16%; }
+.cp-seek-fb.pop { animation: cpSeekPop 0.5s ease forwards; }
+@keyframes cpSeekPop {
+    0%   { opacity: 1; transform: translateY(-50%) scale(0.85); }
+    55%  { opacity: 0.85; transform: translateY(-50%) scale(1); }
+    100% { opacity: 0; transform: translateY(-50%) scale(1.15); }
+}
+
+/* ── To'liq ekranda sarlavha ────────────────────────────
+   Nativ pleerdan farqli, bizning fullscreen'da nima ko'rilayotgani
+   bilinmasdi. Panel bilan birga yashiriladi (.cp-idle). */
+.cp-fs-title {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 6;
+    display: none;
+    padding: 18px 20px 34px;
+    background: linear-gradient(rgba(0, 0, 0, 0.75), transparent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    transition: opacity 0.25s;
+    pointer-events: none;
+}
+.cp-wrap:fullscreen .cp-fs-title,
+.cp-wrap:-webkit-full-screen .cp-fs-title { display: block; }
+.cp-idle .cp-fs-title { opacity: 0; }
 
 /* ── Intro-skip [V2E-T2] ─────────────────────────────── */
 .cp-skip-intro {

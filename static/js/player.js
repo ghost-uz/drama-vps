@@ -197,6 +197,9 @@ if (video) {
 
 function togglePlay() {
     if (!video) return;
+    /* [a11y] Overlay hali turgan bo'lsa (klaviatura space/k) — click bilan
+       bir xil yo'l: overlay yashirinadi + unmute-play urinish */
+    if (tapToPlay && !tapToPlay.classList.contains('hide')) { window.startPlay(); return; }
     if (video.paused) { video.play();  flashPlay('play');  }
     else              { video.pause(); flashPlay('pause'); }
 }
@@ -355,11 +358,18 @@ if (video) {
 /* ─────────────────────────────────────────────────────────
    FULLSCREEN
 ───────────────────────────────────────────────────────── */
+/* Reels mobilda o'zi to'liq ekran (fixed inset:0) — nativ video-FS ataylab
+   chaqirilmaydi (overlay UI yo'qolardi). Bu funksiya desktop 'f' klavishi
+   uchun; Safari'da webkit-prefiksli API kaskadi. */
 function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        app.requestFullscreen && app.requestFullscreen();
-    } else {
-        document.exitFullscreen && document.exitFullscreen();
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else if (app.requestFullscreen) {
+        const p = app.requestFullscreen();
+        if (p && p.catch) p.catch(() => {});
+    } else if (app.webkitRequestFullscreen) {
+        app.webkitRequestFullscreen();
     }
 }
 

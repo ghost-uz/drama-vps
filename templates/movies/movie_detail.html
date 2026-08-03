@@ -138,7 +138,7 @@ body > main {
 }
 .r-back-btn {
     flex-shrink: 0;
-    width: 38px; height: 38px;
+    width: 44px; height: 44px; /* [a11y] min teginish maydoni 44px */
     border-radius: 50%;
     background: rgba(0,0,0,0.50);
     border: 1px solid rgba(255,255,255,0.12);
@@ -204,6 +204,13 @@ body > main {
     gap: 5px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    /* [a11y] endi <button> — brauzer default'larini tozalaymiz */
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    touch-action: manipulation;
 }
 .r-act-circle {
     width: 50px; height: 50px;
@@ -241,6 +248,11 @@ body > main {
     position: absolute;
     inset: 0;
     z-index: 30;
+    /* [a11y] endi <button> — default stillar tozalanadi */
+    border: 0;
+    padding: 0;
+    font: inherit;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -252,9 +264,14 @@ body > main {
     -webkit-tap-highlight-color: transparent;
     transition: opacity 0.3s ease;
 }
+/* opacity YETARLI EMAS: <button> ko'rinmas holda ham Tab bilan fokus olardi va
+   ekran o'quvchisiga o'qilardi. .r-sheet dagi naqsh — visibility o'tishdan
+   KEYIN qo'llanadi (animatsiya saqlanadi, fokus zanjiridan chiqadi). */
 #tapToPlay.hide {
     opacity: 0;
     pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 #tapToPlay .ttp-circle {
     width: 84px; height: 84px;
@@ -414,7 +431,7 @@ body > main {
 /* ═══════════════════════════════════════════════════════════
    PLEYER SOZLAMALARI SHEET [V2E-T1 UX]
 ═══════════════════════════════════════════════════════════ */
-#playerSheet { max-height: 65vh; }
+#playerSheet { max-height: 65vh; max-height: 65dvh; }
 .r-set-scroll { overflow-y: auto; padding: 6px 14px 26px; }
 .r-set-group { margin-top: 10px; }
 .r-set-title {
@@ -604,7 +621,7 @@ body > main {
     letter-spacing: 1px;
 }
 .r-sheet-close {
-    width: 30px; height: 30px;
+    width: 36px; height: 36px;
     border-radius: 50%;
     background: rgba(255,255,255,0.08);
     border: none;
@@ -613,11 +630,18 @@ body > main {
     display: flex; align-items: center; justify-content: center;
     font-size: 13px;
     transition: all 0.2s;
+    /* [a11y] ko'rinmas hit-area: 36px -> 44px (layout'ga ta'sirsiz) */
+    position: relative;
+}
+.r-sheet-close::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
 }
 .r-sheet-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
-/* Comment sheet */
-#commentSheet { height: 72vh; }
+/* Comment sheet — dvh: iOS Safari'da vh manzil-panelni hisobga olmaydi */
+#commentSheet { height: 72vh; height: 72dvh; }
 
 .r-comment-form-wrap {
     padding: 12px 14px;
@@ -669,7 +693,7 @@ body > main {
 .r-comments-scroll::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
 
 /* Episode sheet */
-#episodeSheet { height: 62vh; }
+#episodeSheet { height: 62vh; height: 62dvh; }
 
 .r-ep-scroll {
     flex: 1;
@@ -902,8 +926,8 @@ body > main {
     .r-bottom-info { right: 95px; padding: 0 18px 14px; }
     .r-movie-title { font-size: 20px; }
     .r-description { -webkit-line-clamp: 3; line-clamp: 3; }
-    #commentSheet { height: 65vh; }
-    #episodeSheet  { height: 55vh; }
+    #commentSheet { height: 65vh; height: 65dvh; }
+    #episodeSheet  { height: 55vh; height: 55dvh; }
 }
 
 /* Desktop */
@@ -967,6 +991,43 @@ body > main {
     .r-actions { right: 14px; }
     .r-bottom-info { right: 72px; }
     .r-act-circle { width: 48px; height: 48px; font-size: 19px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   [a11y] KLAVIATURA FOKUSI — sichqonchada chiqmaydi (focus-visible)
+═══════════════════════════════════════════════════════════ */
+.r-back-btn:focus-visible,
+.r-act-item:focus-visible,
+.r-sheet-close:focus-visible,
+.r-ep-btn:focus-visible,
+.r-comment-send:focus-visible,
+.r-next-cancel:focus-visible,
+.r-skip-intro:focus-visible,
+.r-modal-save:focus-visible,
+.r-modal-cancel:focus-visible,
+#tapToPlay:focus-visible {
+    outline: 2px solid #00cc4c;
+    outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   [a11y] HARAKATNI KAMAYTIRISH — animatsiyasiz, lekin funksional
+   (sheet ochiladi, spinner sekin aylanadi, kontent darhol ko'rinadi)
+═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+    #reelsApp,
+    #reelsApp.slide-up,
+    #reelsApp.slide-down { animation: none; }
+    .r-sheet,
+    .r-sheet-backdrop,
+    .controls-ui,
+    .r-act-circle,
+    .r-set-option,
+    #tapToPlay,
+    .r-progress-fill { transition: none; }
+    .r-flash-icon.pop,
+    .r-seek-fb.pop { animation-duration: 0.01s; }
+    .r-spinner { animation-duration: 2s; }
 }
 </style>
 {% endblock %}
@@ -1107,54 +1168,55 @@ body > main {
 
     <!-- ── Right Action Buttons ──────────────────────── -->
     <div class="r-actions">
+        {# [a11y] <button> — klaviatura (Tab/Enter/Space) bilan ishlaydi; class/title saqlangan (e2e selektorlar) #}
         <!-- 1. Like -->
-        <div class="r-act-item" onclick="doLike()" title="{% trans 'Yoqdi' %}">
-            <div class="r-act-circle" id="likeCircle">
-                <i class="fas fa-heart"></i>
-            </div>
+        <button type="button" class="r-act-item" onclick="doLike()" title="{% trans 'Yoqdi' %}">
+            <span class="r-act-circle" id="likeCircle">
+                <i class="fas fa-heart" aria-hidden="true"></i>
+            </span>
             <span class="r-act-label" id="likeLabel">{% trans "Yoqdi" %}</span>
-        </div>
+        </button>
 
         <!-- 2. Comment -->
-        <div class="r-act-item" onclick="openSheet('commentSheet')" title="{% trans 'Fikrlar' %}">
-            <div class="r-act-circle">
-                <i class="fas fa-comment-dots"></i>
-            </div>
+        <button type="button" class="r-act-item" onclick="openSheet('commentSheet')" title="{% trans 'Fikrlar' %}">
+            <span class="r-act-circle">
+                <i class="fas fa-comment-dots" aria-hidden="true"></i>
+            </span>
             <span class="r-act-label">{{ movie.reviews.all|length }}</span>
-        </div>
+        </button>
 
         <!-- 3. Bookmark / Library -->
-        <div class="r-act-item" onclick="doBookmark()" title="{% trans 'Saqlash' %}">
-            <div class="r-act-circle {% if user_movie_status %}is-saved{% endif %}" id="bookmarkCircle">
-                <i class="fas fa-bookmark"></i>
-            </div>
+        <button type="button" class="r-act-item" onclick="doBookmark()" title="{% trans 'Saqlash' %}">
+            <span class="r-act-circle {% if user_movie_status %}is-saved{% endif %}" id="bookmarkCircle">
+                <i class="fas fa-bookmark" aria-hidden="true"></i>
+            </span>
             <span class="r-act-label">{% trans "Saqlash" %}</span>
-        </div>
+        </button>
 
         <!-- 4. Episode List -->
-        <div class="r-act-item" onclick="openSheet('episodeSheet')" title="{% trans 'Qismlar' %}">
-            <div class="r-act-circle">
-                <i class="fas fa-list-ol"></i>
-            </div>
+        <button type="button" class="r-act-item" onclick="openSheet('episodeSheet')" title="{% trans 'Qismlar' %}">
+            <span class="r-act-circle">
+                <i class="fas fa-list-ol" aria-hidden="true"></i>
+            </span>
             <span class="r-act-label">{% trans "Qismlar" %}</span>
-        </div>
+        </button>
 
         <!-- 5. Pleyer sozlamalari [V2E-T1 UX] — sifat + subtitr -->
         {% if not is_restricted %}{% if use_bunny or video_720 %}
-        <div class="r-act-item" onclick="openSheet('playerSheet')" title="{% trans 'Sozlamalar' %}">
-            <div class="r-act-circle">
-                <i class="fas fa-sliders"></i>
-            </div>
+        <button type="button" class="r-act-item" onclick="openSheet('playerSheet')" title="{% trans 'Sozlamalar' %}">
+            <span class="r-act-circle">
+                <i class="fas fa-sliders" aria-hidden="true"></i>
+            </span>
             <span class="r-act-label">{% trans "Sozlash" %}</span>
-        </div>
+        </button>
         {% endif %}{% endif %}
     </div>
 
     <!-- ── TAP TO PLAY overlay ──────────────────────────── -->
-    <div id="tapToPlay" onclick="startPlay()"{% if is_restricted %} class="hide"{% endif %}>
-        <div class="ttp-circle"><i class="fas fa-play" style="margin-left:4px;"></i></div>
+    <button type="button" id="tapToPlay" onclick="startPlay()"{% if is_restricted %} class="hide"{% endif %}>
+        <span class="ttp-circle"><i class="fas fa-play" style="margin-left:4px;" aria-hidden="true"></i></span>
         <span class="ttp-label">{% trans "Bosib ko'rish" %}</span>
-    </div>
+    </button>
 
     <!-- ── Bottom Info (controls bilan auto-hide) ──────── -->
     <div class="r-bottom-info controls-ui">

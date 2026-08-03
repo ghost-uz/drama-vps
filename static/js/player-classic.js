@@ -39,8 +39,60 @@ function fmt(s) {
 function togglePlay() { if (video.paused) video.play(); else video.pause(); }
 els.cpPlay.addEventListener('click', togglePlay);
 els.cpBigPlay.addEventListener('click', togglePlay);
-video.addEventListener('click', togglePlay);
-video.addEventListener('dblclick', toggleFs);
+
+/* ── Teginish imo-ishoralari [mobil UX] ──────────────────────
+   Sichqoncha: bosish = ijro/pauza, ikki bosish = to'liq ekran.
+   Barmoq: bir teginish = panelni ko'rsat/yashir, ikki teginish = ±10s
+   (reels pleeri bilan bir xil — bitta imo-ishora tili).
+   Sababi: barmoqda "bosish = pauza" tasodifiy to'xtatishlarga olib keladi,
+   ikki teginish esa avval ijroni IKKI MARTA almashtirib, ustiga fullscreen
+   ochardi — uchta kutilmagan ta'sir.
+   `cp-idle` teginishdan OLDIN yozib olinadi: wrap'dagi touchstart
+   auto-hide taymerini tiklab, panelni allaqachon ko'rsatib ulguradi —
+   shuning uchun bu listener auto-hide blokidan OLDIN ro'yxatga olinadi. */
+const COARSE = window.matchMedia('(pointer: coarse)').matches;
+let idleBeforeTap = false;
+let tapTimer = null;
+let lastTap = 0;
+
+wrap.addEventListener('touchstart', function () {
+    idleBeforeTap = wrap.classList.contains('cp-idle');
+}, { passive: true });
+
+function flashSeek(side) {
+    const el = document.getElementById(side === 'L' ? 'cpSeekL' : 'cpSeekR');
+    if (!el) return;
+    el.classList.remove('pop');
+    void el.offsetWidth; /* animatsiyani qayta boshlash uchun reflow */
+    el.classList.add('pop');
+}
+
+video.addEventListener('click', function (e) {
+    if (!COARSE) { togglePlay(); return; }
+
+    const now = Date.now();
+    if (now - lastTap < 300) {              /* ikkinchi teginish — seek */
+        clearTimeout(tapTimer);
+        lastTap = 0;
+        const rect = video.getBoundingClientRect();
+        const left = (e.clientX - rect.left) < rect.width / 2;
+        video.currentTime = Math.max(
+            0, Math.min(video.duration || Infinity, video.currentTime + (left ? -10 : 10))
+        );
+        flashSeek(left ? 'L' : 'R');
+        showControls();
+        return;
+    }
+    lastTap = now;
+    tapTimer = setTimeout(function () {      /* yakka teginish — panel */
+        if (idleBeforeTap) showControls();
+        else if (!video.paused && !menuOpen()) wrap.classList.add('cp-idle');
+    }, 300);
+});
+
+video.addEventListener('dblclick', function () {
+    if (!COARSE) toggleFs();                 /* barmoqda dblclick = seek (yuqorida) */
+});
 video.addEventListener('play',  () => {
     wrap.classList.remove('cp-paused');
     els.cpPlay.querySelector('i').className = 'fas fa-pause';
@@ -216,18 +268,65 @@ if (els.cpPip) {
         });
     }
 }
+/* iPhone Safari'da Element.requestFullscreen YO'Q — faqat video elementining
+   webkitEnterFullscreen() metodi bor (nativ pleerga o'tadi: CC/audio-trek/
+   AirPlay boshqaruvi nativ bo'ladi). Eski Safari/iPad — webkit-prefiksli
+   element-API. `x && x()` zanjiri undefined'da JIM to'xtardi — iPhone'da
+   tugma "o'lik" edi. */
+function fsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement ||
+           (video.webkitDisplayingFullscreen ? video : null); /* iPhone nativ pleer */
+}
 function toggleFs() {
-    if (!document.fullscreenElement) {
-        wrap.requestFullscreen && wrap.requestFullscreen();
-    } else {
-        document.exitFullscreen && document.exitFullscreen();
+    if (fsElement()) {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else if (wrap.requestFullscreen) {
+        /* orientation.lock() FAQAT hujjat fullscreen'ga o'tgach ruxsat etiladi —
+           promise'dan oldin chaqirilsa rad javobi keladi */
+        const p = wrap.requestFullscreen();
+        if (p && p.then) p.then(lockLandscape).catch(() => {});
+        else lockLandscape();
+    } else if (wrap.webkitRequestFullscreen) {
+        wrap.webkitRequestFullscreen();
+        lockLandscape();
+    } else if (video.webkitEnterFullscreen) {
+        enterNativeFs();
+    }
+}
+/* iPhone: metadata kelmaguncha webkitEnterFullscreen InvalidStateError otadi
+   (masalan poster ustidan darhol bosilsa) — bir marta qayta urinamiz */
+function enterNativeFs() {
+    try {
+        video.webkitEnterFullscreen();
+    } catch (e) {
+        video.addEventListener('loadedmetadata', function () {
+            try { video.webkitEnterFullscreen(); } catch (e2) { /* no-op */ }
+        }, { once: true });
+    }
+}
+/* 16:9 kino telefonda fullscreen — landshaftga burish (Android Chrome
+   qo'llaydi; iOS/desktop promise'ni rad etadi — jim o'tamiz) */
+function lockLandscape() {
+    if (screen.orientation && screen.orientation.lock &&
+        window.matchMedia('(pointer: coarse)').matches) {
+        screen.orientation.lock('landscape').catch(() => {});
+    }
+}
+function syncFsIcon() {
+    els.cpFs.querySelector('i').className =
+        fsElement() ? 'fas fa-compress' : 'fas fa-expand';
+    if (!fsElement() && screen.orientation && screen.orientation.unlock) {
+        try { screen.orientation.unlock(); } catch (e) { /* no-op */ }
     }
 }
 els.cpFs.addEventListener('click', toggleFs);
-document.addEventListener('fullscreenchange', () => {
-    els.cpFs.querySelector('i').className =
-        document.fullscreenElement ? 'fas fa-compress' : 'fas fa-expand';
-});
+['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) =>
+    document.addEventListener(ev, syncFsIcon));
+/* iPhone nativ pleeri standart fullscreenchange OTMAYDI — videoning o'z
+   webkitbegin/endfullscreen hodisalari bilan ikonka sinxron qoladi */
+video.addEventListener('webkitbeginfullscreen', syncFsIcon);
+video.addEventListener('webkitendfullscreen', syncFsIcon);
 
 /* ── Boshqaruv avto-yashirinish ── */
 let hideTimer = null;
