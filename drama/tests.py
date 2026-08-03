@@ -994,6 +994,50 @@ def test_robots_lists_both_sitemaps(client):
     assert "/sitemap-video.xml" in body
 
 
+# --- Sitemap FAQAT o'zini canonical deb e'lon qiladigan URL'lardan iborat ---
+# 2026-08-04, Google Search Console: "Duplicate, submitted URL not selected as
+# canonical" — sababi CategorySitemap `/?category=N` yuborardi.
+
+
+@pytest.mark.django_db
+def test_homepage_canonical_ignores_query_string(client):
+    """`base.html` canonical'i `request.path` dan quriladi — query KIRMAYDI.
+
+    Bu quyidagi testning SABABI: shu xatti-harakat tufayli query-string'li
+    URL hech qachon o'zini canonical deb e'lon qila olmaydi.
+    """
+    from drama.models import Category
+
+    cat = Category.objects.create(name="Seriallar", slug="seriallar-canon")
+    html = client.get(cat.get_absolute_url()).content.decode()
+    assert 'rel="canonical" href="http://testserver/"' in html
+
+
+@pytest.mark.django_db
+def test_sitemap_has_no_query_string_urls(client):
+    """Sitemapga o'zini canonical deb e'lon qilmaydigan URL tushmasin.
+
+    Query-string'li URL'ni yuborish Google'ga QARAMA-QARSHI ikki signal beradi:
+    sitemap "indeksla" deydi, sahifaning canonical'i esa "men nusxaman" deydi.
+    Search Console buni xato sifatida ko'rsatadi.
+    """
+    import re
+
+    from drama.factories import MovieFactory
+    from drama.models import Category
+
+    MovieFactory(category=Category.objects.create(name="Kino", slug="kino-sm"))
+    xml = client.get("/sitemap.xml").content.decode()
+    locs = re.findall(r"<loc>([^<]+)</loc>", xml)
+    assert locs, "sitemap bo'sh"
+    bad = [u for u in locs if "?" in u]
+    assert not bad, (
+        f"Sitemapda query-string'li URL: {bad}. Ular o'zini canonical deb "
+        "e'lon qilmaydi -> GSC 'Duplicate, submitted URL not selected as "
+        "canonical'. Sabab: drama/sitemaps.py dagi izohga qarang."
+    )
+
+
 @pytest.mark.django_db
 def test_poster_card_variant_created(django_capture_on_commit_callbacks):
     """Yangi poster: task asosiy webp + 342px karta variantini yaratadi [P5-T5]."""

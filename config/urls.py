@@ -16,7 +16,6 @@ from core.telegram_bot import telegram_webhook
 from core.twofactor import admin_2fa_verify
 from drama.sitemaps import (
     ActorSitemap,
-    CategorySitemap,
     GenreSitemap,
     MovieSitemap,
     StaticPagesSitemap,
@@ -29,7 +28,7 @@ from drama.webhooks import bunny_webhook
 sitemaps = {
     "movies": MovieSitemap,
     "actors": ActorSitemap,
-    "categories": CategorySitemap,
+    # "categories" ATAYLAB yo'q — sababi drama/sitemaps.py da (canonical ziddiyati)
     "genres": GenreSitemap,
     "pages": StaticPagesSitemap,
     "blog": PostSitemap,  # [V2G-T2]
