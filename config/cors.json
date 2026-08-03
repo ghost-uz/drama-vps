@@ -1,8 +1,13 @@
 [
   {
-    "origin": ["*"],
-    "method": ["GET", "HEAD", "OPTIONS"],
-    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "origin": [
+      "https://dramauz.com",
+      "https://www.dramauz.com",
+      "https://drama.uz",
+      "https://www.drama.uz"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Range"],
     "maxAgeSeconds": 3600
   }
 ]

@@ -46,6 +46,67 @@ bo'yicha baholaydi, asset (rasm/CSS/JS) xosti bo'yicha emas. Ya'ni SEO'ga
 ta'siri **nol**. Buning evaziga `drama.uz` DNS zonasi ochiq turishi kerak —
 u baribir 301 uchun kerak.
 
+### 2.1 ⚠️ Oqibat: bucket CORS allowlist'i YANGILANISHI SHART
+
+CDN eski zonada qolgani uchun sahifa (`dramauz.com`) va asset (`cdn.drama.uz`)
+**har xil origin**. Brauzer resurs turiga qarab har xil qoida qo'llaydi:
+
+| Resurs | CORS kerakmi | Domen ko'chganda |
+|---|---|---|
+| `<link rel=stylesheet>` CSS | yo'q | ishlayveradi |
+| `<script src>` (klassik) | yo'q | ishlayveradi |
+| `@font-face` shriftlar | **HA** | **sinadi** |
+| `fetch()` / XHR | **HA** | **sinadi** |
+
+Shu bois bu nosozlik **jim** keladi: sayt va admin "ishlayotgandek" ko'rinadi
+(CSS ham, JS ham yuklanadi), lekin Unfold admin panelida Inter shrifti va
+Material Symbols **ikonkalari** yo'qoladi — ikonkalar o'z ligatura matni
+sifatida (`menu`, `search`, `expand_more`) chiqib qoladi.
+
+> 2026-07-31 da AYNAN shu yuz berdi: `config/cors.json` repoda `["*"]` deb
+> turgan, lekin bucket'dagi JONLI allowlist `["https://drama.uz",
+> "https://www.drama.uz"]` edi — ya'ni repo fayli hech qachon qo'llanmagan.
+> Fayl bilan haqiqat orasidagi farqni hech kim ko'rmagan, chunki uni
+> qo'llaydigan buyruq ham, tekshiradigan test ham yo'q edi.
+
+Allowlist `config/cors.json` da. Yangi domenni qo'shib, bucket'ga qo'llang
+(gcloud SDK shart emas — konteynerda `google-cloud-storage` va kalit bor):
+
+```bash
+scp config/cors.json root@159.89.100.207:/tmp/cors.json
+ssh root@159.89.100.207 'docker cp /tmp/cors.json drama-web-1:/tmp/cors.json'
+ssh root@159.89.100.207 'docker exec -i drama-web-1 python -' <<'PY'
+import json
+from google.cloud import storage
+from google.oauth2 import service_account
+creds = service_account.Credentials.from_service_account_file("/app/secrets/gcs.json")
+bucket = storage.Client(credentials=creds, project=creds.project_id).get_bucket("cdn.drama.uz")
+print("ESKI (rollback uchun saqlang):", json.dumps(bucket.cors))
+bucket.cors = json.load(open("/tmp/cors.json"))
+bucket.patch(); bucket.reload()
+print("YANGI:", json.dumps(bucket.cors, indent=2))
+PY
+```
+
+> ⚠️ **Repodagi `drama-key-v2.json` ISHLAMAYDI** (`invalid_grant: account not
+> found` — kalit rotatsiya qilingan). Amaldagi kalit faqat serverda:
+> `/opt/drama/secrets/gcs.json`. Shu sabab buyruq konteyner ichida ishlaydi.
+
+### 2.2 ⚠️ CORS'ni tuzatish YETARLI EMAS — Cloudflare keshini ham tozalang
+
+GCS `Vary: Origin` yuboradi → Cloudflare **har bir origin uchun alohida**
+nusxa keshlaydi. Buzuq oynada yangi domendan kelgan har bir so'rov edge'da
+`Access-Control-Allow-Origin`**siz** javobni keshlab qo'yadi. Statik obyektlar
+esa `Cache-Control: public, max-age=31536000, immutable` — ya'ni bucket
+tuzatilgandan keyin ham edge **bir yil davomida** eski buzuq javobni beradi.
+
+Diagnostika: javobda `Vary: Origin` bor, lekin `Access-Control-Allow-Origin`
+YO'Q + `cf-cache-status: HIT` va katta `Age:` → bu **keshlangan buzuq javob**,
+bucket muammosi emas.
+
+Cloudflare → `drama.uz` zonasi → Caching → Purge Cache → shrift URL'lari
+(yoki Purge Everything — hammasi `immutable`, qayta to'ladi).
+
 ---
 
 ## 3. Bajarish tartibi (ATAYLAB shu ketma-ketlikda)
@@ -158,6 +219,20 @@ curl -s https://dramauz.com/robots.txt
 
 # webhook yo'llari eski domenda HALI ishlashi kerak (301 EMAS)
 curl -sSI https://drama.uz/webhooks/bunny/ | head -1            # -> 405
+
+# CDN CORS (2.1): shrift YANGI domenga ACAO qaytarishi SHART.
+# Bo'sh chiqsa -> admin ikonkalari sinadi (jim nosozlik!).
+FONT=$(curl -s https://cdn.drama.uz/static/staticfiles.json \
+  | tr ',' '\n' | grep -o '"unfold/fonts/material-symbols/[^"]*\.woff2"' \
+  | tail -1 | tr -d '"')
+curl -sI -H "Origin: https://dramauz.com" "https://cdn.drama.uz/static/$FONT" \
+  | grep -iE 'access-control-allow-origin|cf-cache-status|^age:'
+#   access-control-allow-origin: https://dramauz.com   <- SHU BO'LISHI KERAK
+#   ACAO yo'q + cf-cache-status: HIT + katta Age -> 2.2 (Cloudflare purge)
+
+# ro'yxatda YO'Q origin bloklanishi kerak (allowlist ishlayaptimi)
+curl -sI -H "Origin: https://evil.example.com" "https://cdn.drama.uz/static/$FONT" \
+  | grep -ci access-control-allow-origin                        # -> 0
 ```
 
 ---
