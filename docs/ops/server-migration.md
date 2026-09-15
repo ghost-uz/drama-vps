@@ -296,8 +296,9 @@ almashtiring (Proxied — to'q sariq bulut qolsin). Kutiladiganlar: `dramauz.com
 - [ ] Admin'ga kirish ishlaydi
 - [ ] `docker volume ls | grep dbbackups` bor va qo'lda backup o'tadi:
       `dc exec db-backup sh /scripts/backup.sh`
-- [ ] Telegram webhook xatosiz: `curl -s "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"`
-      → `last_error_message` yo'q
+- [ ] Telegram admin xabarnomasi keladi. Prod bot hozircha faqat YUBORADI —
+      webhook o'rnatilmagan (2026-09-15: `getWebhookInfo` → `url` bo'sh), ya'ni
+      ko'chishda Telegram tomonida hech narsa o'zgartirilmaydi (`telegram-bot.md`)
 - [ ] `dc logs --tail 50 celery-beat` va `dc logs --tail 50 celery-worker` — xatosiz
 - [ ] Ixtiyoriy tozalash: `config/settings/prod.py` dagi eski IP'ni yangisiga
       almashtirib commit qiling, `.env` dagi `EXTRA_ALLOWED_HOSTS` ni bo'shating
