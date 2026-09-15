@@ -70,7 +70,10 @@ if ! IMAGE_TAG="$NEW_TAG" $COMPOSE run --rm migrate; then
 fi
 
 # 3) Yangi kodni ishga tushirish + public proxy (nginx — port 80 "ko'cha eshigi")
-IMAGE_TAG="$NEW_TAG" $COMPOSE up -d --no-build web celery-worker celery-beat nginx
+#    + db-backup (kunlik pg_dump sidecar'i [P13-T3]). 2026-09-15 gacha u bu
+#    ro'yxatda YO'Q edi, birinchi o'rnatish esa faqat `up -d db redis` qilgan ->
+#    sidecar hech qachon ishga tushmagan va prod'da BIRORTA HAM backup bo'lmagan.
+IMAGE_TAG="$NEW_TAG" $COMPOSE up -d --no-build web celery-worker celery-beat nginx db-backup
 reload_nginx
 
 # 4) Sog'liq tekshiruvi — nosozlikda avtomatik rollback
