@@ -61,6 +61,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d db redis
 ./scripts/deploy.sh latest             # birinchi deploy
 ```
 
+> Mavjud prod'ni ma'lumotlari va sirlari bilan **yangi serverga ko'chirish**
+> (backup to'plami, DB tiklash, DNS): [`server-migration.md`](server-migration.md).
+
 ## CD orqali deploy (odatiy)
 
 1. `main`'ga push -> `ci.yml` yashil.

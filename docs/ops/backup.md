@@ -16,7 +16,17 @@
 - saqlash siyosati: `BACKUP_RETENTION_DAYS` (default 14) kundan eski o'chiriladi
 - `GCS_BACKUP_BUCKET` berilsa dump off-site (GCS) ga ham nusxalanadi
 
-Prod stack (`docker-compose.prod.yml`) `up -d` bilan sidecar avtomatik ishlaydi.
+Prod stack (`docker-compose.prod.yml`) `up -d` bilan sidecar avtomatik ishlaydi;
+`scripts/deploy.sh` ham uni har deploy'da `up -d` qiladi.
+
+> ⚠️ **2026-09-15 gacha bunday EMAS edi:** `deploy.sh` faqat
+> web/worker/beat/nginx'ni ko'tarardi, birinchi o'rnatish esa `up -d db redis`
+> qilgan — sidecar hech qachon ishga tushmagan va prod'da birorta ham avtomatik
+> backup bo'lmagan. Tekshirish: `docker volume ls | grep dbbackups` (volume
+> bo'lmasa — backup ham yo'q). Bu backup'lar **o'sha serverning o'zida**
+> saqlanadi, ya'ni server yo'qolsa ular ham yo'qoladi. Off-site nusxa uchun
+> `scripts/pull_server_backup.sh` ni lokal kompyuterda ishlating
+> (`docs/ops/server-migration.md`).
 
 Qo'lda backup:
 ```sh
