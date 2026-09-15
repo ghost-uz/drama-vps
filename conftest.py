@@ -35,6 +35,25 @@ def _clear_cache():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _freeze_ratelimit_window(monkeypatch):
+    """django-ratelimit oynasini test davomida muzlatadi.
+
+    `django_ratelimit.core._get_window()` devor-soatiga bog'langan va kesh
+    kalitiga kiradi: oyna har davrda kalitga xos soniyada almashadi. "N so'rov ->
+    N+1-chisi 429" testi shu soniyani kesib o'tsa, hisob yangi kalitdan boshlanib
+    429 o'rniga 200 qaytadi (2026-09-15 CI: `test_live_search_rate_limited_429`,
+    lokalda 10/10 o'tgan). Limitning o'zi baribir tekshiriladi — faqat test
+    o'rtasidagi oyna almashinuvi olib tashlanadi.
+    """
+    import time
+
+    from django_ratelimit import core
+
+    start = int(time.time())
+    monkeypatch.setattr(core, "_get_window", lambda value, period: start + period)
+
+
 @pytest.fixture
 def api():
     """DRF APIClient — drama/api va users/api testlari uchun umumiy."""
