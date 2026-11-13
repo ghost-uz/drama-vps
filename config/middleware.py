@@ -65,6 +65,9 @@ class SecurityHeadersMiddleware:
                 # unpkg/tailwindcss OLIB TASHLANDI [P5-T1] — htmx/Alpine/Tailwind endi
                 # vendorlangan/build qilingan; jsdelivr: swiper+hls.js uchun.
                 # telegram.org — Telegram Login Widget skripti [P6-T2].
+                # static.cloudflareinsights.com — Cloudflare Web Analytics beacon:
+                # skriptni Cloudflare zona darajasida O'ZI in'ektsiya qiladi (HTML'da
+                # yo'q), ro'yxatda bo'lmasa konsolda CSP xatosi + analitika ishlamaydi.
                 # cdn.drama.uz — prod'da STATIC_URL shu hostda (GCS CDN): vendorlangan
                 # birinchi-tomon JS (app.js/htmx/alpine/unfold) 'self'dan EMAS, shu
                 # yerdan keladi; ro'yxatda bo'lmasa brauzer butun sayt JS'ini bloklaydi
@@ -75,6 +78,7 @@ class SecurityHeadersMiddleware:
                 " cdnjs.cloudflare.com"
                 " mc.yandex.ru"
                 " mc.yandex.com"
+                " static.cloudflareinsights.com"
                 " telegram.org;",
                 # Stillar: o'zimiz + Google Fonts + FA + jsdelivr + inline stillar
                 "style-src 'self' 'unsafe-inline'"
@@ -94,8 +98,11 @@ class SecurityHeadersMiddleware:
                 # Video/audio (HLS segmentlari Bunny CDN dan keladi)
                 f"media-src 'self' blob: cdn.drama.uz {bunny_cdn} *.bunnycdn.com;",
                 # Ajax/fetch/WebSocket
+                # cloudflareinsights.com — CF Web Analytics beacon RUM ma'lumotni
+                # shu hostga POST qiladi (skript static.* dan, ma'lumot apex'ga).
                 f"connect-src 'self'"
                 f" cdn.drama.uz"
+                f" cloudflareinsights.com"
                 f" mc.yandex.ru"
                 f" mc.yandex.com"
                 f" {bunny_cdn}"

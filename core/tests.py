@@ -214,6 +214,19 @@ def test_csp_dropped_unused_script_hosts(client):
     assert "cdn.tailwindcss.com" not in csp
 
 
+def test_csp_allows_cloudflare_web_analytics(client):
+    """CF Web Analytics: beacon skripti script-src'da, RUM POST hosti connect-src'da.
+
+    Skriptni Cloudflare zona darajasida o'zi in'ektsiya qiladi (HTML'da yo'q) —
+    ro'yxatdan chiqib ketsa analitika jimgina o'ladi, shu test ushlaydi.
+    """
+    csp = client.get("/healthz")["Content-Security-Policy"]
+    script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+    connect_src = next(d for d in csp.split(";") if d.strip().startswith("connect-src"))
+    assert "static.cloudflareinsights.com" in script_src
+    assert "cloudflareinsights.com" in connect_src
+
+
 def test_vendored_assets_exist():
     from django.contrib.staticfiles import finders
 
