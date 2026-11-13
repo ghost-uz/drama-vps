@@ -3,7 +3,7 @@
 # Server ko'chishi uchun TO'LIQ tiklash to'plamini lokal diskka tortish.
 # LOKAL kompyuterda ishlaydi (Windows: Git Bash; Linux/macOS: bash).
 #
-#   bash scripts/pull_server_backup.sh                  # root@159.89.100.207
+#   bash scripts/pull_server_backup.sh                  # root@206.189.52.80
 #   bash scripts/pull_server_backup.sh root@<IP>
 #   DEST_ROOT=/d/backups/dramauz bash scripts/pull_server_backup.sh
 #
@@ -28,7 +28,7 @@
 # ==============================================================================
 set -euo pipefail
 
-HOST="${1:-root@159.89.100.207}"
+HOST="${1:-root@206.189.52.80}"
 DEST_ROOT="${DEST_ROOT:-$HOME/backups/dramauz}"
 TS="$(date +%Y%m%d-%H%M%S)"
 DEST="$DEST_ROOT/$TS"

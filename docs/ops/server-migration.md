@@ -5,6 +5,13 @@
 > ko'chishga tayyorgarlik sifatida yozilgan; backup va tiklash qismi **amalda
 > sinalgan** (1.2-bo'lim).
 >
+> **2026-11-13 da to'liq bajarildi:** eski droplet (159.89.100.207) DO to'lovi
+> tufayli yo'qolgan edi; `LATEST` (20260915-230057) to'plamidan yangi dropletga
+> (206.189.52.80, fra1, 1 vCPU / 2 GB / 50 GB) aynan shu tartibda tiklandi —
+> qator sonlari MOS, deploy run 43485795617, DNS API orqali almashtirildi.
+> quiz-bot ataylab tiklanmadi (muddati o'tgan). Bitta tashqi oqibat: Bunny
+> pull-zone "suspended" (hisob to'lovi) — video serverga bog'liq emas.
+>
 > Taxminiy vaqt: **~1 soat** (server sozlash 15 daq, tiklash 5 daq, deploy +
 > DNS + tekshiruv 30 daq). Bog'liq hujjatlar: [`deploy.md`](deploy.md),
 > [`launch-runbook.md`](launch-runbook.md), [`backup.md`](backup.md),
@@ -50,7 +57,7 @@ Lokal kompyuterda (Windows'da **Git Bash**; PowerShell EMAS — 9-bo'lim):
 
 ```bash
 cd /c/projects/drama-vps
-bash scripts/pull_server_backup.sh              # default: root@159.89.100.207
+bash scripts/pull_server_backup.sh              # default: root@206.189.52.80
 ```
 
 Natija `~/backups/dramauz/<YYYYmmdd-HHMMSS>/` ga yoziladi (repo TASHQARISIDA —
@@ -277,7 +284,7 @@ curl -sk --resolve dramauz.com:443:<YANGI_IP> https://dramauz.com/ -o /dev/null 
 ## 6. Cloudflare DNS almashtirish
 
 Ikkala zonada (`dramauz.com` **va** `drama.uz`) DNS → Records → qidiruvga eski
-IP `159.89.100.207` ni yozing va chiqqan **hamma** A yozuvni `<YANGI_IP>` ga
+IP `206.189.52.80` ni yozing va chiqqan **hamma** A yozuvni `<YANGI_IP>` ga
 almashtiring (Proxied — to'q sariq bulut qolsin). Kutiladiganlar: `dramauz.com`,
 `www.dramauz.com`, `drama.uz`, `www.drama.uz` (eski domen va `www` ni nginx
 301 qiladi).

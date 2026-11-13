@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     # Server ko'chirilsa SHU YERNI yangilang: serverda faylni qo'lda tahrirlash
     # HECH NARSA bermaydi — prod'da web kodni image ichidan oladi (manba
     # bind-mount faqat dev-override'da). Yoki .env: EXTRA_ALLOWED_HOSTS=<ip>.
-    "159.89.100.207",
+    "206.189.52.80",
 ]
 # Qo'shimcha hostlar .env'dan — yangi server IP'sini DNS'gacha sinash uchun:
 #   EXTRA_ALLOWED_HOSTS=164.92.1.2,staging.dramauz.com
