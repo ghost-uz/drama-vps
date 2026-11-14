@@ -51,6 +51,13 @@ RUN chmod +x /app/docker/entrypoint.sh \
     && mkdir -p /app/staticfiles /app/media \
     && chown -R app:app /app
 
+# Sentry release tegi [R1-T1]: deploy.yml build-arg bilan image tegini (SHA12)
+# beradi -> prod.py `release`ni shu ENV'dan oladi (xato qaysi deploy'da chiqqani
+# ko'rinadi). Lokal/CI buildda bo'sh (release=None). ATAYLAB COPY'dan KEYIN —
+# teg har buildda o'zgaradi, oldinroq tursa butun COPY keshini buzardi.
+ARG GIT_SHA=""
+ENV GIT_SHA=$GIT_SHA
+
 USER app
 EXPOSE 8000
 

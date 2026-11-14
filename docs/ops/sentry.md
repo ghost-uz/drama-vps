@@ -4,19 +4,30 @@
 (dev/test har doim o'chiq). Web (Django) + Celery worker/beat bitta init
 bilan qamraladi (worker prod settings bilan ishga tushadi).
 
-## Yoqish
+## Yoqish [R1-T1]
 
 1. sentry.io da project (Django) yarating → **Client Keys (DSN)** nusxalang.
-2. `.env`: `SENTRY_DSN=https://...@....ingest.sentry.io/...`
-3. Restart (web + celery-worker + celery-beat).
+2. Serverda `.env`: `SENTRY_DSN=https://...@....ingest.sentry.io/...`
+   (environment default `production` — alohida sozlash shart emas).
+3. Restart (image o'zgarmaydi, faqat env):
+   ```sh
+   cd /opt/drama
+   IMAGE_TAG=$(cat .deploy/current_tag) docker compose \
+       -f docker-compose.yml -f docker-compose.prod.yml \
+       up -d --no-build web celery-worker celery-beat
+   ```
+4. Smoke test (quyida) → event Issues'da ko'ringach, sinov-eventni o'chiring.
 
-## Release tracking
+## Release tracking (avtomatik)
 
-Deploy skriptida (P13-T2 da avtomatlashadi):
+Release = **image tegi (SHA12)**, zanjiri: `deploy.yml` build-arg
+`GIT_SHA=<tag>` → `Dockerfile` `ENV GIT_SHA` → `prod.py`
+`release=SENTRY_RELEASE || GIT_SHA || None`. Ya'ni image o'z versiyasini
+o'zi biladi — `.env`ni har deploy'da yangilash KERAK EMAS, har xato "qaysi
+deploy'da paydo bo'ldi" bilan avtomatik bog'lanadi.
 
-    SENTRY_RELEASE=$(git rev-parse --short HEAD)
-
-Shunda har xato "qaysi deploy'da paydo bo'ldi" bilan bog'lanadi.
+`SENTRY_RELEASE` env'i faqat qo'lda override uchun qoldi (odatda bo'sh).
+Eslatma: lokal/CI buildda (build-arg'siz) release `None` — bu kutilgan.
 
 ## PII siyosati
 

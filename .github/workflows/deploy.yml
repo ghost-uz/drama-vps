@@ -62,6 +62,9 @@ jobs:
           context: .
           target: runtime
           push: true
+          # Sentry release [R1-T1]: image o'z tegini biladi (Dockerfile ENV GIT_SHA)
+          build-args: |
+            GIT_SHA=${{ steps.meta.outputs.tag }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:latest

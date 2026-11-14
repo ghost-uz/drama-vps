@@ -155,8 +155,12 @@ if SENTRY_DSN:
         dsn=SENTRY_DSN,
         integrations=[DjangoIntegration(), CeleryIntegration()],
         environment=config("SENTRY_ENVIRONMENT", default="production"),  # noqa: F405
-        # Deploy git SHA beradi -> xato qaysi versiyada ekani ko'rinadi (docs/ops/sentry.md)
-        release=config("SENTRY_RELEASE", default="") or None,  # noqa: F405
+        # Release = image tegi (SHA12) [R1-T1]: deploy.yml build-arg -> Dockerfile
+        # ENV GIT_SHA — image o'z versiyasini o'zi biladi, .env'ni har deploy'da
+        # yangilash SHART EMAS. SENTRY_RELEASE faqat qo'lda override uchun.
+        release=config("SENTRY_RELEASE", default="")  # noqa: F405
+        or config("GIT_SHA", default="")  # noqa: F405
+        or None,
         # PII: email/username/IP YUBORILMAYDI (faqat user.id); default
         # EventScrubber sezgir kalitlarni (password, token, secret...) o'chiradi.
         send_default_pii=False,
