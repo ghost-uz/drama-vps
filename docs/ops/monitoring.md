@@ -4,16 +4,23 @@ Uch qatlam: **pull** (uptime-provider healthz'ni tekshiradi), **push**
 (dead-man heartbeat — stack o'zi ping yuboradi), **ichki alert** (beat task
 biznes-holatlarni tekshirib Telegram'ga yozadi). Xato-kuzatuv Sentry'da (P12-T1).
 
-## 1. Uptime (pull) — tashqi provider
+## 1. Uptime (pull) — tashqi tekshiruv
 
-UptimeRobot / BetterStack / Pingdom'da HTTP monitor oching:
+**O'rnatilgan (2026-11-14, R0-T3):** `.github/workflows/uptime.yml` — GitHub
+Actions cron har ~10 daqiqada (amalda 10–20, GitHub kechiktirishi bor)
+`https://dramauz.com/readyz` ni tekshiradi: 3 urinish, 20s oraliq (deploy
+cutover'ida soxta alert bo'lmasin), yiqilsa **admin Telegram'ga** xabar
+(repo sirlari `TELEGRAM_BOT_TOKEN`/`TELEGRAM_ADMIN_CHAT_ID` — prod .env
+bilan bir xil). Sinov: Actions → Uptime → Run workflow, `probe_url` ga
+buziq URL bering. Qo'shimcha hisob kerak emas; server o'lsa ham ishlaydi.
+
+Zichroq interval (1–5 daq) kerak bo'lsa — UptimeRobot / BetterStack /
+Pingdom'da HTTP monitor oching:
 
 | Monitor | URL | Kutiladi |
 |---|---|---|
-| Liveness | `https://drama.uz/healthz` | 200, `{"status": "ok"}` |
-| Readiness | `https://drama.uz/readyz` | 200 (DB/Redis/migratsiya OK); 503 = alert |
-
-Tavsiya: interval 1–5 daqiqa, alert kanali Telegram/email.
+| Liveness | `https://dramauz.com/healthz` | 200, `{"status": "ok"}` |
+| Readiness | `https://dramauz.com/readyz` | 200 (DB/Redis/migratsiya OK); 503 = alert |
 
 ## 2. Dead-man heartbeat (push)
 

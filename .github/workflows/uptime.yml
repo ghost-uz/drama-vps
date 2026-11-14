@@ -1,0 +1,92 @@
+# ==============================================================================
+# Uptime monitor [R0-T3] — tashqi (GitHub infrasidan) pull-tekshiruv.
+#
+# Nega GitHub Actions: qo'shimcha hisob/xizmat talab qilmaydi, server o'lsa ham
+# ishlayveradi (2026-09..11 saboqlari: sayt 2 oy o'lik yotdi, hech kim bilmadi).
+# Har ~10 daqiqada /readyz tekshiriladi (3 urinish, 20s oraliq — deploy-cutover
+# soniyalarida soxta alert bo'lmasin), yiqilsa admin Telegram'ga xabar.
+#
+# Kerakli sirlar: TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID (prod .env dagi
+# bilan bir xil qiymatlar — ichki alertlar bilan bitta kanal).
+#
+# Sinov: Actions -> Uptime -> Run workflow, probe_url ga ataylab buziq URL
+# (masalan https://dramauz.com/bu-yol-404) berib alert kelishini tekshiring.
+#
+# Xavfsizlik: ${{ }} qiymatlari run-skriptga TO'G'RIDAN emas, env orqali
+# uzatiladi (shell-injection himoyasi — semgrep run-shell-injection).
+#
+# Eslatma: schedule cron'i GitHub'da kechikishi mumkin (10-20 daq amalda) —
+# bu "daqiqa aniqligi" monitori emas, "soatlab/kunlab jim o'lik yotish"ga
+# qarshi sug'urta. Dead-man heartbeat (celery-beat uchun) alohida:
+# docs/ops/monitoring.md §2 (healthchecks.io + HEARTBEAT_URL).
+# ==============================================================================
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      probe_url:
+        description: "Sinov uchun URL override (bo'sh = prod /readyz)"
+        required: false
+        default: ""
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: readyz tekshiruvi (3 urinish, 20s oraliq)
+        id: probe
+        env:
+          PROBE_URL_INPUT: ${{ inputs.probe_url }}
+        run: |
+          URL="${PROBE_URL_INPUT:-https://dramauz.com/readyz}"
+          echo "Tekshirilmoqda: $URL"
+          code=000
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 25 "$URL" || echo 000)
+            echo "urinish $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              exit 0
+            fi
+            if [ "$i" -lt 3 ]; then sleep 20; fi
+          done
+          {
+            echo "code=$code"
+            echo "body=$(head -c 180 /tmp/body 2>/dev/null | tr '\n\r' '  ')"
+            echo "url=$URL"
+          } >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Telegram alert (faqat yiqilganda)
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+          FAILED_URL: ${{ steps.probe.outputs.url }}
+          FAILED_CODE: ${{ steps.probe.outputs.code }}
+          FAILED_BODY: ${{ steps.probe.outputs.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          TEXT=$(printf '%s\n' \
+            "🔴 dramauz.com UPTIME ALERT" \
+            "URL: $FAILED_URL" \
+            "HTTP: $FAILED_CODE (3 urinishda ham)" \
+            "Javob: $FAILED_BODY" \
+            "Vaqt: $(date -u '+%Y-%m-%d %H:%M UTC')" \
+            "Run: $RUN_URL")
+          resp=$(curl -s -X POST \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="$TG_CHAT" \
+            --data-urlencode text="$TEXT")
+          if echo "$resp" | grep -q '"ok":true'; then
+            echo "Telegram: yuborildi"
+          else
+            echo "Telegram yuborish XATO: $resp"
+            exit 1
+          fi
