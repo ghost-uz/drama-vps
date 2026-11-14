@@ -258,6 +258,16 @@ GS_CUSTOM_DOMAIN = "cdn.drama.uz"
 GS_CONTENT_TYPE_LIST = ["text/css", "application/javascript"]
 GS_CREDENTIALS = None  # prod.py service-account kalitini yuklaydi
 
+# -- OFF-SITE DB BACKUP [R0-T4] --
+# db-backup sidecar kunlik pg_dump'ni `dbbackups` volume'iga yozadi (lokal);
+# core.tasks.offsite_db_backup_task GCS'da YO'Q dumplarni har kuni yuklaydi.
+# Bo'sh GCS_BACKUP_BUCKET = off-site sinxron O'CHIQ (dev/test default).
+# Bucket ALOHIDA va PRIVATE bo'lishi shart (CDN bucket EMAS — u ommaviy
+# o'qiladi, dumplar esa PII saqlaydi). Birinchi sozlash: docs/ops/backup.md.
+GCS_BACKUP_BUCKET = config("GCS_BACKUP_BUCKET", default="")
+# celery-worker ichidagi dump papkasi (docker-compose.prod.yml ro-mount'i bilan mos).
+DB_BACKUP_DIR = config("DB_BACKUP_DIR", default="/backups")
+
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 STATICFILES_DIRS = [BASE_DIR / "static"]

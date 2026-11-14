@@ -41,6 +41,9 @@ services:
       DB_HOST: pgbouncer  # [P9-T3]
     volumes:
       - ./secrets:/app/secrets:ro
+      # [R0-T4] Off-site backup sinxroni db-backup dumplarini O'QIYDI (read-only:
+      # lokal retention/o'chirish faqat sidecar'ning ishi) — core/offsite_backup.py
+      - dbbackups:/backups:ro
     depends_on:
       pgbouncer:
         condition: service_started
@@ -106,9 +109,11 @@ services:
       - ./nginx/ssl.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
 
-  # Avtomatik kunlik DB backup [P13-T3] — busybox crond har kun 03:00 da
-  # scripts/backup.sh ni ishga tushiradi (pg_dump + saqlash siyosati + GCS).
+  # Avtomatik kunlik DB backup [P13-T3] — busybox crond har kun 03:00 (UTC!) da
+  # scripts/backup.sh ni ishga tushiradi (pg_dump + lokal saqlash siyosati).
   # pg_dump postgres image'ida bor -> web image'iga postgres-client kerak emas.
+  # Off-site (GCS) nusxa BU KONTEYNERDA EMAS [R0-T4]: alpine'da gsutil yo'q —
+  # uni celery task bajaradi (core.tasks.offsite_db_backup_task, 08:30 Tashkent).
   db-backup:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -118,7 +123,6 @@ services:
       PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD .env'da bo'lishi shart}
       PGDATABASE: ${DB_NAME:-drama_db}
       RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
-      GCS_BACKUP_BUCKET: ${GCS_BACKUP_BUCKET:-}
     volumes:
       - ./scripts:/scripts:ro
       - dbbackups:/backups

@@ -63,6 +63,14 @@ app.conf.beat_schedule = {
         "task": "core.tasks.monitoring_alerts_task",
         "schedule": crontab(minute="*/10"),
     },
+    # Off-site DB backup [R0-T4]. ⚠️ Vaqt mintaqasi tuzog'i: db-backup sidecar
+    # crond'i UTC'da yuradi (03:00 UTC da dump), bu jadval esa CELERY_TIMEZONE =
+    # Asia/Tashkent (UTC+5) da -> 08:30 Tashkent = 03:30 UTC, ya'ni dumpdan
+    # 30 daqiqa keyin. 8 ni 3 ga "tuzatsangiz" sinxron dumpdan OLDIN yuradi!
+    "offsite-db-backup": {
+        "task": "core.tasks.offsite_db_backup_task",
+        "schedule": crontab(hour=8, minute=30),
+    },
 }
 
 

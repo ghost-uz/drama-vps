@@ -60,6 +60,44 @@ def heartbeat_task(self):
     return "ok"
 
 
+@shared_task(bind=True, max_retries=3, default_retry_delay=600)
+def offsite_db_backup_task(self) -> str:
+    """DB dumplarini GCS'ga off-site sinxronlash [R0-T4] — kunlik beat (08:30).
+
+    db-backup sidecar 03:00 UTC (= 08:00 Tashkent) da lokal dump oladi; bu task
+    30 daqiqadan keyin GCS'da YO'Q dumplarni yuklaydi (idempotent — worker
+    o'lik yotgan kunlarning dumplari keyingi o'tishda to'ldiriladi).
+    GCS_BACKUP_BUCKET bo'sh = o'chiq. R0 saboqlari: muvaffaqiyatsizlik JIM
+    qolmaydi — 3 retry (10 daqiqa oraliq) tugagach admin Telegram alert.
+    """
+    from core.offsite_backup import sync_db_backups
+
+    if not settings.GCS_BACKUP_BUCKET:
+        return "off"
+    try:
+        result = sync_db_backups()
+    except Exception as exc:
+        logger.warning("offsite_db_backup_task xato: %s", exc)
+        if self.request.retries >= self.max_retries:
+            notify_telegram_task.delay(
+                f"🚨 OFFSITE BACKUP: GCS sinxroni {self.max_retries + 1} urinishda ham "
+                f"yiqildi: {exc}"
+            )
+            raise
+        raise self.retry(exc=exc) from exc
+    if result.skipped_empty:
+        notify_telegram_task.delay(
+            "⚠️ OFFSITE BACKUP: 0 baytli dump topildi (backup.sh qalqoni buzilganmi?): "
+            + ", ".join(result.skipped_empty)
+        )
+    if result.local_total == 0:
+        notify_telegram_task.delay(
+            "⚠️ OFFSITE BACKUP: /backups bo'sh — db-backup sidecar umuman dump olmayaptimi?"
+        )
+        return "no-dumps"
+    return f"uploaded={len(result.uploaded)} already={result.already}"
+
+
 @shared_task
 def monitoring_alerts_task():
     """Kritik holat alertlari [P12-T2] — admin Telegram, har kalitga 1h cooldown.
