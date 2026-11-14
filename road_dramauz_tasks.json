@@ -1,0 +1,428 @@
+{
+  "meta": {
+    "project_name": "dramauz.com",
+    "tracker_name": "road_dramauz_tasks — roadmap.md ga QO'SHIMCHA tavsiyalar",
+    "description_uz": "2026-11-14 holati asosida (server ko'chishi, 2 oylik downtime, Bunny suspenziyasi, GSC deindeksatsiya, analitika auditi saboqlaridan) roadmap.md va mavjud trackerlarda YO'Q yoki yetarlicha urg'u berilmagan ishlar. Bu fayl drama_tasks.json (v1) va drama-vps-v2_tasks.json (v2) o'rnini BOSMAYDI — ularni to'ldiradi; ustma-ust tushgan joyda 'source' maydoni asl task ID'ga ishora qiladi.",
+    "source_roadmap": "roadmap.md (2026-07-10) — bosqichlari 0-4 o'z kuchida qoladi",
+    "tracker_version": "v1.0",
+    "created": "2026-11-14",
+    "instructions_for_agents_uz": "Fazalar mavzu bo'yicha (R0 eng shoshilinch). Har task atomik; 'owner' maydoni 'egasi' bo'lsa — tashqi konsol/to'lov talab qiladi, agent faqat tekshiradi. Tugaganda: tekshiruv dalili (curl/screenshot/log) + status 'done'. BU FAYLGA SIR YOZILMAYDI — repo public.",
+    "status_legend": {
+      "todo": "Boshlanmagan",
+      "in_progress": "Jarayonda",
+      "review": "Tekshiruv kutilmoqda",
+      "done": "Tugallangan",
+      "blocked": "To'sib qo'yilgan"
+    },
+    "priority_legend": {
+      "P0": "Kritik — biznes-uzluksizlik/pul yo'nalishi, shu hafta",
+      "P1": "Yuqori — 1-2 hafta ichida",
+      "P2": "O'rta — 1 oy ichida",
+      "P3": "Past — imkon bo'lganda"
+    },
+    "size_legend": { "S": "<= 2 soat", "M": "yarim-bir kun", "L": "bir necha kun" }
+  },
+
+  "current_state_audit_2026_11_14": {
+    "yaxshi": [
+      "Server ko'chishi TUGADI: yangi DO droplet (fra1, 1 vCPU/2GB/50GB), prod = main = origin = 536f929, 612 test yashil, CI/CD ishlaydi",
+      "Sayt jonli: readyz ok, 301 zanjirlar, celery pong, db-backup sidecar birinchi kunidan ishlayapti",
+      "Deps yangi: Django 6.0.8 / DRF 3.18.2 / Pillow 13.0.0 (45 CVE yopildi)",
+      "Analitika toza: faqat Yandex Metrica (1 hit/sahifa) + endi CF Web Analytics; dublikat sanash YO'Q",
+      "GSC tiklanish boshlandi: sitemap qayta yuborildi (84 sahifa), bosh sahifa prioritet navbatda, 5xx x156 validatsiya ketmoqda"
+    ],
+    "og_riqlar": [
+      "Bunny pull-zone SUSPENDED (to'lov) — butun video-katalog o'ynamaydi; kontent o'chirilish XAVFI",
+      "2 oylik downtime'ning ildiz sababi: vendor to'lovi o'tmagani va HECH QANDAY uptime-alert yo'qligi (HEARTBEAT_URL bo'sh — kod tayyor edi!)",
+      "Prod .env'da o'chiq turgan imkoniyatlar: SENTRY (xatolar ko'r), EMAIL/SMTP, Google OAuth, Telegram login, Payme/Click kalitlari, GCS_BACKUP_BUCKET (offsite backup)",
+      "GSC: 19 indexed / 339 emas (156 = 5xx downtime izi); 'drama uz' so'rovi -98%",
+      "GA4 (G-KSPF9LB6Y3) va GTM (5 konteyner) akkauntda bor lekin saytga o'rnatilmagan — chalkashlik manbai",
+      "Backup'ning yagona to'liq nusxasi bitta noutbukda; lokal eski loyiha-nusxalarida (drama-vps-09-06-26) jonli sirlar yotibdi"
+    ]
+  },
+
+  "conventions": {
+    "verification_uz": "Har 'done' uchun dalil: buyruq chiqishi, skrinshot yoki jonli URL tekshiruvi. Konsol/to'lov ishlarida egasi tasdiqlagach agent jonli holatni qayta tekshiradi."
+  },
+
+  "phases": [
+    {
+      "id": "R0",
+      "name": "Biznes-uzluksizlik (shu hafta)",
+      "goal": "2026 sentyabr-noyabr falokati (to'lov -> server o'limi -> 2 oy downtime -> deindeksatsiya) QAYTA SODIR BO'LMASLIGI uchun minimal to'siqlar.",
+      "tasks": [
+        {
+          "id": "R0-T1",
+          "title_en": "Reactivate Bunny account and inventory video catalog",
+          "title_uz": "Bunny hisobini tiklash + video-katalog inventarizatsiyasi",
+          "priority": "P0",
+          "status": "todo",
+          "owner": "egasi + agent tekshiradi",
+          "depends_on": [],
+          "description_uz": "bunny.net billing'ni to'lash/tiklash (faqat egasi). Keyin agent: jonli saytda video o'ynashini tasdiqlaydi va Bunny API orqali kutubxonadagi barcha video GUID'larini DB'dagi Movie.bunny_video_id/Episode'lar bilan solishtiradi — suspenziya davrida biror video O'CHIB KETMAGANINI isbotlaydi.",
+          "acceptance_criteria": [
+            "https://dramauz.com/qorquv-1996/ da playlist.m3u8 200 qaytaradi va video brauzerda o'ynaydi",
+            "Bunny kutubxona ro'yxati vs DB diff = 0 yo'qolgan video (hisobot saqlanadi)",
+            "Agar yo'qolgan bo'lsa: ro'yxat + tiklash rejasi (GCS episode_uploads manbalaridan qayta yuklash)"
+          ],
+          "affected": ["(tashqi: bunny.net)", "drama/bunny_stream.py (faqat o'qish)"]
+        },
+        {
+          "id": "R0-T2",
+          "title_en": "Vendor billing alerts and renewal calendar",
+          "title_uz": "Vendor to'lov ogohlantirishlari + muddat kalendari",
+          "priority": "P0",
+          "status": "todo",
+          "owner": "egasi",
+          "depends_on": [],
+          "description_uz": "Ildiz sababni yopish: DigitalOcean, Bunny, GCP (GCS), domen registratorlari (dramauz.com, drama.uz — cdn.drama.uz uchun zonasi OCHIQ turishi shart!) uchun: (a) iloji boricha auto-pay/balans, (b) billing email-alert, (c) bitta kalendar (yillik domen muddatlari + oylik vendor to'lov sanalari, 7 kun oldin eslatma).",
+          "acceptance_criteria": [
+            "Har 4 vendor uchun to'lov manbai va alert sozlangani ro'yxat qilib tasdiqlangan",
+            "Domenlar amal qilish muddati >= 60 kun va kalendarda",
+            "docs/ops/launch-runbook.md 'tashqi xizmatlar' bo'limiga vendor-to'lov jadvali qo'shilgan"
+          ],
+          "affected": ["docs/ops/launch-runbook.md"]
+        },
+        {
+          "id": "R0-T3",
+          "title_en": "Wire external uptime monitor + dead-man heartbeat",
+          "title_uz": "Tashqi uptime-monitor + dead-man heartbeat ulash",
+          "priority": "P0",
+          "status": "done",
+          "done_note_uz": "2026-11-14: (1) PULL: .github/workflows/uptime.yml (commit 018b530) — GH Actions cron ~10 daq, /readyz 3 urinish, yiqilsa admin-Telegram (repo sirlari TELEGRAM_*); sinov: buziq URL -> alert YUBORILDI, real readyz -> yashil. (2) PUSH: healthchecks.io hisobi (suxroboff@gmail.com, magic-link) + 'drama-beat' check (period 300s, grace 300s, email kanal); HEARTBEAT_URL prod .env'da, celery qayta yaratildi. (3) EMPIRIK DEAD-MAN SINOVI: beat stop -> 5m 'grace' -> 9m 'down' + 'DOWN | drama-beat' EMAILI KELDI -> beat start + ping -> 'up' + 'UP' emaili ('downtime 39s'). (4) monitoring.md §1 yangilandi. Ping-URL/API-kalit faqat server .env va healthchecks'da — repo/trackerga YOZILMAYDI.",
+          "owner": "egasi (hisob ochadi) + agent",
+          "depends_on": [],
+          "source": "v1:P12-T2 ning bajarilmay qolgan TASHQI yarmi; kod TAYYOR",
+          "description_uz": "Sayt 2 oy o'lik yotdi — hech kim bilmadi. core/tasks.py da dead-man ping har 5 daqiqada ISHLAB turibdi, faqat HEARTBEAT_URL bo'sh. healthchecks.io (bepul) check ochish -> ping URL'ni prod .env HEARTBEAT_URL'ga -> celery-beat restart. Qo'shimcha: UptimeRobot/BetterStack bepul monitor https://dramauz.com/healthz ga (tashqi HTTP tomondan), alert Telegram/email'ga. docs/ops/monitoring.md da retsept bor.",
+          "acceptance_criteria": [
+            "healthchecks.io check 'up' va oxirgi ping < 10 daqiqa",
+            "Sinov: celery-beat'ni 15 daqiqa to'xtatganda alert KELADI (empirik isbot), keyin qayta yoqiladi",
+            "Tashqi HTTP monitor 5xx/timeout'da Telegram yoki email alert yuboradi (sinov o'tkazilgan)",
+            ".env.example va monitoring.md yangilangan (sir YOZILMAYDI)"
+          ],
+          "affected": ["(server .env)", "docs/ops/monitoring.md"]
+        },
+        {
+          "id": "R0-T4",
+          "title_en": "Enable off-site DB backups (GCS) and verify",
+          "title_uz": "Offsite DB backup (GCS) yoqish va isbotlash",
+          "priority": "P0",
+          "status": "done",
+          "done_note_uz": "2026-11-14 JONLI YAKUN: serverda .env GCS_BACKUP_BUCKET=my-drama-uz-db-backups (134-qator) + celery-worker qayta yaratildi -> `sync_db_backups --create-bucket`: gs://my-drama-uz-db-backups YARATILDI (location=EUROPE-WEST3 — CDN bucket bilan auto-match, private/PAP-enforced, lifecycle 60 kun) va 2 dump yuklandi (drama-20261113-185149 + drama-20261114-030000, har biri 511K); qayta ishga tushirishda '0 ta yuklandi, 2 ta allaqachon GCS'da' = IDEMPOTENT isbot; beat DB-yozuvi: offsite-db-backup 30 8 * * * Asia/Tashkent enabled=True. SA'da bucket-create huquqi BOR ekan — egasi kerak bo'lmadi. QOLGAN YAKKA TEKSHIRUV: ertaga (15-noyabr) 08:30 Tashkent'dan keyin `sync_db_backups` chiqishi '3 ta allaqachon GCS'da' bo'lishi (avto-zanjir isboti). KOD TOMONI (commit b4e694b, 627 test) va PROD'GA CHIQQANI (Deploy run 43609610931, image 2de61b33bcde, readyz ok). Tekshiruv tasdiqladi: db-backup sidecar'da (postgres:16-alpine) gsutil YO'Q — eski GCS tarmog'i hech qachon ishlamagan. Yechim gsutil emas, celery: core/offsite_backup.py (idempotent sinxron — GCS'da yo'q drama-*.dump'larni db/ prefiksga yuklaydi, if_generation_match=0; ensure_backup_bucket: private + uniform + lifecycle default 60 kun) + core.tasks.offsite_db_backup_task (beat 08:30 Tashkent = 03:30 UTC, sidecar 03:00 UTC dumpidan 30 daq keyin — TIMEZONE TUZOG'I izoh+test bilan qotirilgan; yakuniy xato/0-bayt/dump-yo'q -> Telegram alert) + manage.py sync_db_backups [--create-bucket] + compose celery-worker'ga dbbackups:/backups:ro + backup.sh set-e bo'sh-dump bug tuzatildi (if ! pg_dump). Retsept: docs/ops/backup.md 'Off-site'.",
+          "owner": "agent (bucket bo'lsa) / egasi (bucket ochish)",
+          "depends_on": [],
+          "description_uz": "Hozir dumplar faqat serverda (drama_dbbackups volume) + noutbukdagi qo'lda to'plam — server yo'qolsa oradagi kunlar yo'qoladi, noutbuk yagona nusxa. scripts/backup.sh allaqachon GCS_BACKUP_BUCKET'ni qo'llaydi, LEKIN db-backup konteynerida gsutil bor-yo'qligi TEKSHIRILMAGAN ('command -v gsutil' bo'lmasa JIM o'tkazib yuboradi!). Bucket (yoki mavjud bucket ichida prefix) tayyorlash, kerak bo'lsa image'ga gsutil/gcloud-sdk qo'shish yoki curl+JSON API'ga o'tkazish, keyin kechasi 03:00 dump GCS'da paydo bo'lishini isbotlash. Lifecycle: 30-60 kunlik saqlash qoidasi.",
+          "acceptance_criteria": [
+            "Qo'lda backup.sh ishga tushirilganda dump gs://<bucket>/db/ da paydo bo'ladi (gsutil yo'q bo'lsa — tuzatilgan)",
+            "Ertasi kuni crontab 03:00 dumpi ham GCS'da",
+            "Bucket lifecycle: eski dumplar avtomatik o'chadi (saqlash xarajati chegaralangan)",
+            "docs/ops/backup.md yangilangan"
+          ],
+          "affected": ["scripts/backup.sh", "docker/ (db-backup image, kerak bo'lsa)", "docs/ops/backup.md"]
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "name": "Prod'da o'chiq turgan imkoniyatlar (1-2 hafta)",
+      "goal": ".env'dagi bo'sh qiymatlar ortida tayyor kod yotibdi — har biri yoqilganda mahsulot real qiymat oladi.",
+      "tasks": [
+        {
+          "id": "R1-T1",
+          "title_en": "Enable Sentry error tracking in prod",
+          "title_uz": "Prod'da Sentry xato-kuzatuvini yoqish",
+          "priority": "P1",
+          "status": "done",
+          "done_note_uz": "2026-11-14 kech JONLI YAKUN (3/3 mezon): foydalanuvchi Chrome'ni ulagach agent sentry.io hisobini Google SSO bilan ochdi (suxroboff@gmail.com, parol YO'Q — SSO; org 'dramauz', data-joylashuv EU, email-yangiliklar RAD) -> drama-prod loyihasi (platforma Django) UI orqali yaratildi -> DSN (EU ingest .de.) server .env 111-qatorga sed bilan yozildi -> web+worker+beat qayta yaratildi + nginx reload -> readyz ok -> smoke capture_message yuborildi -> Sentry'da DRAMA-PROD-1 ko'rindi: sahifada environment=production VA release=2de61b33bcde (image SHA12 — 3-mezon jonli isboti; worker konteynerida GIT_SHA env ham tasdiqlangan) -> sinov-event o'chirildi (Issues bo'sh). DSN FAQAT server .env'da (repo/tracker'ga yozilmaydi — HEARTBEAT_URL odati). Eslatma: org 14 kun Business-trial, keyin avto-free (to'lov usuli yo'q); Sentry alert-qoidalari (monitoring.md §5) alohida ixtiyoriy ish.",
+          "progress_2026_11_14_uz": "KOD TOMONI TAYYOR (commit 2de61b3, 630 test) va PROD'GA CHIQDI (2026-11-14: Deploy run 43609610931 — buildx logida `--build-arg GIT_SHA=2de61b33bcde` tasdiqlangan, ya'ni jonli image o'z tegini biladi; DSN kiritilishi bilan release darhol ko'rinadi). 3-mezon (release = image SHA12) bajarildi: eski 'deploy skripti SENTRY_RELEASE to'ldiradi' hujjati amalda ishlamagan (deploy.sh hech qachon qilmagan) -> yangi avtomatik zanjir deploy.yml build-arg GIT_SHA=<tag> -> Dockerfile ARG+ENV (COPY'dan keyin, kesh-safe) -> prod.py release = SENTRY_RELEASE || GIT_SHA || None; 3 matn-qo'riqchi test zanjirni qotiradi. environment default 'production' allaqachon bor edi. Server/Sentry tomoni done_note_uz'da. To'liq retsept: docs/ops/sentry.md.",
+          "owner": "egasi (DSN oladi) + agent",
+          "depends_on": [],
+          "description_uz": "Kod Sentry'ga tayyor (PII o'chiq, roadmap.md buni kuchli tomon deb sanaydi) lekin prod'da SENTRY_DSN bo'sh — xatolar hozir faqat loglarda 'ko'r' yotadi. sentry.io bepul rejada loyiha ochish, DSN'ni prod .env'ga, web restart, sinov-xato bilan event kelishini isbotlash.",
+          "acceptance_criteria": [
+            "Sentry'da drama-prod loyihasi bor, environment=production",
+            "Sinov exception Sentry'da ko'rinadi (keyin o'chiriladi)",
+            "Release teg sifatida image tag (SHA12) uzatiladi — qaysi deploy'da chiqqani ko'rinadi"
+          ],
+          "affected": ["(server .env)", "config/settings/prod.py (release tag, kerak bo'lsa)"]
+        },
+        {
+          "id": "R1-T2",
+          "title_en": "Configure outbound email (SMTP) and verify flows",
+          "title_uz": "Chiquvchi email (SMTP) sozlash va oqimlarni tekshirish",
+          "priority": "P1",
+          "status": "todo",
+          "owner": "egasi (provayder tanlaydi) + agent",
+          "depends_on": [],
+          "description_uz": "EMAIL_* prod'da bo'sh — parol tiklash va email-tasdiqlash xatlari real yuborilmasligi ehtimoli katta (tekshirib, keyin sozlash). Arzon yo'l: Brevo/Mailgun/SES bepul kvota. SPF yozuvini Cloudflare DNS'ga qo'shish (hozirgi SPF faqat registrar-forward uchun).",
+          "acceptance_criteria": [
+            "Parol-tiklash xati real pochtaga keladi (spam'ga emas)",
+            "allauth email-tasdiqlash oqimi ishlaydi",
+            "SPF/DKIM provayder talabiga ko'ra o'rnatilgan (DNS'da tekshirilgan)"
+          ],
+          "affected": ["(server .env)", "(Cloudflare DNS: SPF/DKIM TXT)"]
+        },
+        {
+          "id": "R1-T3",
+          "title_en": "Enable Google OAuth and Telegram login in prod",
+          "title_uz": "Google OAuth + Telegram login'ni prod'da yoqish",
+          "priority": "P1",
+          "status": "todo",
+          "owner": "egasi (konsollar) + agent",
+          "depends_on": [],
+          "description_uz": "Ikkala login kodi tayyor va testlangan, lekin GOOGLE_OAUTH_CLIENT_ID va TELEGRAM_LOGIN_BOT_USERNAME bo'sh — tugmalar yashirin (context_processor to'g'ri yashiryapti). Google Cloud Console'da redirect URI https://dramauz.com/accounts/google/login/callback/ bilan client ochish; BotFather'da login-domen dramauz.com o'rnatish. O'zbek auditoriyasi uchun Telegram-login ro'yxatdan o'tish ishqalanishini keskin kamaytiradi (roadmap UX bahosida ham bor).",
+          "acceptance_criteria": [
+            "/users/login/ sahifasida ikkala tugma ko'rinadi",
+            "Jonli: Google orqali yangi hisob ochiladi; Telegram widget orqali kirish ishlaydi",
+            "docs/ops/domain-migration.md §5 bandi 'bajarildi' deb belgilanadi"
+          ],
+          "affected": ["(server .env)", "(Google Cloud Console)", "(BotFather)"]
+        },
+        {
+          "id": "R1-T4",
+          "title_en": "Activate Payme merchant keys (unblock monetization)",
+          "title_uz": "Payme merchant kalitlarini kiritish (monetizatsiyani ochish)",
+          "priority": "P1",
+          "status": "todo",
+          "owner": "egasi (Payme kabinet) + agent",
+          "depends_on": [],
+          "source": "roadmap 2.5 (Click) dan OLDINGI qadam — Payme kodi allaqachon bor",
+          "description_uz": "Payme integratsiya kodi bor, lekin prod kalitlar bo'sh — hozir faqat qo'lda chek/kripto-tasdiq ishlaydi, ya'ni avtomatik pul yo'li YOPIQ. Payme biznes-kabinetida merchant ochish/tiklash (eski drama.uz merchantini dramauz.com ga ko'chirish kerak bo'lishi mumkin), kalitlarni .env'ga, sandbox-test, keyin kichik real to'lov.",
+          "acceptance_criteria": [
+            "Payme sandbox to'lovi end-to-end o'tadi (Coin balans oshadi, ledger yozuvi to'g'ri)",
+            "Kichik real to'lov tasdiqlangan",
+            "Telegram admin-xabarnoma to'lov haqida keladi"
+          ],
+          "affected": ["(server .env)", "(Payme kabinet)"]
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "name": "SEO tiklanish nazorati (1-3 hafta)",
+      "goal": "Downtime'dan keyingi deindeksatsiyani to'liq qaytarish va qayta kelib chiqishini kuzatuvchi odatlar.",
+      "tasks": [
+        {
+          "id": "R2-T1",
+          "title_en": "Monitor GSC 5xx validation to completion",
+          "title_uz": "GSC 5xx-validatsiyasini oxirigacha kuzatish",
+          "priority": "P1",
+          "status": "in_progress",
+          "owner": "agent (brauzer orqali)",
+          "depends_on": [],
+          "description_uz": "2026-11-14 da boshlangan: sitemap qayta yuborildi (Успешно, 84), bosh sahifa prioritet navbatda, 'Ошибка сервера (5xx)' x156 validatsiyasi ketmoqda. Har 3-4 kunda GSC'da tekshirish: validatsiya o'tdimi, indexed soni o'syaptimi, bosh sahifa indeksga qaytdimi. 13 o'qilmagan GSC xabarini ko'rib chiqish.",
+          "check_log_uz": [
+            "2026-11-14 kech (1-tekshiruv): (a) BOSH SAHIFA INDEKSGA QAYTDI — URL inspeksiyasi 'URL есть в индексе Google' (ertalabki prioritet-skan O'SHA KUNI ishladi; overview'dagi 'не проиндексирована' kartasi eskirgan) = 2-mezon BAJARILDI; (b) 5xx x156 validatsiya holati 'Начато' — kutilganidek; (c) indexed 19 / 339 emas (o'zgarmagan, baseline); (d) effektivlik baseline (oxirgi 7 kun): 6 klik / 162 ko'rsatish / CTR 3.7% / pozitsiya 4.8; 'drama uz' hali -99%; (e) GSC xabarlari (endi 14 ta) MAZMUNAN ko'rildi — Gmail nusxalari orqali: 22-okt 'Новые причины... Ошибка сервера (5xx)' (sayt + sitemap varianti; downtime'ni Google rasman qayd etgan sana), oylik digest'lar, bugungi 'Мы проверяем...' validatsiya tasdig'i — YANGI muammo yo'q (GSC ichidagi o'qilmagan belgisi turibdi: panel cross-origin iframe, minimallashgan oynada o'qib bo'lmadi — kosmetik). KEYINGI TEKSHIRUV: ~17-18 noyabr (validatsiya progressi, indexed soni, impression trendi)."
+          ],
+          "acceptance_criteria": [
+            "5xx validatsiyasi 'O'tdi' (yoki qolganlar sabablari bilan hujjatlangan)",
+            "Bosh sahifa 'URL is on Google' holatida",
+            "Indexed sahifalar soni >= 60 (sitemap'dagi 84 ning asosiy qismi)",
+            "'drama uz' so'rovi impression'lari tiklanish trendida (skrinshot)"
+          ],
+          "affected": ["(GSC, kod o'zgarmaydi)"]
+        },
+        {
+          "id": "R2-T2",
+          "title_en": "Hunt down soft-404 and 403 pages from GSC",
+          "title_uz": "GSC'dagi soft-404 (4 ta) va 403 (4 ta) sahifalarni aniqlab tuzatish",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": [],
+          "description_uz": "GSC Pages hisobotida 4 ta 'Ложная ошибка 404' va 4 ta 403 bor. URL'larini GSC'dan olib, har birini curl bilan tekshirish: soft-404 odatda 'bo'sh natija' sahifasi 200 bilan qaytganda; 403 — katta ehtimol Cloudflare bot-challenge yoki himoyalangan yo'l sitemap'ga adashib kirgan. Haqiqiy sabab bo'yicha: 404/410 qaytarish, sitemap'dan olib tashlash yoki robots bilan yopish.",
+          "acceptance_criteria": [
+            "8 URL ro'yxati va har birining diagnozi hujjatlangan",
+            "Tuzatish deploy qilingan (kerak bo'lsa) va URL'lar GSC'da qayta tekshirilgan",
+            "Regress bo'lmasligi uchun kerak bo'lsa qo'riqchi test (masalan, bo'sh ro'yxat sahifasi noindex/404 siyosati)"
+          ],
+          "affected": ["drama/views.py (ehtimol)", "drama/sitemaps.py (ehtimol)"]
+        },
+        {
+          "id": "R2-T3",
+          "title_en": "Real category pages /kategoriya/<slug>/ + restore CategorySitemap",
+          "title_uz": "Haqiqiy kategoriya sahifalari /kategoriya/<slug>/ + CategorySitemap qaytarish",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": [],
+          "source": "dd9ad93 (2026-08-04) qarorining ikkinchi yarmi — o'shanda 'qaytarish uchun avval haqiqiy sahifa kerak' deb yozilgan",
+          "description_uz": "Category.slug modelda BOR lekin ishlatilmaydi; get_absolute_url() query-string (/?category=N) qaytargani uchun CategorySitemap olib tashlangan edi (GSC 'Duplicate, not canonical'). Haqiqiy landing: /kategoriya/<slug>/ — tavsif matni, kinolar grid, o'z canonical'i, hreflang; get_absolute_url() shu yo'lga o'tadi; CategorySitemap qaytadi. SEO yuzasi +3 sahifa x2 til va ichki linking yaxshilanadi ('skanerlangan, indekslanmagan' 47 taga ham signal).",
+          "acceptance_criteria": [
+            "/kategoriya/<slug>/ 200, o'ziga canonical, sitemap'da, eski /?category=N dan 301",
+            "Qo'riqchi testlar: sitemap'da query-string yo'q (mavjud test o'tadi), yangi sahifa canonical testi",
+            "GSC URL inspection: yangi sahifa indekslanadi"
+          ],
+          "affected": ["drama/views.py", "drama/urls.py", "drama/models.py (get_absolute_url)", "drama/sitemaps.py", "templates/", "locale/"]
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "name": "Analitika gigiyenasi (1 hafta)",
+      "goal": "'Kim nechta sanayapti' chalkashligini butunlay tugatish va o'lchash madaniyatini o'rnatish.",
+      "tasks": [
+        {
+          "id": "R3-T1",
+          "title_en": "Decide GA4/GTM fate: install properly or archive",
+          "title_uz": "GA4/GTM taqdiri: yo to'g'ri o'rnatish, yo arxivlash (ADR)",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "egasi qaror + agent bajaradi",
+          "depends_on": [],
+          "description_uz": "Akkauntda GA4 (G-KSPF9LB6Y3, 0 ma'lumot) va 5 GTM konteyner (jumladan eski www.drama.uz) yotibdi — saytga hech biri ulanmagan. Ikki yo'l: (A) Minimal: GA4/GTM'ni arxivlash/o'chirish — Metrica + CF Web Analytics yetadi, chalkashlik yo'qoladi (TAVSIYA: oddiy va hozirgi ehtiyojga mos); (B) GA4 kerak bo'lsa (Google Ads rejasi bo'lsa): gtag'ni GTM'siz, to'g'ridan base.html'ga + CSP'ga googletagmanager.com/google-analytics.com qo'shish. Qaror qisqa ADR sifatida docs/adr/ ga yoziladi.",
+          "acceptance_criteria": [
+            "ADR yozilgan (tanlov + sabab)",
+            "A bo'lsa: GA4 property/GTM konteynerlar arxivlangan yoki o'chirilgan — 'Данные не получены' banner qolmaydi",
+            "B bo'lsa: gtag jonli, CSP toza (konsolda 0 xato), Metrica bilan birga 1 sahifa = har asbobda 1 hit (network isbot)"
+          ],
+          "affected": ["docs/adr/", "templates/base.html (B holatda)", "config/middleware.py (B holatda)"]
+        },
+        {
+          "id": "R3-T2",
+          "title_en": "Metrica hygiene: self-visit filter + goals",
+          "title_uz": "Metrica gigiyenasi: o'z tashrif filtri + maqsadlar (goals)",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "egasi (Metrica kabinet) + agent yo'riqnoma beradi",
+          "depends_on": [],
+          "description_uz": "Raqamlar 'shishirilgan' tuyulishining real sabablaridan biri — o'z/admin tashriflari va sessiya!=foydalanuvchi chalkashligi. Metrica kabinetida: (1) o'z IP'laringiz uchun filtr, (2) maqsadlar: video-start, 10-daqiqa tomosha, ro'yxatdan o'tish, to'lov sahifasi — konversiya voronkasi ko'rina boshlaydi, (3) hisobotni 'Foydalanuvchilar' (unique) bo'yicha o'qish odati. Qo'shimcha: docs/ops/analytics.md qisqa 'raqamlarni qanday o'qish' bo'limi (Metrica users vs visits vs hits; CF page views; GSC clicks — UCHALASI har xil narsani o'lchaydi, QO'SHILMAYDI).",
+          "acceptance_criteria": [
+            "Filtr yoqilgan (keyingi kundan o'z tashriflar sanalmaydi)",
+            "Kamida 3 maqsad ishlayapti (sinov-konversiya ko'rindi)",
+            "docs/ops/analytics.md yaratilgan — 'bitta odam nechta ko'rinadi' savoliga yozma javob"
+          ],
+          "affected": ["(Metrica kabinet)", "docs/ops/analytics.md (yangi)"]
+        },
+        {
+          "id": "R3-T3",
+          "title_en": "Two-week CF Web Analytics review",
+          "title_uz": "CF Web Analytics 2-haftalik ko'rik",
+          "priority": "P3",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": [],
+          "description_uz": "2026-11-14 da yoqildi. 2 haftadan keyin: CF paneli vs Metrica raqamlarini yonma-yon solishtirish (farq NORMAL — metod har xil: cookie'siz baho vs cookie'li), katta anomaliya bo'lsa sabab izlash. Natija analytics.md ga 1 abzats.",
+          "acceptance_criteria": [
+            "Taqqoslash jadvali (kun/users/views) analytics.md da",
+            "Anomaliya yo'q yoki izohlangan"
+          ],
+          "affected": ["docs/ops/analytics.md"]
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "name": "Ops chidamliligi va gigiyena (2-4 hafta)",
+      "goal": "Bugungi saboqlarni ritualga aylantirish: chirishni kutmasdan ushlash.",
+      "tasks": [
+        {
+          "id": "R4-T1",
+          "title_en": "Monthly dependency bump ritual (or Dependabot security PRs)",
+          "title_uz": "Oylik dependency-yangilash rituali (yoki Dependabot security PR)",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": [],
+          "description_uz": "Bugun 45 CVE bir urishda yopildi — 2 oy yig'ilib qolgani uchun pillow MAJOR'ga sakrashga to'g'ri keldi. Yo (A) .github/dependabot.yml: pip ekosistema, security-only, haftalik — PR'lar CI'dan o'tsa qo'lda merge; yo (B) kalendar: oyiga 1 marta 'pip-audit + minimal bump + testlar' seansi. A afzal: public repo'da bepul, nightly CI bilan juft ishlaydi.",
+          "acceptance_criteria": [
+            "dependabot.yml merge qilingan va birinchi PR ochilgani ko'rilgan (yoki kalendar rituali hujjatlangan)",
+            "Qoida hujjatlangan: minimal fix-versiya, lock.txt sinxron, 611+ test yashil bo'lmaguncha merge yo'q"
+          ],
+          "affected": [".github/dependabot.yml (yangi)", "docs/ops/deploy.md (qoida)"]
+        },
+        {
+          "id": "R4-T2",
+          "title_en": "Resource watch + resize playbook for 1 vCPU/2GB droplet",
+          "title_uz": "Resurs kuzatuvi + resize-playbook (1 vCPU/2GB uchun)",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": ["R0-T3"],
+          "description_uz": "Yangi server eskisidan kichik (2 vCPU/4GB -> 1/2+swap). Hozir yetadi, lekin trigger'lar yozilmagan. DO panelda CPU/RAM alert (masalan CPU>80% 10 daq); serverda oddiy tekshiruv retsepti (docker stats, free, p95 nginx log). Playbook: qachon $18 (2 vCPU) yoki $24 (4GB) ga o'tish — 'CPU and RAM only' resize, IP saqlanadi, disk resize QILINMAYDI (orqaga yo'l yopiladi).",
+          "acceptance_criteria": [
+            "DO monitoring alert sozlangan (sinov yoki skrinshot)",
+            "docs/ops/server-migration.md yoki yangi scaling.md da resize-playbook: trigger'lar + qadamlar + 'disk resize taqiqlangan' ogohlantirishi"
+          ],
+          "affected": ["docs/ops/ (scaling bo'limi)", "(DO panel)"]
+        },
+        {
+          "id": "R4-T3",
+          "title_en": "Quarterly restore drill calendar",
+          "title_uz": "Choraklik tiklash-mashqi kalendari",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": ["R0-T4"],
+          "description_uz": "Runbook bor va 2 marta jangda sinalgan — endi RITUAL kerak: har 3 oyda 'pull_server_backup.sh -> lokal toza postgres'ga tiklash -> row_counts diff MOS' mashqi (30 daqiqa). Backup mavjudligi emas, TIKLANISHI sug'urta.",
+          "acceptance_criteria": [
+            "Kalendar eslatma (har chorak) va backup.md da mashq retsepti bandi",
+            "Birinchi mashq o'tkazilib sanasi yozilgan"
+          ],
+          "affected": ["docs/ops/backup.md"]
+        },
+        {
+          "id": "R4-T4",
+          "title_en": "Purge stale local project copies holding live secrets",
+          "title_uz": "Sirli eski lokal nusxalarni tozalash",
+          "priority": "P1",
+          "status": "todo",
+          "owner": "agent (foydalanuvchi tasdig'i bilan)",
+          "depends_on": [],
+          "description_uz": "C:/projects/drama-vps-09-06-26/drama-vps ichida JONLI .env va drama-key-v2.json yotibdi (iyun nusxasi) — noutbuk yo'qolsa/zararlansa bu sirlar ham ketadi; bundan tashqari eski nusxa adashtiradi (bugun ham 'tanishish uchun' shu papka berildi, u 5 oy eski edi). Taklif: foydalanuvchi tasdig'i bilan papkani o'chirish (yoki hech bo'lmasa ichidagi .env/kalit fayllarni). C:/projects/quiz-bot ham yakunlangan — arxivlab o'chirsa bo'ladi (quiz.db allaqachon backup to'plamda).",
+          "acceptance_criteria": [
+            "Foydalanuvchi ro'yxatni ko'rib tasdiqlagan",
+            "drama-vps-09-06-26 o'chirilgan yoki sir-fayllari yo'q qilingan",
+            "quiz-bot papkasi haqida qaror bajarilgan"
+          ],
+          "affected": ["C:/projects/drama-vps-09-06-26/", "C:/projects/quiz-bot/"]
+        },
+        {
+          "id": "R4-T5",
+          "title_en": "Next-deploy cleanups: EXTRA_ALLOWED_HOSTS, docs IP traces",
+          "title_uz": "Keyingi deploy tozalashlari: EXTRA_ALLOWED_HOSTS + hujjatlardagi eski IP izlari",
+          "priority": "P3",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": [],
+          "description_uz": "prod.py'da yangi IP allaqachon bor (ed53c86) — keyingi deploy'dan so'ng .env'dagi EXTRA_ALLOWED_HOSTS=206.189.52.80 ortiqcha bo'ladi (xohlasa qoldirsa ham zarari yo'q). docs/ops/ssl.md va domain-migration.md da eski 159.89.100.207 izlari bor — 'tarixiy' belgilash yoki yangilash. README 'Holat' bo'limi roadmap auditida ham eskirgan deyilgan edi — yangilash.",
+          "acceptance_criteria": [
+            "Deploy'dan keyin to'g'ridan-IP sinash hali ham ishlaydi (prod.py yo'li bilan)",
+            "Hujjatlarda adashtiruvchi eski IP yo'naltirishlari qolmagan",
+            "README 'Holat' joriy raqamlarni aks ettiradi"
+          ],
+          "affected": ["(server .env)", "docs/ops/ssl.md", "docs/ops/domain-migration.md", "README.md"]
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "name": "Hujjat/tracker sinxroni (S, parallel)",
+      "goal": "Qog'ozdagi holat = haqiqiy holat; kelajak seanslar eski ma'lumotga adashmasin.",
+      "tasks": [
+        {
+          "id": "R5-T1",
+          "title_en": "Refresh roadmap.md to Nov-2026 reality",
+          "title_uz": "roadmap.md ni noyabr-2026 holatiga yangilash",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent",
+          "depends_on": [],
+          "description_uz": "roadmap.md 2026-07-10 dan qotgan: '321 test' (hozir 612), v2 'hammasi ochiq' (hozir 16/32 done), 0-bosqich sirlar holati, server/infra o'zgarishlari yo'q. Yangilash: sana-belgili 'Holat yangilanishi' bo'limi + bosqich jadvallarida bajarilganlarini belgilash + R-trackerga havola. Baholarni (82/76) qayta chiqarish SHART EMAS — faqat faktlarni sinxronlash.",
+          "acceptance_criteria": [
+            "roadmap.md boshida 2026-11 holat bloki (prod commit, test soni, infra)",
+            "Bajarilgan bosqich-bandlari belgilangan, road_dramauz_tasks.json ga havola bor"
+          ],
+          "affected": ["roadmap.md"]
+        }
+      ]
+    }
+  ],
+
+  "summary": {
+    "jami_task": 20,
+    "fazalar": { "R0": 4, "R1": 4, "R2": 3, "R3": 3, "R4": 5, "R5": 1 },
+    "priority": { "P0": 4, "P1": 6, "P2": 8, "P3": 2 },
+    "tavsiya_tartib_uz": "R0 to'liq (ayniqsa R0-T1 Bunny va R0-T3 uptime — bittasi pulni, ikkinchisi 'yana 2 oy jim o'lib yotish'ni yopadi) -> R1-T4 Payme (pul yo'li) -> R1 qolgani -> R2/R3 parallel -> R4/R5. roadmap.md'ning o'z 1-3 bosqichlari (bildirishnoma, izoh-dialog, crowdfunding hardening) bu trackerdan MUSTAQIL davom etadi — bu fayl ularni almashtirmaydi.",
+    "eslatma_uz": "2026-11-14 dan git'da (foydalanuvchi qarori; commit oldidan sir-skan o'tkazildi — toza). QOIDA o'z kuchida: BU FAYLGA SIR YOZILMAYDI, repo public."
+  }
+}
