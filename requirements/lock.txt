@@ -41,7 +41,7 @@ djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
 factory_boy==3.3.3
 Faker==40.23.0
-filelock==3.29.4
+filelock==4.2.1
 google-api-core==2.29.0
 google-auth==2.47.0
 google-cloud-core==2.5.0
