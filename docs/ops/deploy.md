@@ -90,3 +90,23 @@ export IMAGE_NAME=ghcr.io/<owner>/drama-web
 Deploy nosoz bo'lsa `deploy.sh` buni AVTOMATIK bajaradi. Migratsiya buzuvchi
 bo'lgan holdagina (contract erta qo'llangan) avval DB backup'dan tiklang
 (P13-T3).
+
+## Dependency yangilash (Dependabot security-PR qoidasi) [R4-T1]
+
+`.github/dependabot.yml` FAQAT security-PR rejimida (`open-pull-requests-limit: 0`
+— oddiy versiya-PR shovqini yo'q; pip + github-actions ekosistemalari).
+Repo Settings'da **Dependabot alerts** va **security updates** yoqiq turishi shart.
+
+Security-PR kelganda merge qoidasi:
+
+1. **Minimal fix-versiya** — zaiflikni yopadigan ENG KICHIK ko'tarilish
+   (major'ga faqat ilojsizlikda, 766589e Pillow saboqdagidek izoh bilan).
+2. **`requirements/lock.txt` sinxron** — base/prod o'zgargan bo'lsa lock ham
+   yangilanadi, `pip check` ziddiyatsiz.
+3. **CI to'liq yashil** (test + lint + security job'lari, 630+ test) —
+   bo'lmaguncha merge YO'Q.
+4. Merge'dan keyin deploy odatiy tartibda (workflow_dispatch) — security fix
+   image'ga faqat deploy bilan tushadi, merge'ning o'zi prod'ni o'zgartirmaydi.
+
+Dependabot o'chib qolsa/ishlamasa zaxira ritual: oyiga bir `pip-audit` +
+minimal bump + testlar (2026-11-13 da shu usul 45 CVE yopgan).

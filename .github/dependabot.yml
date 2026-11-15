@@ -1,0 +1,32 @@
+# Dependabot — FAQAT security-PR rejimi [R4-T1].
+#
+# Kontekst: 2026-09..11 downtime davrida 2 oy yig'ilgan qarz bir urishda
+# 45 CVE bo'lib yopildi (Pillow MAJOR sakrashiga majbur bo'lindi — 766589e).
+# Bu fayl o'sha holatning qaytmasligi uchun: zaiflik e'lon qilinishi bilan
+# PR ochiladi, CI (test+lint+security job'lari) o'tsa QO'LDA merge qilinadi.
+#
+# `open-pull-requests-limit: 0` — oddiy versiya-yangilash PR'lari O'CHIQ
+# (shovqin bo'lmasin); security update'lar bunga qaramay ochiladi (GitHub'ning
+# hujjatlangan "security-only" naqshi; repo Settings'da Dependabot alerts +
+# security updates yoqilgan bo'lishi shart).
+#
+# Merge qoidasi (docs/ops/deploy.md "Dependency yangilash" bo'limi):
+# minimal fix-versiya, requirements/lock.txt sinxron, CI to'liq yashil.
+
+version: 2
+updates:
+  # pip: directory "/" bo'lsa Dependabot ildizdagi requirements.txt'ni HAM
+  # requirements/ papkasidagi *.txt fayllarni HAM o'qiydi (file-fetcher shunday).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+
+  # GitHub Actions: workflow'lardagi action'lar ham supply-chain yuzasi
+  # (ci/deploy/uptime). Xuddi shu security-only rejim.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0

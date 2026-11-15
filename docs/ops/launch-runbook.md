@@ -275,6 +275,27 @@ dc exec web python manage.py check_bunny_security
 | **Payme** | Merchant kabineti → Endpoint URL: `https://drama.uz/billing/payme/webhook/` |
 | **healthchecks.io** | (tavsiya) check oching → ping URL'ni `.env` `HEARTBEAT_URL`ga → `dc up -d celery-beat` qayta |
 
+### 9.1 Vendor to'lov jadvali [R0-T2]
+
+2026-09..11 saboq: DO to'lovi o'tmagani server o'limi + 2 oy downtime +
+deindeksatsiya bo'ldi. Har vendor uchun **auto-pay yoki balans + billing
+email-alert + kalendar eslatma (muddatdan 7 kun oldin)** turishi SHART.
+
+| Vendor | Nima uchun | To'lov ritmi | Yo'qolsa nima bo'ladi |
+|---|---|---|---|
+| **DigitalOcean** | prod droplet (206.189.52.80) | oylik | sayt O'LADI (2026-09 precedenti) |
+| **bunny.net** | video streaming + CDN | oylik/balans | video o'ynamaydi; uzoq suspenziyada KONTENT O'CHADI |
+| **GCP (GCS)** | statika CDN + offsite DB backup | oylik | statika/backup yo'qoladi |
+| **dramauz.com registrar** | asosiy domen | yillik | sayt + email butunlay yo'qoladi |
+| **drama.uz registrar** | `cdn.drama.uz` zonasi (ochiq turishi SHART) + 301 manba | yillik | CDN statika sinadi, eski SEO signallari uziladi |
+| **Cloudflare** | DNS/proxy/WAF (bepul reja) | — | (bepul; hisob emailiga kirish yo'qolmasin) |
+
+Egasi checklist (har band uchun belgilang):
+- [ ] DO: auto-pay/balans + billing alert yoqilgan
+- [ ] Bunny: balans + low-balance email alert yoqilgan
+- [ ] GCP: billing account faol + budget alert
+- [ ] Ikkala domen muddati >= 60 kun va kalendarda (yillik eslatma)
+
 ---
 
 ## 10. Admin ichidagi birinchi sozlamalar
@@ -326,12 +347,17 @@ dc exec web python manage.py check_bunny_security
       Authenticated Origin Pulls (mTLS). Hozir IP'ni bilgan CF'ni chetlab
       o'tib WAF/rate-limit'ni aylanib o'ta oladi.
 - [ ] SMTP (`EMAIL_*`) — parol-reset xatlari uchun
-- [ ] `SENTRY_DSN` — xato kuzatuvi
-- [ ] `HEARTBEAT_URL` — dead-man monitoring (9-bo'lim)
+- [x] `SENTRY_DSN` — xato kuzatuvi (2026-11-14 jonli: org dramauz/EU,
+      release = image SHA12 [R1-T1])
+- [x] `HEARTBEAT_URL` — dead-man monitoring (2026-11-14 jonli: healthchecks.io
+      drama-beat, DOWN/UP emaillari empirik sinalgan [R0-T3])
 - [ ] Git tarixini tozalash: `git-filter-repo` (secret-rotation.md §4-6)
 - [x] `prod.py`dagi IP yangilandi: `207.154.194.231` -> `159.89.100.207`
       (server ko'chirilgan edi; eski IP repo'da qolib ketgandi)
-- [ ] Backup tiklashni BIR MARTA sinab ko'rish (docs/ops/backup.md mashqi)
+      → 2026-11-13: yana ko'chish, joriy `206.189.52.80` (server-migration.md)
+- [x] Backup tiklashni BIR MARTA sinab ko'rish (docs/ops/backup.md mashqi) —
+      2026-11-13 JANGDA sinaldi: yangi server LATEST dumpdan tiklandi,
+      row_counts 67/67 mos (server-migration.md)
 
 ## 14. Kundalik foydali buyruqlar
 

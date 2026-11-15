@@ -7,6 +7,31 @@
 
 ---
 
+## Holat yangilanishi — 2026-11-15 [R5-T1]
+
+Quyidagi asl baho/reja (2026-07-10) tarixiy hujjat sifatida o'z holicha qoldi;
+bu blok faqat faktlarni sinxronlaydi. Jadvallardagi **✅** = 2026-11 holatida
+bajarilgan band (dalil va tafsilot tracker'larda).
+
+- **Prod:** yangi server `206.189.52.80` (DO fra1, **2026-11-13 da ko'chirilgan** —
+  eski server vendor-to'lov tufayli yo'qolgan, ~2 oy downtime). Deploy FAQAT
+  GitHub Actions (`workflow_dispatch`); zanjir: `docs/ops/server-migration.md`.
+- **Test/CI:** 636 passed / 6 skipped · ruff/mypy/bandit toza · CI yashil.
+- **Tracker'lar:** v1 **60/65** (ochiq: P0-T2 sir-rotatsiya[in_progress], P7-T3,
+  P10-T5[in_progress], P14-T2, P14-T4) · v2 **16/32** · operatsion tavsiyalar:
+  **`road_dramauz_tasks.json`** (R0–R5; downtime saboqlari — bu roadmap'ga
+  QO'SHIMCHA, uni almashtirmaydi).
+- **Roadmap'dan keyin qo'shilgan infra:** dead-man heartbeat (healthchecks.io) +
+  GH Actions uptime-monitor [R0-T3]; GCS offsite DB backup, 60-kun lifecycle
+  [R0-T4]; Sentry prod'da jonli, release = image SHA12 [R1-T1]; CF Web
+  Analytics; deplar yangi — Django 6.0.8 / DRF 3.18.2 / Pillow 13.0.0 (45 CVE).
+- **Ochiq og'riqlar:** Bunny pull-zone SUSPENDED (video o'ynamaydi — egasi
+  to'lovi kutilmoqda) [R0-T1]; Payme/Click prod kalitlari yo'q [R1-T4]; SMTP /
+  Google OAuth / Telegram-login bo'sh [R1-T2/T3]; GSC downtime deindeksatsiyasidan
+  tiklanmoqda [R2-T1].
+
+---
+
 ## 1. Baholar (1–100)
 
 | Yo'nalish | Baho | Bir jumlada |
@@ -70,21 +95,21 @@
 
 | # | Ish | Manba | Nega hozir |
 |---|---|---|---|
-| 1.1 | **Crowdfunding hardening:** maqsadga yetganda avto `translating` + bildirishnoma, refund stsenariysi, model constraint/indekslar, `funding/tests.py` to'ldirish | v1:P7-T4 | Pul yo'li — biznes-modelning yuragi; V2F-T5 bunga tayanadi. |
-| 1.2 | **Izoh moderatsiya navbati:** report, navbat, ban | v1:P14-T3 | 2-bosqichda hamjamiyat ochiladi (V2B-T1) — moderatsiya OLDIN turishi shart. |
-| 1.3 | **Admin 2FA + audit-log + gitleaks CI** | v1:P10-T4 | 0-bosqich saboqlarini qaytarilmas qilish (sir repoga qaytib tushsa CI yiqiladi). |
-| 1.4 | **Uptime/metrika + alert** (healthz monitor, xato-darajasi → Telegram) | v1:P12-T2 | Hozir prod "ko'r" rejimda — Sentry bor, lekin uptime/queue-backlog alert yo'q. |
-| 1.5 | **Oferta + Maxfiylik sahifalari** + footer o'lik havolani tuzatish | v1:P10-T5 (qisman) | Pullik xizmatga ishonch; to'liq GDPR (eksport/anonimlash) keyinroq. |
+| 1.1 ✅ | **Crowdfunding hardening:** maqsadga yetganda avto `translating` + bildirishnoma, refund stsenariysi, model constraint/indekslar, `funding/tests.py` to'ldirish | v1:P7-T4 | Pul yo'li — biznes-modelning yuragi; V2F-T5 bunga tayanadi. |
+| 1.2 ✅ | **Izoh moderatsiya navbati:** report, navbat, ban | v1:P14-T3 | 2-bosqichda hamjamiyat ochiladi (V2B-T1) — moderatsiya OLDIN turishi shart. |
+| 1.3 ✅ | **Admin 2FA + audit-log + gitleaks CI** | v1:P10-T4 | 0-bosqich saboqlarini qaytarilmas qilish (sir repoga qaytib tushsa CI yiqiladi). |
+| 1.4 ✅ | **Uptime/metrika + alert** (healthz monitor, xato-darajasi → Telegram) | v1:P12-T2 | 2026-11 da to'liq yopildi: R0-T3 (uptime+dead-man) + R1-T1 (Sentry jonli). |
+| 1.5 ✅ | **Oferta + Maxfiylik sahifalari** + footer o'lik havolani tuzatish | v1:P10-T5 (qisman) | Sahifalar jonli (sitemap'da); to'liq GDPR (P10-T5) hali in_progress. |
 
 ### 2-bosqich — Retention to'lqini (3–6 hafta) — *v2 1-to'lqin*
 
 | # | Ish | Manba | Nega hozir |
 |---|---|---|---|
-| 2.1 | **Yangi-qism bildirishnomasi** (obuna + fan-out, idempotent) | v2:V2A-T1 | Epizodik kontentda retention yadrosi. |
-| 2.2 | **Foydalanuvchi Telegram boti** (hisob bog'lash + shaxsiy push) | v2:V2A-T2 | O'zbekiston — Telegram-markaz bozor; eng samarali push-kanal. |
-| 2.3 | **User-to-user izoh javoblari** (chuqurlik 1, bildirishnoma bilan) | v2:V2B-T1 | Hamjamiyatni ochadigan eng arzon qulf; 1.2 moderatsiyaga tayanadi. |
-| 2.4 | **TMDB import (admin)** | v2:V2D-T1 | Kartochka to'ldirish daqiqalardan soniyalarga — katalog o'sish tezligi. |
-| 2.5 | **Click integratsiyasi** | v2:V2F-T1 | Ikkinchi milliy to'lov reli — checkout konversiyasi. |
+| 2.1 ✅ | **Yangi-qism bildirishnomasi** (obuna + fan-out, idempotent) | v2:V2A-T1 | Epizodik kontentda retention yadrosi. |
+| 2.2 ✅ | **Foydalanuvchi Telegram boti** (hisob bog'lash + shaxsiy push) | v2:V2A-T2 | O'zbekiston — Telegram-markaz bozor; eng samarali push-kanal. |
+| 2.3 ✅ | **User-to-user izoh javoblari** (chuqurlik 1, bildirishnoma bilan) | v2:V2B-T1 | Hamjamiyatni ochadigan eng arzon qulf; 1.2 moderatsiyaga tayanadi. |
+| 2.4 ✅ | **TMDB import (admin)** | v2:V2D-T1 | Kartochka to'ldirish daqiqalardan soniyalarga — katalog o'sish tezligi. |
+| 2.5 ✅* | **Click integratsiyasi** | v2:V2F-T1 | Kod tayyor; prod kalitlari egasidan kutilmoqda (Payme bilan birga, R1-T4). |
 | 2.6 | Feature-flag tizimi | v2:V2H-T1 | 2–3-bosqich featurelarini xavfsiz, bosqichma-bosqich yoqish uchun oldinga surildi. |
 
 ### 3-bosqich — Konversiya va video-UX (2–3 oy)
@@ -92,18 +117,18 @@
 | # | Ish | Manba |
 |---|---|---|
 | 3.1 | **Tarjima so'rovlari + ovoz → crowdfunding** (biznes-model yuragi: auditoriya tanlaydi) | v2:V2F-T5 |
-| 3.2 | Subtitr (VTT) + intro-skip + treyler UI + pleyer sozlamalari persist | v2:V2E-T1..T4 |
+| 3.2 ✅ | Subtitr (VTT) + intro-skip + treyler UI + pleyer sozlamalari persist | v2:V2E-T1..T4 |
 | 3.3 | Gamifikatsiya: kunlik check-in/streak, darajalar/badge, referral | v2:V2C-T1..T3 |
-| 3.4 | Izoh reaksiyalari + epizod-izohlar + spoyler himoya + kolleksiyalar | v2:V2B-T2..T4 |
+| 3.4 ✅ | Izoh reaksiyalari + epizod-izohlar + spoyler himoya + kolleksiyalar | v2:V2B-T2..T4 |
 | 3.5 | Bulk epizod yuklash + efir kalendari | v2:V2D-T2/T3 |
 | 3.6 | Promo-kod, VIP-sovg'a, Coin-paketlar | v2:V2F-T2..T4 |
 | 3.7 | CDN header/cursor-pagination/pgbouncer + kontent scheduling/bulk/preview | v1:P9-T3, P14-T2 |
-| 3.8 | Qidiruv analitikasi (zero-result → kontent xaridi signali, 3.1 ga oziq beradi) | v2:V2G-T3 |
+| 3.8 ✅ | Qidiruv analitikasi (zero-result → kontent xaridi signali, 3.1 ga oziq beradi) | v2:V2G-T3 |
 
 ### 4-bosqich — Keyinroq / ADR bilan hal qilinadigan
 
-- **EN locale `/en/`** (V2G-T1) — UZ bozor to'yinganda yoki chet auditoriya signali kelganda.
-- **Blog/yangiliklar** (V2G-T2) — SEO kontent-marketing.
+- ✅ **EN locale `/en/`** (V2G-T1) — bajarildi (i18n_patterns, hreflang, i18n-sitemap jonli).
+- ✅ **Blog/yangiliklar** (V2G-T2) — bajarildi (blog app + PostSitemap jonli).
 - **Haftalik email-digest** (V2A-T3), **Web Push ADR** (V2A-T4), **FCM ADR** (V2H-T3), **Watch-party ADR** (V2H-T4).
 - **To'liq GDPR** (P10-T5), **admin analitika dashboard** (P14-T4), **kripto-topup avtomatlashtirish** (P7-T3), **GCS orphan tozalash** (V2H-T2), **slug 301-redirect** (V2D-T4 — URL'lar o'zgartirilsa OLDIN shu).
 

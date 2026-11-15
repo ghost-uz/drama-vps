@@ -113,6 +113,26 @@ postgres'da sinab ko'rilgan** (2026-07-06) va muntazam takrorlanishi kerak
 
 Natija hujjatlansin (sana, dump o'lchami, tiklash vaqti, muvaffaqiyat).
 
+### Choraklik ritual [R4-T3]
+
+Mashq RITUAL sifatida **har chorakda** o'tkaziladi (~30 daqiqa): egasi
+kalendariga takrorlanuvchi eslatma qo'yiladi. Retsept (noutbukdan):
+
+1. `scripts/pull_server_backup.sh` — serverdan eng yangi dump olinadi
+   (yoki GCS'dan: `gcloud storage cp gs://<bucket>/db/<oxirgi>.dump .`).
+2. Lokal toza postgres'ga tiklash (`restore.sh` yoki docker-run postgres:16).
+3. `row_counts` diff: jadval-qator sanoqlari server bilan MOS kelishi
+   (server-migration.md da tayyor so'rov bor).
+4. Natijani quyidagi jurnalga yozish.
+
+**Mashq jurnali:**
+
+| Sana | Turi | Natija |
+|---|---|---|
+| 2026-07-06 | lokal drill | ✅ tsikl to'liq o'tdi |
+| 2026-11-13 | **JANG** (server o'limi) | ✅ yangi server LATEST dumpdan tiklandi, row_counts 67/67 mos, ~45 daq (server-migration.md) |
+| ~2027-02 (keyingi) | choraklik drill | — |
+
 ## Staging muhiti
 
 Prod'ga o'xshash, izolyatsiyalangan (`name: drama-staging`, alohida volume/port):

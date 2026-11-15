@@ -2,6 +2,11 @@
 
 **Sana:** 2026-07-30 · **Holat:** kod tayyor, deploy bosqichma-bosqich
 
+> ⚠️ **IP'lar tarixiy [R4-T5]:** bu hujjatdagi `159.89.100.207` o'sha davr
+> serveri. **2026-11-13 dan joriy server — `206.189.52.80`**
+> (`docs/ops/server-migration.md`). Buyruqlarni qayta ishlatsangiz IP'ni
+> almashtiring; DNS A-yozuvlari allaqachon yangi IP'ga ko'chirilgan.
+
 Bu hujjat ikki narsani qamraydi: (1) ko'chishni **bajarish** tartibi,
 (2) qidiruv tizimlari saytni **klon/duplikat deb hisoblamasligi** uchun
 qotirilgan invariantlar.
