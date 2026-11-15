@@ -58,7 +58,10 @@ class Category(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("drama:movie_list") + f"?category={self.id}"
+        # Yo'lga asoslangan landing [R2-T3]. Eski `/?category=N` shakli
+        # o'ziga canonical bera olmasdi (GSC "Duplicate ... not canonical",
+        # 2026-08-04) — o'sha URL'lar endi MoviesView.get() da shu sahifaga 301.
+        return reverse("drama:category_detail", kwargs={"slug": self.slug})
 
     def __str__(self):
         return self.name

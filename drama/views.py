@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.db.models import Exists, F, OuterRef, Prefetch, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -163,6 +163,19 @@ class MoviesView(HxPartialListMixin, GenreYearMixin, ListView):
     context_object_name = "movies"
     paginate_by = 12
 
+    def get(self, request, *args, **kwargs):
+        # Eski CategorySitemap davridan Google indeksida `/?category=N`
+        # URL'lar qolgan [R2-T3]. Parametr hech qachon filtr bermagan (sahifa
+        # bosh sahifaning aynan dublikati edi) — endi haqiqiy kategoriya
+        # sahifasiga 301. Uzunlik chegarasi: Postgres'da juda katta son
+        # pk-filtrda DataError beradi (botlar har xil qiymat bilan keladi).
+        legacy = request.GET.get("category", "")
+        if legacy.isdigit() and len(legacy) <= 9:
+            category = Category.objects.filter(pk=int(legacy)).first()
+            if category:
+                return HttpResponsePermanentRedirect(category.get_absolute_url())
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         from drama import recommendations
 
@@ -266,6 +279,40 @@ class GenreDetailView(HxPartialListMixin, GenreYearMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = f"{self.genre.name} janridagi kinolar"
+        return context
+
+
+class CategoryDetailView(HxPartialListMixin, GenreYearMixin, ListView):
+    """Kategoriya landing sahifasi — /kategoriya/<slug>/ [R2-T3].
+
+    2026-08-04 da CategorySitemap olib tashlanganda shart qo'yilgan edi:
+    "qaytarish uchun avval haqiqiy sahifa kerak" (drama/sitemaps.py izohi).
+    Bu o'sha sahifa: o'z yo'li, o'ziga canonical (base.html request.path'dan
+    quradi), hreflang juftligi, nom/tavsif modeltranslation'dan (uz/en).
+    """
+
+    template_name = "movies/movie_list.html"
+    context_object_name = "movies"
+    paginate_by = 12
+
+    def get_queryset(self):
+        self.category = get_object_or_404(Category, slug=self.kwargs.get("slug"))
+        return (
+            Movie.objects.published()
+            .filter(category=self.category)
+            .with_card_data()
+            .order_by("-created_at")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = self.category.name
+        # Tavsif DB'dan (description_uz/en) — bo'sh bo'lsa shablon mavjud
+        # fallback'larga o'tadi, ya'ni yangi i18n satri KERAK EMAS (CI'ning
+        # pomessages-drift gate'i tegilmaydi).
+        context["page_description"] = self.category.description
+        if self.category.description:
+            context["meta_description"] = self.category.description
         return context
 
 

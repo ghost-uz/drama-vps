@@ -1,7 +1,7 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
-from .models import Actor, Genre, Movie
+from .models import Actor, Category, Genre, Movie
 
 
 class I18nSitemap(Sitemap):
@@ -40,24 +40,28 @@ class ActorSitemap(I18nSitemap):
         return Actor.objects.all().order_by("id")
 
 
-# CategorySitemap ATAYLAB YO'Q — qayta qo'shmang.
-#
-# `Category.get_absolute_url()` query-string qaytaradi (`/?category=3`), sahifa
-# canonical'i esa `base.html` da FAQAT `request.path` dan quriladi — query
-# kirmaydi. Ya'ni `/?category=3` sahifasining o'zi "men `/` ning nusxasiman"
-# deb e'lon qiladi. Bunday URL'ni sitemapga qo'shish Google'ga qarama-qarshi
-# ikki signal yuboradi va Search Console'da "Duplicate, submitted URL not
-# selected as canonical" xatosini beradi (2026-08-04 da 6 ta URL: 3 kategoriya
-# x uz/en).
-#
-# Kategoriya bo'yicha ko'rib chiqish SEO'da yo'qolmadi: `/janr/<slug>/` janr
-# sahifalari (GenreSitemap) haqiqiy, yo'lga asoslangan va o'zini canonical deb
-# e'lon qiladigan 22 ta sahifa beradi.
-#
-# Kategoriyalar indekslansin desangiz, ularni sitemapga qaytarish YETARLI EMAS —
-# avval haqiqiy sahifa kerak: `/kategoriya/<slug>/` yo'li (`Category.slug`
-# allaqachon bor, lekin ishlatilmaydi), o'ziga canonical, va noyob
-# title/description/H1. Aks holda xato qaytadi.
+class CategorySitemap(I18nSitemap):
+    """Qaytarildi [R2-T3] — endi har kategoriya HAQIQIY sahifaga ega.
+
+    Tarix: 2026-08-04 da olib tashlangan edi, chunki o'shanda
+    `Category.get_absolute_url()` query-string (`/?category=N`) qaytarardi —
+    bunday URL o'zini canonical deb e'lon qila olmaydi (canonical `base.html`da
+    faqat `request.path`dan quriladi) va GSC "Duplicate, submitted URL not
+    selected as canonical" xatosini berardi (6 URL: 3 kategoriya x uz/en).
+
+    O'shanda qo'yilgan qaytarish sharti bajarildi: `/kategoriya/<slug>/` —
+    yo'lga asoslangan sahifa, o'ziga canonical, hreflang, noyob title/H1 va
+    modeltranslation'dan tavsif. Eski query-URL'lar 301 bilan shu sahifaga
+    yo'naladi (`drama.views.MoviesView.get`). Shartni `drama/tests.py`dagi
+    `test_sitemap_has_no_query_string_urls` qo'riqlaydi.
+    """
+
+    changefreq = "weekly"
+    priority = 0.6
+
+    def items(self):
+        # order_by'siz Paginator beqaror (UnorderedObjectListWarning) [P5-T5]
+        return Category.objects.all().order_by("id")
 
 
 class GenreSitemap(I18nSitemap):

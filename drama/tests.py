@@ -1004,12 +1004,11 @@ def test_homepage_canonical_ignores_query_string(client):
     """`base.html` canonical'i `request.path` dan quriladi — query KIRMAYDI.
 
     Bu quyidagi testning SABABI: shu xatti-harakat tufayli query-string'li
-    URL hech qachon o'zini canonical deb e'lon qila olmaydi.
+    URL hech qachon o'zini canonical deb e'lon qila olmaydi. [R2-T3'dan beri
+    `get_absolute_url()` yo'l qaytaradi, shuning uchun bu yerda neytral query
+    ishlatiladi — `?category=N` endi 301 beradi, pastdagi testga qarang.]
     """
-    from drama.models import Category
-
-    cat = Category.objects.create(name="Seriallar", slug="seriallar-canon")
-    html = client.get(cat.get_absolute_url()).content.decode()
+    html = client.get("/?utm_source=canon-test").content.decode()
     assert 'rel="canonical" href="http://testserver/"' in html
 
 
@@ -1036,6 +1035,88 @@ def test_sitemap_has_no_query_string_urls(client):
         "e'lon qilmaydi -> GSC 'Duplicate, submitted URL not selected as "
         "canonical'. Sabab: drama/sitemaps.py dagi izohga qarang."
     )
+
+
+# --- /kategoriya/<slug>/ landing + CategorySitemap qaytarildi [R2-T3] ---
+
+
+@pytest.mark.django_db
+def test_category_page_renders_with_own_canonical(client):
+    """Kategoriya sahifasi 200, o'ziga canonical, nom H1/title'da, tavsif tanada."""
+    from drama.factories import MovieFactory
+    from drama.models import Category
+
+    cat = Category.objects.create(
+        name="Seriallar", slug="seriallar-landing", description="Koreys seriallari tavsifi."
+    )
+    MovieFactory(category=cat)
+    resp = client.get("/kategoriya/seriallar-landing/")
+    html = resp.content.decode()
+    assert resp.status_code == 200
+    assert 'rel="canonical" href="http://testserver/kategoriya/seriallar-landing/"' in html
+    assert "Seriallar" in html
+    assert "Koreys seriallari tavsifi." in html
+    # Tavsif meta description'ga ham tushadi (noyob snippet — GSC sharti)
+    assert 'name="description" content="Koreys seriallari tavsifi."' in html
+
+
+@pytest.mark.django_db
+def test_category_page_shows_only_its_published_movies(client):
+    """Faqat SHU kategoriyaning published kinolari; qoralama va begona sizmaydi."""
+    from drama.factories import MovieFactory
+    from drama.models import Category
+
+    cat = Category.objects.create(name="Kino", slug="kino-landing")
+    MovieFactory(title="Bizning Kino", category=cat)
+    MovieFactory(title="Begona Kino")  # kategoriyasiz
+    MovieFactory(title="Qoralama Kino", category=cat, status=Movie.Status.DRAFT)
+    html = client.get("/kategoriya/kino-landing/").content.decode()
+    assert "Bizning Kino" in html
+    assert "Begona Kino" not in html
+    assert "Qoralama Kino" not in html
+
+
+@pytest.mark.django_db
+def test_category_page_404_for_unknown_slug(client):
+    assert client.get("/kategoriya/yoq-slug/").status_code == 404
+
+
+@pytest.mark.django_db
+def test_legacy_category_query_redirects_301(client):
+    """Google indeksidagi eski `/?category=N` -> yangi sahifaga 301 (uz va en)."""
+    from drama.models import Category
+
+    cat = Category.objects.create(name="Reels", slug="reels-301")
+    resp = client.get(f"/?category={cat.id}")
+    assert resp.status_code == 301
+    assert resp.headers["Location"] == "/kategoriya/reels-301/"
+    resp_en = client.get(f"/en/?category={cat.id}")
+    assert resp_en.status_code == 301
+    assert resp_en.headers["Location"] == "/en/kategoriya/reels-301/"
+
+
+@pytest.mark.django_db
+def test_legacy_category_query_invalid_values_render_homepage(client):
+    """Yaroqsiz qiymatlar redirect bermaydi — bosh sahifa 200 (bot har narsa
+    bilan keladi; juda uzun son Postgres'da DataError bermasligi ham shu yerda)."""
+    for q in ("abc", "999999", "99999999999999999999", ""):
+        resp = client.get(f"/?category={q}")
+        assert resp.status_code == 200, q
+
+
+@pytest.mark.django_db
+def test_sitemap_includes_category_pages(client):
+    """CategorySitemap qaytdi: uz + /en/ variantlar sitemap'da, query'siz."""
+    import re
+
+    from drama.models import Category
+
+    Category.objects.create(name="Serial", slug="serial-sm")
+    xml = client.get("/sitemap.xml").content.decode()
+    # Host Sites frameworkdan keladi (dramauz.com) — yo'l bo'yicha tekshiramiz
+    locs = re.findall(r"<loc>([^<]+)</loc>", xml)
+    assert any(u.endswith("/kategoriya/serial-sm/") and "/en/" not in u for u in locs)
+    assert any(u.endswith("/en/kategoriya/serial-sm/") for u in locs)
 
 
 @pytest.mark.django_db

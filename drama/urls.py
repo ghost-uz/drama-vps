@@ -14,6 +14,7 @@ urlpatterns = [
     path("tag/<slug:slug>/", views.TagDetailView.as_view(), name="tag_detail"),
     # Detallar
     path("janr/<slug:slug>/", views.GenreDetailView.as_view(), name="genre_detail"),
+    path("kategoriya/<slug:slug>/", views.CategoryDetailView.as_view(), name="category_detail"),
     path("inson/<slug:slug>/", views.ActorView.as_view(), name="actor_detail"),
     # Funksiyalar
     path("review/<int:pk>/", views.AddReview.as_view(), name="add_review"),
