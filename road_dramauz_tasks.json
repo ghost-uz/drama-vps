@@ -375,7 +375,7 @@
           "title_uz": "Sirli eski lokal nusxalarni tozalash",
           "priority": "P1",
           "status": "done",
-          "done_note_uz": "2026-11-15: inventar tuzildi va foydalanuvchiga ko'rsatildi (drama-vps-09-06-26: .env 784B 2026-06-01 + drama-key-v2.json 2367B 2026-05-30 — JONLI GCS kaliti nusxasi; quiz-bot: git'siz dev-papka, .env'li). Foydalanuvchi tasdig'i bilan: (1) C:/projects/drama-vps-09-06-26 (102 MB) BUTUNLAY o'chirildi; (2) C:/projects/quiz-bot TO'G'RIDAN o'chirildi (foydalanuvchi zip-arxivsiz variantni tanladi — server-arxiv opt-quiz-bot.tar.gz 481K + quiz.db 28K uchta 2026-09-15 backup-to'plamda yetarli deb). Ikkala yo'l Test-Path=False bilan tasdiqlandi. Eslatma: drama-key-v2.json nusxalari endi faqat asl repo (untracked) va serverda — kalit ROTATSIYASI ixtiyoriy keyingi qadam bo'lib qoladi.",
+          "done_note_uz": "2026-11-15: inventar tuzildi va foydalanuvchiga ko'rsatildi (drama-vps-09-06-26: .env 784B 2026-06-01 + drama-key-v2.json 2367B 2026-05-30 — JONLI GCS kaliti nusxasi; quiz-bot: git'siz dev-papka, .env'li). Foydalanuvchi tasdig'i bilan: (1) C:/projects/drama-vps-09-06-26 (102 MB) BUTUNLAY o'chirildi; (2) C:/projects/quiz-bot TO'G'RIDAN o'chirildi (foydalanuvchi zip-arxivsiz variantni tanladi). Ikkala yo'l Test-Path=False bilan tasdiqlandi. XAVFSIZLIK-KO'RIK TUZATISHLARI (push'dan keyingi avtomatik review, 2 topilma): (a) quiz-bot arxivi O'CHIRISHDAN KEYIN tekshirildi (to'g'risi oldin edi): tar -tzf opt-quiz-bot.tar.gz = 12 yozuv yaxlit (bot.py, savollar.json, .env, Dockerfile...), quiz.db PRAGMA integrity_check=ok (sessiya 1, xatolar 2, stat 0 qator) — dev-nusxadagi yagona yo'qotish __pycache__/bot.log/.env.example (ahamiyatsiz); (b) 'kalit endi faqat repo va serverda' da'vosi CHALA edi — prod sirlari backup-to'plamlarda HAM bor: 5 to'plamning har birida config/.env (7989B), so'nggisida nginx-certs/origin.key+pem va host/authorized_keys. Bular ATAYLAB olingan DR-artefaktlar (2026-11-13 tiklanish aynan shularga tayangan) — O'CHIRILMAYDI; disk BitLocker FullyEncrypted/On — at-rest (yo'qolgan noutbuk) xavfi yumshatilgan, ishlayotgan tizimdagi o'g'irlik xavfi qoladi. SA-kalit (drama-key-v2.json) backup-to'plamlarda YO'Q (tekshirildi). Davomi: R4-T6 (at-rest siyosat) + R4-T7 (kalit rotatsiyasi, P1).",
           "owner": "agent (foydalanuvchi tasdig'i bilan)",
           "depends_on": [],
           "description_uz": "C:/projects/drama-vps-09-06-26/drama-vps ichida JONLI .env va drama-key-v2.json yotibdi (iyun nusxasi) — noutbuk yo'qolsa/zararlansa bu sirlar ham ketadi; bundan tashqari eski nusxa adashtiradi (bugun ham 'tanishish uchun' shu papka berildi, u 5 oy eski edi). Taklif: foydalanuvchi tasdig'i bilan papkani o'chirish (yoki hech bo'lmasa ichidagi .env/kalit fayllarni). C:/projects/quiz-bot ham yakunlangan — arxivlab o'chirsa bo'ladi (quiz.db allaqachon backup to'plamda).",
@@ -385,6 +385,40 @@
             "quiz-bot papkasi haqida qaror bajarilgan"
           ],
           "affected": ["C:/projects/drama-vps-09-06-26/", "C:/projects/quiz-bot/"]
+        },
+        {
+          "id": "R4-T6",
+          "title_en": "At-rest policy for secrets inside local backup sets",
+          "title_uz": "Backup-to'plamlardagi sirlarning at-rest siyosati",
+          "priority": "P2",
+          "status": "todo",
+          "owner": "agent (foydalanuvchi qarori bilan)",
+          "depends_on": [],
+          "source": "R4-T4 xavfsizlik-ko'rik topilmasi (2026-11-15)",
+          "description_uz": "C:/Users/Suxro/backups/dramauz/*/config/.env (5 to'plam, har biri to'liq jonli prod sirlari) + so'nggi to'plamda nginx origin.key/pem va authorized_keys shifrsiz yotibdi. BitLocker (FullyEncrypted/On) yo'qolgan-noutbuk xavfini yopadi, lekin ishlayotgan tizimda zararli dastur bemalol o'qiydi. Variantlar: (a) pull_server_backup.sh sir-qismini (config/) yuklab olgach 7z AES-256 yoki age bilan shifrlash — parol foydalanuvchida; (b) eski to'plamlarning config/ qismini qisqartirish (faqat eng so'nggi 1-2 to'plamda qoldirish — tiklanish uchun yetadi); (c) hujjatlashtirilgan qabul (BitLocker + yakka foydalanuvchi mashina deb). Foydalanuvchi variantni tanlaydi, agent bajaradi va pull_server_backup.sh kelgusi to'plamlarga ham shu siyosatni qo'llaydigan qilinadi.",
+          "acceptance_criteria": [
+            "Qaror tanlangan va bajarilgan (shifrlangan/qisqartirilgan/qabul hujjatlangan)",
+            "pull_server_backup.sh yangi to'plamlarda ham siyosatni avtomatik qo'llaydi (a/b bo'lsa)",
+            "docs/ops/backup.md da siyosat 1 abzats bilan yozilgan"
+          ],
+          "affected": ["scripts/pull_server_backup.sh", "docs/ops/backup.md", "C:/Users/Suxro/backups/dramauz/"]
+        },
+        {
+          "id": "R4-T7",
+          "title_en": "Rotate GCS service-account key (origin cert optional)",
+          "title_uz": "GCS SA-kalit rotatsiyasi (origin-cert ixtiyoriy)",
+          "priority": "P1",
+          "status": "todo",
+          "owner": "egasi (GCP konsol) + agent (server tomoni)",
+          "depends_on": [],
+          "source": "R4-T4 xavfsizlik-ko'rik topilmasi (2026-11-15) — 'rotatsiya ixtiyoriy' darajasidan ko'tarildi",
+          "description_uz": "drama-key-v2.json 5 oy davomida himoyasiz eski nusxada yotdi (2026-11-15 da tozalandi), server root-parol va admin-parol turli paytlarda chatda oshkor bo'lgan. Ehtiyotkorlik: GCP IAM'da drama SA uchun YANGI kalit (v3) yaratish -> serverdagi secrets/ ga qo'yish + compose restart -> collectstatic/GCS yozish jonli tekshiruv -> ESKI v2 kalitni GCP'da bekor qilish (shundan keyin eski nusxalar qayerda qolgan bo'lsa ham ahamiyatsiz). Ikkinchi daraja (ixtiyoriy): CF Origin CA sertifikatni qayta chiqarish (private key faqat server+backupda bo'lgan — xavf pastroq). Admin-parol allaqachon almashtirish-tavsiyasida.",
+          "acceptance_criteria": [
+            "Yangi SA-kalit serverda jonli (GCS yozish/o'qish ishlaydi, readyz ok)",
+            "Eski drama-key-v2 GCP'da o'chirilgan/bekor qilingan",
+            "Agar cert ham rotatsiya qilinsa: yangi origin-cert bilan 443 ishlaydi"
+          ],
+          "affected": ["(GCP IAM)", "(server secrets/)", "docs/ops/backup.md (eslatma)"]
         },
         {
           "id": "R4-T5",
@@ -431,9 +465,9 @@
   ],
 
   "summary": {
-    "jami_task": 20,
-    "fazalar": { "R0": 4, "R1": 4, "R2": 3, "R3": 3, "R4": 5, "R5": 1 },
-    "priority": { "P0": 4, "P1": 6, "P2": 8, "P3": 2 },
+    "jami_task": 22,
+    "fazalar": { "R0": 4, "R1": 4, "R2": 3, "R3": 3, "R4": 7, "R5": 1 },
+    "priority": { "P0": 4, "P1": 7, "P2": 9, "P3": 2 },
     "tavsiya_tartib_uz": "R0 to'liq (ayniqsa R0-T1 Bunny va R0-T3 uptime — bittasi pulni, ikkinchisi 'yana 2 oy jim o'lib yotish'ni yopadi) -> R1-T4 Payme (pul yo'li) -> R1 qolgani -> R2/R3 parallel -> R4/R5. roadmap.md'ning o'z 1-3 bosqichlari (bildirishnoma, izoh-dialog, crowdfunding hardening) bu trackerdan MUSTAQIL davom etadi — bu fayl ularni almashtirmaydi.",
     "eslatma_uz": "2026-11-14 dan git'da (foydalanuvchi qarori; commit oldidan sir-skan o'tkazildi — toza). QOIDA o'z kuchida: BU FAYLGA SIR YOZILMAYDI, repo public."
   }
