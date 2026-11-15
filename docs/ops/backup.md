@@ -131,6 +131,7 @@ kalendariga takrorlanuvchi eslatma qo'yiladi. Retsept (noutbukdan):
 |---|---|---|
 | 2026-07-06 | lokal drill | ✅ tsikl to'liq o'tdi |
 | 2026-11-13 | **JANG** (server o'limi) | ✅ yangi server LATEST dumpdan tiklandi, row_counts 67/67 mos, ~45 daq (server-migration.md) |
+| 2026-11-15 | choraklik drill (yuqoridagi retsept, noutbuk) | ✅ pull_server_backup (to'plam 20261115-161306, dump 292K, SHA256 ok) → lokal postgres:16-alpine (port 15433) → pg_restore --no-owner → row_counts **67/67 MOS**, ~5 daq |
 | ~2027-02 (keyingi) | choraklik drill | — |
 
 ## Staging muhiti
