@@ -644,6 +644,89 @@ def test_bunny_webhook_no_secret_403(client, settings):
     assert resp.status_code == 403
 
 
+# Bunny WEBHOOK kodlari video-obyekt kodlaridan FARQLI (bunny.net/docs/stream/webhooks).
+# 2026-11-18 gacha xarita video-kodlari bilan edi: 3=Finished PROCESSING'ga, 9+ FAILED'ga.
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("initial", "code", "expected"),
+    [
+        ("processing", 3, "ready"),  # Finished (eski xarita: processing)
+        ("processing", 4, "ready"),  # Resolution finished — ijro mumkin
+        ("ready", 9, "ready"),  # CaptionsGenerated (eski: failed)
+        ("ready", 10, "ready"),  # TitleOrDescriptionGenerated (eski: failed)
+        ("ready", 33, "ready"),  # SmartGenerationFailed — upload holatiga aloqasiz
+        ("ready", 2, "ready"),  # kechikkan "Encoding" tayyorni pasaytirmaydi
+        ("uploading", 0, "processing"),  # Queued
+        ("processing", 5, "failed"),  # Failed
+        ("processing", 8, "failed"),  # PresignedUploadFailed
+        ("ready", 32, "failed"),  # VideoDeleted — buzilgan bog'lanish admin'da ko'rinsin
+        ("processing", 6, "uploading"),  # PresignedUploadStarted
+        ("processing", 99, "processing"),  # noma'lum kelajak kodi — o'zgarmaydi
+    ],
+)
+def test_bunny_webhook_status_codes(client, settings, initial, code, expected):
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    guid = f"guid-{initial}-{code}"
+    ep = _ep_for_webhook(guid)
+    Episode.objects.filter(pk=ep.pk).update(upload_status=initial)
+    resp = client.post(
+        "/webhooks/bunny/?secret=test-secret",
+        data=json.dumps({"VideoGuid": guid, "Status": code}),
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    ep.refresh_from_db()
+    assert ep.upload_status == expected
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_repeated_ready_is_noop(client, settings):
+    """Har sifat uchun takrorlanuvchi "4" va undan keyingi "3" — o'tish yo'q, updated=0
+    (kesh-bump va obunachi xabari faqat birinchi o'tishda)."""
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    _ep_for_webhook("guid-rep")
+    url = "/webhooks/bunny/?secret=test-secret"
+    first = client.post(
+        url,
+        data=json.dumps({"VideoGuid": "guid-rep", "Status": 4}),
+        content_type="application/json",
+    )
+    again = client.post(
+        url,
+        data=json.dumps({"VideoGuid": "guid-rep", "Status": 3}),
+        content_type="application/json",
+    )
+    assert first.json()["updated"] == 1
+    assert again.json()["updated"] == 0
+
+
+@pytest.mark.django_db
+def test_bunny_webhook_informational_code_ignored(client, settings):
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    _ep_for_webhook("guid-ai")
+    resp = client.post(
+        "/webhooks/bunny/?secret=test-secret",
+        data=json.dumps({"VideoGuid": "guid-ai", "Status": 12}),  # ChaptersGenerated
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "updated": 0, "ignored": True}
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "body",
+    ['{"VideoGuid": "g", "Status": "abc"}', "[1, 2]", '{"VideoGuid": "g"}'],
+)
+def test_bunny_webhook_malformed_400(client, settings, body):
+    """Buzuq payload 500 emas, 400 (eski kod: ro'yxat/matnli Status'da TypeError)."""
+    settings.BUNNY_WEBHOOK_SECRET = "test-secret"
+    resp = client.post(
+        "/webhooks/bunny/?secret=test-secret", data=body, content_type="application/json"
+    )
+    assert resp.status_code == 400
+
+
 # --- P4-T2: check_bunny_security buyrug'i (CDN mock bilan) ---
 
 
@@ -671,7 +754,7 @@ def _fake_cdn(responses):
 
 # Holatlar: (imzoli, yot referer, referer bor) -> status
 _SECURE_CDN = {
-    (False, False, False): 403,  # imzosiz -> rad
+    (False, False, True): 403,  # imzosiz + to'g'ri referer -> rad (token auth)
     (True, False, True): 200,  # imzoli + to'g'ri referer -> OK
     (True, True, True): 403,  # imzoli + yot referer -> rad (hotlink)
     (True, False, False): 200,  # imzoli, referersiz -> OK (mobil)
@@ -697,11 +780,29 @@ def test_check_bunny_security_all_clean(monkeypatch, settings):
 
 def test_check_bunny_security_detects_token_auth_off(monkeypatch, settings):
     """Imzosiz URL 200 = panelda token auth yoqilmagan — aniqlanishi shart."""
-    responses = {**_SECURE_CDN, (False, False, False): 200}
+    responses = {**_SECURE_CDN, (False, False, True): 200}
     out = _run_check(monkeypatch, settings, responses)
     assert "CDN token authentication" in out
     with pytest.raises(CommandError):
         _run_check(monkeypatch, settings, responses, "--strict")
+
+
+def test_check_bunny_security_token_off_not_masked_by_referer_block(monkeypatch, settings):
+    """2026-11-18 prod holati: token auth O'CHIQ, "Block Direct URL File Access" YOQIQ.
+
+    Referersiz HAR qanday so'rov 403 — eski buyruq imzosiz URL'ni referersiz
+    yuborib, shu 403'ni token auth deb o'qirdi va "toza" derdi.
+    """
+    responses = {
+        (False, False, False): 403,  # referersiz -> referer bloki
+        (False, False, True): 200,  # imzosiz + ruxsat etilgan referer -> OCHIQ
+        (True, False, True): 200,
+        (True, True, True): 403,
+        (True, False, False): 403,
+    }
+    out = _run_check(monkeypatch, settings, responses)
+    assert "CDN token authentication" in out
+    assert "Barcha tekshiruvlar toza" not in out
 
 
 def test_check_bunny_security_detects_open_referer(monkeypatch, settings):

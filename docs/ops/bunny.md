@@ -16,6 +16,32 @@ Video manbalar hech qachon ochiq URL sifatida chiqarilmaydi:
 
 `BUNNY_STREAM_TOKEN_KEY` bo'sh bo'lsa URL'lar imzosiz chiqadi (dev/test rejim).
 
+## Kalitlar — qaysi qiymat qayerdan
+
+| `.env` | Bunny panel | Izoh |
+|---|---|---|
+| `BUNNY_STREAM_LIBRARY_ID` | Stream → (kutubxona) → API → Video Library ID | ommaviy |
+| `BUNNY_STREAM_CDN_HOSTNAME` | Stream → (kutubxona) → API → CDN Hostname (`vz-….b-cdn.net`) | ommaviy; CSP shundan avtomatik quriladi |
+| `BUNNY_STREAM_API_KEY` | Stream → (kutubxona) → API → **API Key** | **KUTUBXONA kaliti** — Account → API Key EMAS (`video.bunnycdn.com` uni 401 bilan rad etadi) |
+| `BUNNY_STREAM_TOKEN_KEY` | Stream → (kutubxona) → Security → Token Authentication Key | imzolash kaliti — VIP gating shunga tayanadi |
+| `BUNNY_WEBHOOK_SECRET` | o'zimiz yaratamiz | panel Webhook URL'iga `?secret=` bo'lib qo'yiladi |
+
+Bazada faqat GUID saqlanadi va GUID **kutubxonaga xos** — boshqa hisob/kutubxonaga
+o'tilsa kalitlar 4 qator bilan almashadi, lekin videolar O'ZI KO'CHMAYDI
+(2026-11-18 yangi hisob: 82 video qayta yuklanishi kerak bo'ldi).
+
+Kalitlar almashgach yangi `.env` faqat qayta YARATILGAN konteynerga tushadi
+(db `.env`ni env_file orqali o'qimaydi — `--no-deps` bilan unga tegilmaydi):
+
+    cd /opt/drama
+    IMAGE_TAG="$(cat .deploy/current_tag)" docker compose -f docker-compose.yml \
+      -f docker-compose.prod.yml up -d --no-build --no-deps --force-recreate \
+      web celery-worker celery-beat
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T nginx nginx -s reload
+
+⚠️ Bu buyruqlarni `ssh host 'bash -s' < skript` bilan yuborsangiz, `docker compose
+exec` skriptning qolgan qismini stdin'dan "yutib" yuboradi — unga `</dev/null` qo'shing.
+
 ## Token Authentication'ni yoqish (prod)
 
 Tartib MUHIM — teskari qilsangiz video panelda auth yoqilgan, kodda kalit
@@ -31,8 +57,12 @@ yo'q holatda butunlay to'xtaydi:
 3. Serverda `.env` ga `BUNNY_STREAM_TOKEN_KEY=<kalit>` qo'ying, restart.
 4. Tekshiruv:
    - sayt pleyeri ishlaydi (token'li URL);
-   - `curl https://vz-....b-cdn.net/<video_id>/playlist.m3u8` (imzosiz) →
-     **403 qaytishi SHART**.
+   - imzosiz URL **ruxsat etilgan referer bilan ham** 403 qaytarishi SHART:
+     `curl -s -o /dev/null -w "%{http_code}" -e "https://dramauz.com/" https://vz-....b-cdn.net/<video_id>/playlist.m3u8`
+   - ⚠️ Referersiz curl YETARLI EMAS: "Block Direct URL File Access" yoqiq
+     bo'lsa referersiz so'rov token auth O'CHIQ bo'lsa ham 403 oladi. 2026-11-18
+     da yangi kutubxonada token auth o'chiqligi aynan shu sabab yashiringan
+     (`check_bunny_security` ham imzosiz testni referersiz yuborardi — tuzatildi).
 
 ## Kalit rotatsiyasi
 
@@ -63,14 +93,18 @@ ustiga qo'shimcha qatlam.
 
 Panel (Stream → Library → Security):
 
-1. **Allowed Referrers** ga qo'shing: `drama.uz`, `*.drama.uz` (staging
-   bo'lsa uni ham). Ro'yxat bo'sh = istalgan sayt embed qila oladi.
+1. **Allowed Referrers** (Stream'da "Allowed domains") ga qo'shing:
+   `dramauz.com`, `*.dramauz.com` (staging bo'lsa uni ham). Ro'yxat bo'sh =
+   istalgan sayt embed qila oladi.
    Bu ro'yxat CDN (vz-\*.b-cdn.net) va iframe embed'ga birga amal qiladi.
 2. **Blocked Referrers** odatda kerak emas (allowlist yetarli).
-3. **"Block no-referrer requests"ni YOQMANG** — mobil ilova/native pleyer,
-   maxfiylik-rejim brauzerlar va ba'zi Telegram WebView holatlari Referer
-   YUBORMAYDI; yoqilsa ular 403 oladi. Asosiy himoya token auth bo'lib
-   qolaveradi.
+3. **"Block Direct URL File Access"ni YOQMANG** (pull zone'dagi nomi "Block
+   no-referrer requests") — mobil ilova/native pleyer, maxfiylik-rejim
+   brauzerlar va ba'zi Telegram WebView holatlari Referer YUBORMAYDI; yoqilsa
+   ular 403 oladi. Asosiy himoya token auth bo'lib qolaveradi.
+   **TARTIB:** yoqilgan bo'lsa, uni FAQAT CDN token authentication yoqilib,
+   yuqoridagi 4-qadam tekshiruvidan o'tgach o'chiring — aks holda (token o'chiq
+   + referersiz ruxsat) videolar butunlay ochiq qoladi.
 
 ### Sozlamani tekshirish
 
@@ -79,16 +113,20 @@ Jonli tekshiruv (mavjud video GUID bilan, istalgan mashinadan):
     python manage.py check_bunny_security <video_guid>
     python manage.py check_bunny_security <video_guid> --strict   # CI/cron: muammoda exit 1
 
-Buyruq hisoboti: (1) imzosiz URL rad etiladimi — token auth; (2) imzolangan
-URL 200mi — kalit mosligi; (3) yot referer (evil.example) bloklanadimi —
-hotlink; (4) referersiz so'rov holati — mobil pleyer ta'siri (axborot).
+Buyruq hisoboti: (1) imzosiz URL ruxsat etilgan referer bilan ham rad
+etiladimi — token auth (referer-blok aralashmasligi uchun aynan referer bilan);
+(2) imzolangan URL 200mi — kalit mosligi; (3) yot referer (evil.example)
+bloklanadimi — hotlink; (4) referersiz so'rov holati — mobil pleyer ta'siri
+(axborot).
 
 Qo'lda curl bilan:
 
+    # imzosiz + to'g'ri referer -> 403 kutiladi (token auth)
+    curl -s -o /dev/null -w "%{http_code}" -e "https://dramauz.com/" "<imzosiz-hls-url>"
     # yot referer -> 403 kutiladi
     curl -s -o /dev/null -w "%{http_code}" -e "https://evil.example/" "<imzoli-hls-url>"
     # to'g'ri referer -> 200 kutiladi
-    curl -s -o /dev/null -w "%{http_code}" -e "https://drama.uz/" "<imzoli-hls-url>"
+    curl -s -o /dev/null -w "%{http_code}" -e "https://dramauz.com/" "<imzoli-hls-url>"
 
 ## Admin orqali video yuklash (P14-T1)
 
@@ -118,5 +156,33 @@ tekshiruvi bilan, 500 MB gacha (nginx `client_max_body_size` bilan bir xil).
   webhook ham kelmagan bo'lsa status abadiy qoladi): **"Encoding holatini
   Bunny'dan yangilash"** — poll qayta uyg'onadi va holatni sinxronlaydi.
 
-Webhook sozlamasi: Bunny panel -> Stream -> API -> Webhook URL:
-`https://drama.uz/webhooks/bunny/?secret=<BUNNY_WEBHOOK_SECRET>`.
+Webhook sozlamasi: Bunny panel -> Stream -> (kutubxona) -> API -> Webhook URL:
+`https://dramauz.com/webhooks/bunny/?secret=<BUNNY_WEBHOOK_SECRET>`.
+
+Webhook `Status` kodlari video obyektining `status` maydonidan FARQLI
+([bunny.net/docs/stream/webhooks](https://bunny.net/docs/stream/webhooks)):
+3=Finished va 4=Resolution finished → **Tayyor**; 5/8/32 (Failed /
+PresignedUploadFailed / VideoDeleted) → **Xato**; 0/1/2/7 → **Qayta
+ishlanmoqda**; 6 → **Yuklanmoqda**; 9–13 va 33 (AI subtitr/sarlavha/bob)
+holatni O'ZGARTIRMAYDI. Kechikkan "Encoding" tayyor videoni pasaytirmaydi.
+Xarita: `drama/webhooks.py`.
+
+Videoni almashtirishda TARTIB: avval admin'da yangi GUID'ni qo'ying, keyin
+eski videoni Bunny'dan o'chiring — teskarisida eski GUID uchun kelgan
+`32 VideoDeleted` qismni "Xato" qilib qo'yadi (pleyerga ta'sir qilmaydi,
+lekin admin yorlig'i chalg'itadi).
+
+## Ko'p ovozli (dublyaj) videolar
+
+Bunny audio trek tilini FAYL metama'lumotidan oladi; yuklangandan keyin
+o'zgartirish yo'li hujjatlanmagan. Teglanmagan faylda Bunny har trekka
+`LANGUAGE="en"` va `NAME="Audio"` qo'yadi — pleyer bunday takroriy tilga
+ishonmaydi va "1-ovoz / 2-ovoz" deb ko'rsatadi (`static/js/player-core.js`).
+To'g'ri "O'zbekcha / Inglizcha" uchun yuklashdan OLDIN teglang
+(qayta kodlashsiz, tez):
+
+    ffprobe -v error -select_streams a -show_entries stream=index:stream_tags=language,title -of compact kirish.mp4
+    ffmpeg -i kirish.mp4 -map 0 -c copy -metadata:s:a:0 language=uzb -metadata:s:a:0 title="O'zbekcha" -metadata:s:a:1 language=eng -metadata:s:a:1 title="English" -disposition:a:0 default -disposition:a:1 0 chiqish.mp4
+
+Til to'g'ri teglangach pleyer o'zbekcha interfeysda o'zbekcha trekni avtomatik
+tanlaydi (kaskad: saqlangan til → `<html lang>` → Bunny DEFAULT).

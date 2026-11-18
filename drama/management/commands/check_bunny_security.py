@@ -7,9 +7,14 @@ tasdiqlaydi:
     python manage.py check_bunny_security <video_guid>
     python manage.py check_bunny_security <video_guid> --strict  # CI/cron: muammoda exit 1
 
-Tekshiruvlar: (1) imzosiz URL rad etiladimi (token auth), (2) imzolangan URL
-ishlaydimi, (3) yot referer bloklanadimi (hotlink), (4) referersiz so'rov
-holati (mobil/native pleyer ta'siri — axborot). docs/ops/bunny.md ga qarang.
+Tekshiruvlar: (1) imzosiz URL ruxsat etilgan referer bilan ham rad etiladimi
+(token auth), (2) imzolangan URL ishlaydimi, (3) yot referer bloklanadimi
+(hotlink), (4) referersiz so'rov holati (mobil/native pleyer ta'siri —
+axborot). docs/ops/bunny.md ga qarang.
+
+Har qatlam ALOHIDA o'lchanadi: (1) referersiz yuborilsa, "Block Direct URL File
+Access" (referer bloki) ham 403 beradi va token auth o'chiqligini yashiradi —
+2026-11-18 prod'da aynan shunday bo'ldi (token auth o'chiq, buyruq "toza" dedi).
 """
 
 import requests
@@ -45,12 +50,14 @@ class Command(BaseCommand):
         unsigned = f"https://{settings.BUNNY_STREAM_CDN_HOSTNAME}/{video_id}/playlist.m3u8"
         signed = bunny_stream.hls_url(video_id)
 
-        # 1) Token auth: imzosiz URL rad etilishi SHART
-        status = self._status(unsigned)
+        # 1) Token auth: imzosiz URL rad etilishi SHART — RUXSAT ETILGAN referer
+        #    bilan, aks holda referer-blok 403'i token auth o'rniga o'lchanadi
+        status = self._status(unsigned, referer=options["referer"])
         if status == 200:
             problems.append(
-                "Imzosiz URL 200 qaytardi — panelda 'CDN token authentication' YOQILMAGAN "
-                "(linkni bilgan har kim videoni ko'radi/yuklab oladi)."
+                "Imzosiz URL ruxsat etilgan referer bilan 200 qaytardi — panelda 'CDN token "
+                "authentication' YOQILMAGAN (GUID'ni bilgan har kim Referer'ni soxtalab "
+                "videoni muddatsiz ko'radi/yuklab oladi)."
             )
         else:
             self._ok(f"imzosiz URL rad etildi ({status})")
@@ -85,8 +92,10 @@ class Command(BaseCommand):
         else:
             self.stdout.write(
                 self.style.WARNING(
-                    f"  ! referersiz so'rov {status} — 'Block no-referrer requests' yoqilganga "
-                    "o'xshaydi; mobil ilova/native pleyer video ololmaydi (docs/ops/bunny.md)."
+                    f"  ! referersiz so'rov {status} — 'Block Direct URL File Access' (pull "
+                    "zone'da 'Block no-referrer requests') yoqilganga o'xshaydi; mobil "
+                    "ilova/native pleyer video ololmaydi. O'chirishdan OLDIN token auth "
+                    "yoqilganini tasdiqlang (docs/ops/bunny.md)."
                 )
             )
 

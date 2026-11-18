@@ -49,7 +49,8 @@ python -c "import secrets; print('django-prod-' + secrets.token_urlsafe(50))"
 
 ### 1.3 Bunny Stream API kaliti (YANGI)
 
-Bunny dashboard → **Account → API Key → Regenerate**. Yangi qiymatni yozib oling.
+Bunny dashboard → **Stream → (kutubxona) → API → API Key** — KUTUBXONA kaliti
+(Account → API Key EMAS: `video.bunnycdn.com` uni 401 bilan rad etadi). Yangi qiymatni yozib oling.
 Library ID va CDN Hostname o'zgarmaydi (dashboard → Stream → Library).
 
 ### 1.4 Telegram bot tokeni (YANGI)
@@ -269,7 +270,7 @@ dc exec web python manage.py check_bunny_security
 
 | Xizmat | Sozlama |
 |---|---|
-| **Bunny** | Library → Security → Allowed Referrers: `drama.uz`. ⚠️ "Block no-referrer" YOQMANG (mobil sinadi — docs/ops/bunny.md). Webhook URL: `https://drama.uz/webhooks/bunny/?secret=<BUNNY_WEBHOOK_SECRET>` |
+| **Bunny** | Library → Security: **CDN token authentication** ON (birinchi!), Allowed Referrers: `dramauz.com`, `*.dramauz.com`. ⚠️ "Block Direct URL File Access" (= "Block no-referrer") YOQMANG — mobil sinadi; yoqiq bo'lsa FAQAT token auth tasdiqlangach o'chiring (docs/ops/bunny.md). Webhook URL (Library → API): `https://dramauz.com/webhooks/bunny/?secret=<BUNNY_WEBHOOK_SECRET>` |
 | **@BotFather** | `/setdomain` → `drama.uz` (Telegram login tugmasi uchun) |
 | **Bot webhook** | `curl "https://api.telegram.org/bot<TOKEN>/setWebhook" -d url=https://drama.uz/webhooks/telegram/ -d secret_token=<TELEGRAM_WEBHOOK_SECRET>` |
 | **Payme** | Merchant kabineti → Endpoint URL: `https://drama.uz/billing/payme/webhook/` |

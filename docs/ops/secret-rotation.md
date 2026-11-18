@@ -11,7 +11,7 @@
 | GCS service-account kaliti (`drama-key-v2.json`) | `225c47d`, `545ea7d` (fayl) | GCP'da kalitni o'chir + yangi yarat |
 | Django `SECRET_KEY` | `d2aa386`, `cee09be` (settings.py hardcoded) | Yangi generatsiya, `.env` ga qo'y |
 | DB paroli (`DB_PASSWORD`) | `225c47d`, `cee09be` | PostgreSQL'da parolni almashtir |
-| Bunny Stream API kaliti | `2783bac` | Bunny dashboard'da API key qayta yarat |
+| Bunny Stream kutubxona API kaliti | `2783bac` | Stream → Library → API'da kalitni yangila |
 | Telegram bot tokeni | `225c47d`, `8ef0106`, `cee09be` | @BotFather'da token revoke + yangi |
 | `.pyc` bytecode (settings) | tarixda | filter-repo bilan tozalanadi |
 
@@ -42,7 +42,8 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 ### 2.3 DB paroli, Bunny API, Telegram token
 - PostgreSQL: `ALTER USER drama_user WITH PASSWORD '<yangi>';` → `.env` `DB_PASSWORD`.
   - ⚠️ **Lokal Docker stack'da ham**: `drama_pgdata` volume ESKI parol bilan qoladi (`POSTGRES_PASSWORD` faqat volume birinchi init'ida amal qiladi) → parolni konteyner ichida yangilang: `docker exec drama-db-1 psql -U drama_user -d drama_db -c "ALTER USER drama_user WITH PASSWORD '<yangi>';"` — aks holda web `password authentication failed` bilan restart-loop'da qoladi.
-- Bunny: dashboard → Account → API Key → Regenerate → `.env` `BUNNY_STREAM_API_KEY`.
+- Bunny: dashboard → Stream → (kutubxona) → API → **API Key**ni yangilang → `.env` `BUNNY_STREAM_API_KEY`.
+  ⚠️ Bu KUTUBXONA kaliti — Account → API Key EMAS (u bilan `video.bunnycdn.com` 401 qaytaradi, 2026-11-18 tasdiqlangan).
 - Telegram: @BotFather → `/revoke` → yangi token → `.env` `TELEGRAM_BOT_TOKEN`.
 
 ## 3. Hozirgi kalit faylini untrack qilish
