@@ -12,6 +12,13 @@ Video manbalar hech qachon ochiq URL sifatida chiqarilmaydi:
 - Imzo formati — Bunny rasmiy algoritmi:
   `token = base64url(sha256(key + token_path + expires [+ ip] + "token_path=..."))`.
   `token_path = /{video_id}/` (papka) — m3u8 ichidagi segmentlar ham qamraladi.
+- **HLS'da token URL YO'LIDA** (Bunny "directory token"):
+  `https://vz-….b-cdn.net/bcdn_token=T&token_path=%2F{guid}%2F&expires=E/{guid}/playlist.m3u8`.
+  Master ichidagi sifat-playlist/segmentlar NISBIY (`720p/video.m3u8`) — pleyer ularni
+  query'siz quradi, yo'l esa meros o'tadi. Bunny m3u8'ga token'ni O'ZI QO'SHMAYDI:
+  2026-11-19 `?token=` formatida token auth yoqilgach master 200, `720p/video.m3u8`
+  403 bo'lib video o'ynamay qoldi. Yakka fayllar (thumbnail/preview/mp4) `?token=` bilan.
+  `check_bunny_security` endi shu "pleyer yo'li"ni ham tekshiradi.
 - iframe embed boshqa format ishlatadi: `SHA256_HEX(key + video_id + expires)`.
 
 `BUNNY_STREAM_TOKEN_KEY` bo'sh bo'lsa URL'lar imzosiz chiqadi (dev/test rejim).

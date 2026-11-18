@@ -8,7 +8,8 @@ tasdiqlaydi:
     python manage.py check_bunny_security <video_guid> --strict  # CI/cron: muammoda exit 1
 
 Tekshiruvlar: (1) imzosiz URL ruxsat etilgan referer bilan ham rad etiladimi
-(token auth), (2) imzolangan URL ishlaydimi, (3) yot referer bloklanadimi
+(token auth), (2) imzolangan URL ishlaydimi va master ichidagi NISBIY
+sifat-playlist ham ochiladimi (pleyer yo'li), (3) yot referer bloklanadimi
 (hotlink), (4) referersiz so'rov holati (mobil/native pleyer ta'siri —
 axborot). docs/ops/bunny.md ga qarang.
 
@@ -16,6 +17,8 @@ Har qatlam ALOHIDA o'lchanadi: (1) referersiz yuborilsa, "Block Direct URL File
 Access" (referer bloki) ham 403 beradi va token auth o'chiqligini yashiradi —
 2026-11-18 prod'da aynan shunday bo'ldi (token auth o'chiq, buyruq "toza" dedi).
 """
+
+from urllib.parse import urljoin
 
 import requests
 from django.conf import settings
@@ -69,6 +72,7 @@ class Command(BaseCommand):
             status = self._status(signed, referer=options["referer"])
             if status == 200:
                 self._ok("imzolangan URL ishlaydi (200)")
+                self._check_variant(signed, options["referer"], problems)
             else:
                 problems.append(
                     f"Imzolangan URL {status} qaytardi — kalit panel kaliti bilan mos emas "
@@ -107,6 +111,33 @@ class Command(BaseCommand):
                 raise CommandError(f"{len(problems)} ta xavfsizlik muammosi topildi.")
         else:
             self.stdout.write(self.style.SUCCESS("Barcha tekshiruvlar toza."))
+
+    def _check_variant(self, master_url: str, referer: str, problems: list[str]) -> None:
+        """Pleyer yo'li: master ichidagi NISBIY sifat-playlist ham imzo bilan ochilishi SHART.
+
+        2026-11-19: master 200 edi, buyruq "toza" dedi, lekin pleyer 720p/video.m3u8'ni
+        query'siz qurib 403 oldi (token query'da edi). Pleyer kabi urljoin qilamiz.
+        """
+        try:
+            with requests.get(master_url, headers={"Referer": referer}, timeout=TIMEOUT) as resp:
+                body = resp.text
+        except requests.RequestException as exc:
+            raise CommandError(f"CDN'ga ulanib bo'lmadi: {exc}") from exc
+        variant = next(
+            (ln.strip() for ln in body.splitlines() if ln.strip() and not ln.startswith("#")),
+            None,
+        )
+        if variant is None:
+            self.stdout.write(self.style.WARNING("  ! master'da sifat-playlist topilmadi"))
+            return
+        status = self._status(urljoin(master_url, variant), referer=referer)
+        if status == 200:
+            self._ok(f"pleyer yo'li: nisbiy sifat-playlist ({variant}) ham ochiladi (200)")
+        else:
+            problems.append(
+                f"Master ochildi, lekin ichidagi sifat-playlist ({variant}) {status} qaytardi — "
+                "pleyer video ko'rsatmaydi (token nisbiy URL'larga o'tmayapti)."
+            )
 
     def _status(self, url: str, referer: str | None = None) -> int:
         headers = {"Referer": referer} if referer else {}

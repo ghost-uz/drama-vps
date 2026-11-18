@@ -731,6 +731,9 @@ def test_bunny_webhook_malformed_400(client, settings, body):
 
 
 class _FakeResponse:
+    # Pleyer-yo'li tekshiruvi master'dan birinchi sifat-playlistni o'qiydi
+    text = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1598433\n720p/video.m3u8\n"
+
     def __init__(self, status_code):
         self.status_code = status_code
 
@@ -775,6 +778,7 @@ def _run_check(monkeypatch, settings, responses, *args):
 
 def test_check_bunny_security_all_clean(monkeypatch, settings):
     out = _run_check(monkeypatch, settings, _SECURE_CDN)
+    assert "pleyer yo'li" in out  # token yo'lda -> nisbiy sifat-playlist ham imzoli
     assert "Barcha tekshiruvlar toza" in out
 
 
@@ -802,6 +806,21 @@ def test_check_bunny_security_token_off_not_masked_by_referer_block(monkeypatch,
     }
     out = _run_check(monkeypatch, settings, responses)
     assert "CDN token authentication" in out
+    assert "Barcha tekshiruvlar toza" not in out
+
+
+def test_check_bunny_security_detects_variant_403(monkeypatch, settings):
+    """2026-11-19 prod: token ?query'da edi — master 200, lekin pleyer quradigan
+    nisbiy 720p/video.m3u8 query'siz ketib 403. Buyruq "toza" demasligi SHART."""
+    from drama import bunny_stream
+
+    monkeypatch.setattr(
+        bunny_stream,
+        "hls_url",
+        lambda vid, *a, **kw: f"https://vz-test.b-cdn.net/{vid}/playlist.m3u8?token=x&expires=1",
+    )
+    out = _run_check(monkeypatch, settings, _SECURE_CDN)
+    assert "720p/video.m3u8) 403" in out
     assert "Barcha tekshiruvlar toza" not in out
 
 

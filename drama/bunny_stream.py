@@ -5,7 +5,8 @@ Barcha URL lar faqat Video ID va settings orqali dinamik yaratiladi.
 Ma'lumotlar bazasida faqat bunny_video_id saqlanadi.
 
 [P4-T1] Token Authentication: BUNNY_STREAM_TOKEN_KEY o'rnatilgan bo'lsa BARCHA
-video URL'lar imzolanadi (token + token_path + expires) va panelda Token Auth
+video URL'lar imzolanadi (token + token_path + expires; HLS'da token URL yo'lida —
+_signed_cdn_url izohiga qarang) va panelda Token Auth
 yoqilgach Bunny imzosiz so'rovlarni rad etadi (docs/ops/bunny.md). Kalit bo'sh
 bo'lsa (dev/test) URL'lar imzosiz qaytadi — token auth o'chiq muhit bilan mos.
 """
@@ -69,26 +70,44 @@ def _sign_token(signature_path: str, expires: int, user_ip: str, parameter_data:
     return base64.b64encode(raw).decode().replace("+", "-").replace("/", "_").replace("=", "")
 
 
-def _signed_cdn_url(video_id: str, filename: str, expiry_seconds: int | None, user_ip: str) -> str:
-    """CDN fayl URL'i; kalit bo'lsa video PAPKASI bo'yicha token qo'shadi.
+def _signed_cdn_url(
+    video_id: str,
+    filename: str,
+    expiry_seconds: int | None,
+    user_ip: str,
+    *,
+    token_in_path: bool = False,
+) -> str:
+    """CDN fayl URL'i; kalit bo'lsa video PAPKASI (token_path=/{guid}/) bo'yicha imzolaydi.
 
-    token_path = "/{video_id}/" — HLS playlist ichidagi sifat-playlist va
-    segment fayllari ham shu token bilan o'tadi (Bunny m3u8 ichidagi URL'larga
-    token'ni o'zi ko'chiradi). Faqat fayl yo'lini imzolasak playlist ochilib,
-    segmentlar 403 bo'lar edi.
+    token_in_path=True — Bunny "directory token" formati, token URL YO'LIDA:
+        https://host/bcdn_token=T&token_path=%2F{guid}%2F&expires=E/{guid}/playlist.m3u8
+    HLS uchun SHART: master playlist ichidagi sifat-playlist va segmentlar NISBIY
+    ("720p/video.m3u8", "video0.ts"); pleyer (hls.js/Safari/ExoPlayer) ularni RFC 3986
+    bo'yicha quradi — query (?token=...) tushib qoladi, yo'l esa meros o'tadi.
+    Bunny m3u8 ichidagi URL'larga token'ni O'ZI QO'SHMAYDI: 2026-11-19 token auth
+    yoqilgach master 200, 720p/video.m3u8 esa 403 bo'lib pleyer ishlamay qoldi.
+
+    Yakka fayllar (thumbnail/preview/mp4) nisbiy URL ochmaydi — oddiy ?token= formati.
     """
-    base = f"https://{_cdn_host()}/{video_id}/{filename}"
+    path = f"/{video_id}/{filename}"
     if not _token_key():
-        return base  # dev/sozlanmagan: imzosiz
+        return f"https://{_cdn_host()}{path}"  # dev/sozlanmagan: imzosiz
     token_path = f"/{video_id}/"
     expires = int(time.time()) + (expiry_seconds or token_expiry_seconds())
     token = _sign_token(token_path, expires, user_ip, f"token_path={token_path}")
-    return f"{base}?token={token}&token_path={quote(token_path, safe='')}&expires={expires}"
+    params = f"token_path={quote(token_path, safe='')}&expires={expires}"
+    if token_in_path:
+        return f"https://{_cdn_host()}/bcdn_token={token}&{params}{path}"
+    return f"https://{_cdn_host()}{path}?token={token}&{params}"
 
 
 def hls_url(video_id: str, expiry_seconds: int | None = None, user_ip: str = "") -> str:
-    """HLS Playlist URL — adaptive bitrate streaming uchun (asosiy). Imzolangan."""
-    return _signed_cdn_url(video_id, "playlist.m3u8", expiry_seconds, user_ip)
+    """HLS Playlist URL — adaptive bitrate streaming uchun (asosiy).
+
+    Imzolangan, token YO'LDA — sifat-playlist/segmentlar shu token bilan so'raladi.
+    """
+    return _signed_cdn_url(video_id, "playlist.m3u8", expiry_seconds, user_ip, token_in_path=True)
 
 
 def direct_url(

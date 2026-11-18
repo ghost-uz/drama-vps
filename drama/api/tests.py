@@ -256,15 +256,36 @@ def test_signed_url_unconfigured_is_plain():
 
 
 def test_hls_url_signed_with_token_path(bunny):
-    """Papka (token_path) imzolanadi — HLS segmentlari ham shu token bilan o'tadi."""
+    """Papka (token_path) imzolanadi va token URL YO'LIDA (Bunny directory token)."""
     bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
     from drama.bunny_stream import hls_url
 
     url = hls_url("vid-1")
-    assert url.startswith("https://vz-test.b-cdn.net/vid-1/playlist.m3u8?")
-    assert "token=" in url
-    assert "token_path=%2Fvid-1%2F" in url
-    assert "expires=" in url
+    assert url.startswith("https://vz-test.b-cdn.net/bcdn_token=")
+    assert url.endswith("/vid-1/playlist.m3u8")
+    assert "&token_path=%2Fvid-1%2F&expires=" in url
+    assert "?" not in url  # query bo'lsa pleyer nisbiy URL qurishda uni tashlab yuboradi
+
+
+def test_hls_relative_children_inherit_token(bunny):
+    """2026-11-19 prod regressiyasi: token auth yoqilgach master 200, sifat-playlist 403.
+
+    Pleyer master ichidagi NISBIY URL'larni RFC 3986 bo'yicha quradi (urljoin bilan
+    bir xil): query tushib qoladi, yo'l saqlanadi. Token yo'lda bo'lgani uchun
+    sifat-playlist ham, segment ham AYNAN shu token bilan so'raladi.
+    """
+    from urllib.parse import urljoin
+
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    from drama.bunny_stream import hls_url
+
+    master = hls_url("vid-1")
+    signed_dir = master.removesuffix("/vid-1/playlist.m3u8")
+    variant = urljoin(master, "720p/video.m3u8")
+    segment = urljoin(variant, "video0.ts")
+    assert variant == f"{signed_dir}/vid-1/720p/video.m3u8"
+    assert segment == f"{signed_dir}/vid-1/720p/video0.ts"
+    assert "/bcdn_token=" in segment
 
 
 def test_hls_token_matches_reference_algorithm(bunny, monkeypatch):
@@ -288,8 +309,10 @@ def test_hls_token_matches_reference_algorithm(bunny, monkeypatch):
         .replace("/", "_")
         .replace("=", "")
     )
-    assert f"token={expected}" in url
-    assert f"expires={expires}" in url
+    assert url == (
+        f"https://vz-test.b-cdn.net/bcdn_token={expected}"
+        f"&token_path=%2Fvid-1%2F&expires={expires}/vid-1/playlist.m3u8"
+    )
 
 
 def test_get_all_urls_every_url_signed(bunny):
