@@ -295,11 +295,25 @@ def test_hls_token_matches_reference_algorithm(bunny, monkeypatch):
 def test_get_all_urls_every_url_signed(bunny):
     """HTML pleyer ishlatadigan BARCHA URL'lar (hls/mp4/thumb/preview/embed) imzoli."""
     bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    bunny.BUNNY_MP4_FALLBACK = True
     from drama.bunny_stream import get_all_urls
 
     urls = get_all_urls("vid-1")
     assert urls
     assert all("token=" in u for u in urls.values())
+
+
+def test_get_all_urls_without_mp4_fallback(bunny):
+    """Kutubxonada MP4 Fallback o'chiq (2026-11-19) — play_*.mp4 manzillari BO'SH
+    (mavjud bo'lmagan faylga 404 so'rov yo'q), qolganlari imzoli qoladi."""
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    bunny.BUNNY_MP4_FALLBACK = False
+    from drama.bunny_stream import get_all_urls
+
+    urls = get_all_urls("vid-1")
+    assert urls["play_720"] == ""
+    assert urls["play_1080"] == ""
+    assert all("token=" in urls[k] for k in ("hls", "thumbnail", "preview", "embed"))
 
 
 def test_ip_binding_changes_token(bunny, monkeypatch):
@@ -344,6 +358,7 @@ def test_embed_url_uses_hex_token(bunny, monkeypatch):
 def test_movie_detail_html_player_signed(client, bunny):
     """HTML pleyer konteksti imzolangan URL oladi — asosiy ochiq-URL sizishi yopildi."""
     bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    bunny.BUNNY_MP4_FALLBACK = True
     movie = _movie("Signed Serial")
     _episode(movie, 1, bunny_video_id="vid-9")
     resp = client.get(f"/{movie.slug}/")
@@ -352,6 +367,21 @@ def test_movie_detail_html_player_signed(client, bunny):
     assert "token_path=%2Fvid-9%2F" in resp.context["video_hls"]
     assert "token=" in resp.context["video_720"]
     assert "token=" in resp.context["video_thumbnail"]
+
+
+@pytest.mark.django_db
+def test_movie_detail_without_mp4_fallback_still_bunny_hls(client, bunny):
+    """MP4 Fallback o'chiq: pleyer HLS bilan (use_bunny) qoladi, MP4 manzillari bo'sh."""
+    bunny.BUNNY_STREAM_TOKEN_KEY = "secret-key"
+    bunny.BUNNY_MP4_FALLBACK = False
+    movie = _movie("HLS Only")
+    _episode(movie, 1, bunny_video_id="vid-10")
+    resp = client.get(f"/{movie.slug}/")
+    assert resp.status_code == 200
+    assert resp.context["use_bunny"] is True
+    assert "token=" in resp.context["video_hls"]
+    assert resp.context["video_720"] == ""
+    assert resp.context["video_1080"] == ""
 
 
 # --- P11-T3: pagination + playback throttle gap-fill ---

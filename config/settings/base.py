@@ -329,6 +329,10 @@ BUNNY_TOKEN_EXPIRY_SECONDS = config("BUNNY_TOKEN_EXPIRY_SECONDS", default=4 * 36
 BUNNY_TOKEN_BIND_IP = config("BUNNY_TOKEN_BIND_IP", default=False, cast=bool)
 # Webhook autentifikatsiya sirri (encoding-tugadi signali) [P3-T2]
 BUNNY_WEBHOOK_SECRET = config("BUNNY_WEBHOOK_SECRET", default="")
+# Kutubxonada "MP4 Fallback" (play_{res}p.mp4) yoqilganmi — panel bilan MOS bo'lishi
+# SHART. 2026-11-19 dan O'CHIQ (saqlash ~38% kam): pleyer faqat HLS bilan ishlaydi,
+# mavjud bo'lmagan MP4 manzillar pleyerga umuman berilmaydi (404 so'rov yo'q).
+BUNNY_MP4_FALLBACK = config("BUNNY_MP4_FALLBACK", default=False, cast=bool)
 
 # -- TO'LOV: PAYME [P7-T2] --
 # PAYME_KEY = merchant kaliti (webhook Basic-auth paroli). Sozlanmagan (dev/test)

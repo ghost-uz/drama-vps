@@ -186,3 +186,30 @@ To'g'ri "O'zbekcha / Inglizcha" uchun yuklashdan OLDIN teglang
 
 Til to'g'ri teglangach pleyer o'zbekcha interfeysda o'zbekcha trekni avtomatik
 tanlaydi (kaskad: saqlangan til → `<html lang>` → Bunny DEFAULT).
+
+## Saqlash hajmi (encoding sozlamalari)
+
+Bunny yuklangan fayl uchun emas, ENCODING natijasi uchun haq oladi. Misol
+(Millerning qizi, 93 daq, asl fayl 2.02 GB;
+`GET /library/{id}/videos/{guid}/storage`, kutubxona kaliti bilan):
+
+| Qism | Hajm |
+|---|---|
+| MP4 Fallback | 3.44 GB (38%) |
+| HLS 1080p | 2.06 GB |
+| Asl fayl (Keep original files) | 2.02 GB (22%) |
+| HLS 720p | 0.92 GB |
+| Boshqa (audio yo'llari va h.k.) | 0.61 GB |
+| **Jami** | **9.06 GB** |
+
+2026-11-19 qarori — ikkalasi ham O'CHIQ (~60% kam joy):
+
+- **Keep original files** — asl fayllar egasida saqlanadi. Bunny zaxira EMAS:
+  hisob to'xtatilsa videolarga kirib bo'lmaydi (2026-11 eski hisob saboqi).
+- **MP4 Fallback** — `.env` `BUNNY_MP4_FALLBACK=False` bilan MOS: sayt MP4
+  manzil bermaydi, pleyer faqat HLS (zaxira MP4 va eski iOS'dagi qo'lda sifat
+  tanlovi yo'q, "Avto" ishlaydi). Panelda qayta yoqilsa `.env`ni ham `True` qiling.
+
+Sozlamalar FAQAT keyingi yuklashlarga ta'sir qiladi — mavjud videoni
+kichraytirmaydi (asl faylni o'chirish: CLI `bunny stream videos cleanup --original`).
+Replikatsiya mintaqasini qo'shishdan oldin o'ylang — uni keyin olib tashlab bo'lmaydi.

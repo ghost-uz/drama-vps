@@ -221,18 +221,19 @@ function applyQual(q) {
         }
     } else if (q !== 'auto' && q !== mp4Qual) {
         const src = q === '1080' ? d.src1080 : d.src720;
-        if (src) {
-            mp4Qual = q;
-            const t = video.currentTime, wasPaused = video.paused;
-            els.cpLoader.classList.add('on');
-            video.src = src;
-            video.load();
-            video.addEventListener('loadedmetadata', () => {
-                video.currentTime = t;
-                if (!wasPaused) video.play();
-                els.cpLoader.classList.remove('on');
-            }, { once: true });
-        }
+        /* MP4 Fallback o'chiq (src bo'sh) — nativ HLS'da (eski iOS) sifat faqat
+           Avto: yorliq "1080p" deb noto'g'ri ko'rsatmasin */
+        if (!src) return;
+        mp4Qual = q;
+        const t = video.currentTime, wasPaused = video.paused;
+        els.cpLoader.classList.add('on');
+        video.src = src;
+        video.load();
+        video.addEventListener('loadedmetadata', () => {
+            video.currentTime = t;
+            if (!wasPaused) video.play();
+            els.cpLoader.classList.remove('on');
+        }, { once: true });
     }
     els.cpQualBtn.textContent = q === 'auto' ? 'Avto' : q + 'p';
     const btn = els.cpQualMenu.querySelector('[data-qual="' + q + '"]');

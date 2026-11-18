@@ -37,6 +37,11 @@ def is_configured() -> bool:
     return bool(_cdn_host() and _library_id())
 
 
+def mp4_fallback_enabled() -> bool:
+    """Kutubxonada MP4 Fallback yoqilganmi (play_{res}p.mp4 fayllari mavjudmi)."""
+    return getattr(settings, "BUNNY_MP4_FALLBACK", False)
+
+
 def token_expiry_seconds() -> int:
     """Imzolangan URL amal qilish muddati (default 4 soat)."""
     return getattr(settings, "BUNNY_TOKEN_EXPIRY_SECONDS", 4 * 3600)
@@ -122,10 +127,13 @@ def get_all_urls(video_id: str, expiry_seconds: int | None = None, user_ip: str 
     """Video ID dan barcha URL larni bir dict sifatida qaytaradi (imzolangan)."""
     if not video_id or not is_configured():
         return {}
+    # MP4 Fallback o'chiq kutubxonada play_*.mp4 YO'Q — bo'sh qaytaramiz: pleyerlar
+    # (player-core/player/player-classic) bo'sh manzilni jim o'tkazadi, 404 so'rov yo'q
+    mp4 = mp4_fallback_enabled()
     return {
         "hls": hls_url(video_id, expiry_seconds, user_ip),
-        "play_720": direct_url(video_id, 720, expiry_seconds, user_ip),
-        "play_1080": direct_url(video_id, 1080, expiry_seconds, user_ip),
+        "play_720": direct_url(video_id, 720, expiry_seconds, user_ip) if mp4 else "",
+        "play_1080": direct_url(video_id, 1080, expiry_seconds, user_ip) if mp4 else "",
         "thumbnail": thumbnail_url(video_id, expiry_seconds, user_ip),
         "preview": preview_url(video_id, expiry_seconds, user_ip),
         "embed": embed_url(video_id, expiry_seconds),
