@@ -434,7 +434,7 @@ function onEnded(nextEp) {
         btn.setAttribute('aria-expanded', 'false');
     });
 
-    core.onAudioTracks((tracks, lang) => {
+    core.onAudioTracks((tracks, key) => {
         if (tracks.length < 2) { wrap.hidden = true; return; }
         wrap.hidden = false;
         menu.textContent = '';
@@ -444,13 +444,16 @@ function onEnded(nextEp) {
             b.setAttribute('role', 'menuitemradio');
             b.dataset.audio = t.id;
             b.textContent = t.label;
-            const on = t.lang === lang;
+            /* KEY bilan — til takrorlansa ikkala band ham belgilanmasin */
+            const on = t.key === key;
             b.setAttribute('aria-checked', on ? 'true' : 'false');
             if (on) b.className = 'active';
             menu.appendChild(b);
         });
-        const cur = tracks.filter((t) => t.lang === lang)[0] || tracks[0];
-        label.textContent = (cur.lang || '').toUpperCase() || cur.label;
+        const cur = tracks.filter((t) => t.key === key)[0] || tracks[0];
+        /* Tugmada til kodi (UZ) faqat til ANIQ bo'lsa; aks holda "2-ovoz" —
+           noto'g'ri teg "EN" bo'lib ko'rinmasin */
+        label.textContent = cur.key === cur.lang ? cur.lang.toUpperCase() : cur.label;
         btn.title = cur.label;
     });
 })();

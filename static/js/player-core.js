@@ -203,7 +203,17 @@ window.DramaPlayerCore = function (video, d, opts) {
 
        Tanlov TIL KODI bo'yicha saqlanadi, indeks bo'yicha EMAS: keyingi
        qismda treklar boshqa tartibda kelib, indeks boshqa tilni yoqib
-       yuborishi mumkin. */
+       yuborishi mumkin.
+
+       ISTISNO — til kodi TAKRORLANSA yoki YO'Q bo'lsa (2026-11-18, "Millerning
+       qizi"): Bunny tilni FAYL metama'lumotidan oladi; teglanmagan faylda u
+       ikkala trekka ham LANGUAGE="en" qo'ydi va o'zbekcha dublyaj "Inglizcha"
+       bo'lib chiqdi, ikkala band bir vaqtda "faol" ko'rinib, tanlov qayta-
+       parse'da 1-trekka qaytardi. Bunday kodga ishonib bo'lmaydi: trek
+       POZITSIYA bilan aniqlanadi — neytral "1-ovoz / 2-ovoz" yorlig'i va
+       'en#2' ko'rinishidagi key. Til aniq trekda key = til ('uz') — eski xulq
+       o'zgarmaydi. Asl yechim faylni teglab qayta yuklash; bu qism pleyerni
+       xato metama'lumotga chidamli qiladi xolos. */
     var AUDIO_KEY = 'drama:audioLang';
 
     /* Til kodi -> o'zbekcha nom. Ro'yxatda yo'q til uchun Bunny'dagi NAME,
@@ -215,16 +225,33 @@ window.DramaPlayerCore = function (video, d, opts) {
         th: 'Taycha', es: 'Ispancha', fr: 'Fransuzcha', de: 'Nemischa',
     };
 
+    /* ISO 639-2 (3 harfli) -> 639-1. MP4 til maydoni 3 harfli (uzb, eng);
+       packager odatda 2 harfliga o'giradi, lekin 3 harflisi kelsa ham yorliq
+       to'g'ri chiqsin. 'und' (aniqlanmagan) = til YO'Q. */
+    var ISO3 = {
+        uzb: 'uz', rus: 'ru', eng: 'en', kor: 'ko', chi: 'zh', zho: 'zh',
+        jpn: 'ja', tur: 'tr', hin: 'hi', ara: 'ar', per: 'fa', fas: 'fa',
+        kaz: 'kk', tgk: 'tg', tha: 'th', spa: 'es', fre: 'fr', fra: 'fr',
+        ger: 'de', deu: 'de', und: '',
+    };
+
     var audioSubs = [];   /* UI kuzatuvchilari */
-    var audioWanted = null; /* tanlangan TIL — manba qayta yuklansa tiklanadi */
+    var audioWanted = null; /* tanlangan trek KEY'i — manba qayta yuklansa tiklanadi */
+
+    /* Til kodi tashqi metama'lumot: 'constructor' kabi qiymat lug'atdan
+       prototip xossasini (Object funksiyasini) yorliq qilib olib kelmasin */
+    function own(obj, k) {
+        return Object.prototype.hasOwnProperty.call(obj, k);
+    }
 
     function normLang(v) {
-        return String(v || '').toLowerCase().split(/[-_]/)[0];
+        var l = String(v || '').toLowerCase().split(/[-_]/)[0];
+        return own(ISO3, l) ? ISO3[l] : l;
     }
 
     function audioLabel(lang, name, i) {
-        return AUDIO_LABELS[lang] || name || (lang ? lang.toUpperCase() : '')
-            || (i + 1) + '-ovoz';
+        return (own(AUDIO_LABELS, lang) ? AUDIO_LABELS[lang] : '') || name
+            || (lang ? lang.toUpperCase() : '') || (i + 1) + '-ovoz';
     }
 
     function hlsAudio() {
@@ -238,27 +265,42 @@ window.DramaPlayerCore = function (video, d, opts) {
             ? video.audioTracks : null;
     }
 
+    /* Xom treklar [{lang, name}] -> UI ro'yxati {id, lang, key, label}.
+       Til ro'yxatda YAGONA: key = til, yorliq = til nomi.
+       Takroriy yoki bo'sh til: key = 'til#pozitsiya', yorliq = "N-ovoz". */
+    function buildAudioList(raw) {
+        var count = Object.create(null);
+        raw.forEach(function (t) { count[t.lang] = (count[t.lang] || 0) + 1; });
+        return raw.map(function (t, i) {
+            var sure = !!t.lang && count[t.lang] === 1;
+            return {
+                id: i,
+                lang: t.lang,
+                key: sure ? t.lang : t.lang + '#' + (i + 1),
+                label: sure ? audioLabel(t.lang, t.name, i) : (i + 1) + '-ovoz',
+            };
+        });
+    }
+
     /* Tanlanadigan treklar. BITTA trek bo'lsa bo'sh ro'yxat qaytadi —
        "tanlovsiz tanlov" menyusi ko'rsatilmaydi (progressive disclosure). */
     function audioTracks() {
-        var out = [];
+        var raw = [];
         var i;
         var h = hlsAudio();
         if (h) {
             for (i = 0; i < h.length; i++) {
-                var lang = normLang(h[i].lang || h[i].language);
-                out.push({ id: i, lang: lang, label: audioLabel(lang, h[i].name, i) });
+                raw.push({ lang: normLang(h[i].lang || h[i].language), name: h[i].name });
             }
-            return out;
+            return buildAudioList(raw);
         }
         var n = nativeAudio();
         if (n) {
             for (i = 0; i < n.length; i++) {
-                var nl = normLang(n[i].language);
-                out.push({ id: i, lang: nl, label: audioLabel(nl, n[i].label, i) });
+                raw.push({ lang: normLang(n[i].language), name: n[i].label });
             }
         }
-        return out;
+        return buildAudioList(raw);
     }
 
     function currentAudioId() {
@@ -270,9 +312,18 @@ window.DramaPlayerCore = function (video, d, opts) {
         return -1;
     }
 
-    function currentAudioLang() {
+    function currentAudioTrack() {
         var cur = currentAudioId();
-        var t = audioTracks().filter(function (x) { return x.id === cur; })[0];
+        return audioTracks().filter(function (x) { return x.id === cur; })[0] || null;
+    }
+
+    function currentAudioKey() {
+        var t = currentAudioTrack();
+        return t ? t.key : '';
+    }
+
+    function currentAudioLang() {
+        var t = currentAudioTrack();
         return t ? t.lang : '';
     }
 
@@ -288,11 +339,16 @@ window.DramaPlayerCore = function (video, d, opts) {
 
     function setAudioTrack(id) {
         var t = audioTracks().filter(function (x) { return x.id === id; })[0];
-        if (!t) return currentAudioLang();
-        audioWanted = t.lang;
+        if (!t) return currentAudioKey();
+        audioWanted = t.key;
         applyAudioTrack(id);
-        try { localStorage.setItem(AUDIO_KEY, t.lang); } catch (e) { /* private mode */ }
-        return t.lang;
+        /* Qurilma afzalligi (boshqa videolarga ham o'tadi) FAQAT til aniq
+           bo'lsa yoziladi. "2-ovoz" pozitsion tanlovi shu videoga xos — uni
+           saqlasak, keyingi videoda tasodifiy trek yoqilardi. */
+        if (t.key === t.lang) {
+            try { localStorage.setItem(AUDIO_KEY, t.lang); } catch (e) { /* private mode */ }
+        }
+        return t.key;
     }
 
     /* Standart trek KASKADI (foydalanuvchi qarori, 2026-08-02):
@@ -304,7 +360,9 @@ window.DramaPlayerCore = function (video, d, opts) {
         var ui = normLang(document.documentElement.lang);
         function byLang(l) {
             if (!l) return null;
-            return list.filter(function (t) { return t.lang === l; })[0] || null;
+            /* key === til faqat til YAGONA trekda: takroriy tilga moslik
+               tasodifiy trekni tanlardi — unda Bunny DEFAULT'i qoladi */
+            return list.filter(function (t) { return t.key === l; })[0] || null;
         }
         return byLang(saved) || byLang(ui) || null;
     }
@@ -314,8 +372,8 @@ window.DramaPlayerCore = function (video, d, opts) {
            o'sha paytda audioSubs hali hoisting tufayli undefined bo'ladi */
         if (!audioSubs) return;
         var list = audioTracks();
-        var lang = currentAudioLang();
-        audioSubs.forEach(function (cb) { cb(list, lang); });
+        var key = currentAudioKey();
+        audioSubs.forEach(function (cb) { cb(list, key); });
     }
 
     function notifyAudio() {
@@ -323,20 +381,22 @@ window.DramaPlayerCore = function (video, d, opts) {
         if (list.length) {
             if (audioWanted === null) {
                 var pick = pickDefaultAudio(list);
-                audioWanted = pick ? pick.lang : currentAudioLang();
+                audioWanted = pick ? pick.key : currentAudioKey();
             }
             /* Imzoli URL yangilangach hls.js standart trekka qaytadi —
                foydalanuvchi tanlovi shu yerda qayta tiklanadi. */
-            var want = list.filter(function (t) { return t.lang === audioWanted; })[0];
+            var want = list.filter(function (t) { return t.key === audioWanted; })[0];
             if (want && currentAudioId() !== want.id) applyAudioTrack(want.id);
         }
         emitAudio();
     }
 
-    /* UI ro'yxatdan o'tadi; treklar allaqachon tayyor bo'lsa darhol chaqiriladi */
+    /* UI ro'yxatdan o'tadi: cb(treklar, joriy trek KEY'i); treklar allaqachon
+       tayyor bo'lsa darhol chaqiriladi. Faol bandni KEY bilan solishtiring —
+       til kodi takrorlanishi mumkin. */
     function onAudioTracks(cb) {
         audioSubs.push(cb);
-        if (audioTracks().length) cb(audioTracks(), currentAudioLang());
+        if (audioTracks().length) cb(audioTracks(), currentAudioKey());
     }
 
     if (hlsInst && window.Hls) {
@@ -457,6 +517,7 @@ window.DramaPlayerCore = function (video, d, opts) {
         currentSubtitle: currentSubtitle,
         audioTracks: audioTracks,
         currentAudioLang: currentAudioLang,
+        currentAudioKey: currentAudioKey,
         setAudioTrack: setAudioTrack,
         onAudioTracks: onAudioTracks,
         setSpeed: setSpeed,

@@ -303,17 +303,20 @@ window.playerSet = function (btn) {
     const list  = document.getElementById('rAudioList');
     if (!group || !list) return;
 
-    core.onAudioTracks(function (tracks, lang) {
+    core.onAudioTracks(function (tracks, key) {
         if (tracks.length < 2) { group.hidden = true; return; }
         group.hidden = false;
         list.textContent = '';
         tracks.forEach(function (t) {
+            /* KEY bilan: til takrorlansa (teglanmagan fayl) ikkala band ham
+               "faol" bo'lib ko'rinmasin */
+            const on = t.key === key;
             const b = document.createElement('button');
             b.type = 'button';
-            b.className = 'r-set-option' + (t.lang === lang ? ' active' : '');
+            b.className = 'r-set-option' + (on ? ' active' : '');
             b.dataset.set = 'audio';
             b.dataset.val = String(t.id);
-            b.setAttribute('aria-pressed', t.lang === lang ? 'true' : 'false');
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
             b.addEventListener('click', function () { window.playerSet(b); });
 
             const span = document.createElement('span');
